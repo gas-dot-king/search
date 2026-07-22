@@ -10,8 +10,12 @@ export const GET = route(async (req) => {
   const action = url.searchParams.get("action") || "overview";
 
   if (action === "overview") {
-    const [settings, { progress }] = await Promise.all([getSettings(), getAllProgress()]);
-    return { settings, users: progress };
+    const [settings, { progress }, { data: items }] = await Promise.all([
+      getSettings(),
+      getAllProgress(),
+      sb().from("bingo_items").select("id, category, content").order("category").order("id"),
+    ]);
+    return { settings, users: progress, items: items || [] };
   }
 
   if (action === "user") {

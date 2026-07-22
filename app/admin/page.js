@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { adminApi, adminPw } from "@/lib/adminClient";
 import SettingsCard from "@/components/admin/SettingsCard";
 import UserDetail from "@/components/admin/UserDetail";
+import ItemsCard from "@/components/admin/ItemsCard";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -110,6 +111,8 @@ export default function AdminPage() {
           </tbody>
         </table>
       </div>
+
+      <ItemsCard items={overview.items} />
     </main>
   );
 }
