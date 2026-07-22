@@ -1,37 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import Nav from "@/components/Nav";
-import { api, getToken, resizeImage, PRIVACY_WARNING } from "@/lib/client";
+import { api, PRIVACY_WARNING } from "@/lib/client";
+import { useApiData, usePhoto } from "@/lib/hooks";
+
+const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
 export default function LottoPage() {
-  const router = useRouter();
-  const [data, setData] = useState(null);
+  const { data, error: loadError, reload } = useApiData("/api/lotto");
+  const photo = usePhoto();
   const [digits, setDigits] = useState(["", "", "", ""]);
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const fileRef = useRef(null);
   const digitRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
-
-  const load = useCallback(async () => {
-    try {
-      setData(await api("/api/lotto"));
-    } catch (err) {
-      if (err.status === 401) router.replace("/");
-      else setError(err.message);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/");
-      return;
-    }
-    load();
-  }, [load, router]);
 
   function setDigit(i, v) {
     const d = v.replace(/\D/g, "").slice(-1);
@@ -43,44 +24,24 @@ export default function LottoPage() {
     if (d && i < 3) digitRefs[i + 1].current?.focus();
   }
 
-  async function onPick(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setBusy(true);
-    setError("");
-    try {
-      const blob = await resizeImage(f);
-      setFile(blob);
-      if (preview) URL.revokeObjectURL(preview);
-      setPreview(URL.createObjectURL(blob));
-    } catch {
-      setError("사진을 처리하지 못했어요.");
-    } finally {
-      setBusy(false);
-      e.target.value = "";
-    }
-  }
-
   async function submit() {
     const code = digits.join("");
-    if (code.length !== 4) return setError("기록 4자리를 모두 입력해주세요.");
-    if (!file) return setError("인증 사진을 선택해주세요.");
-    setBusy(true);
-    setError("");
+    if (code.length !== 4) return photo.setError("기록 4자리를 모두 입력해주세요.");
+    if (!photo.file) return photo.setError("인증 사진을 선택해주세요.");
+    photo.setBusy(true);
+    photo.setError("");
     try {
       const form = new FormData();
       form.append("digits", code);
-      form.append("file", file, "lotto.jpg");
+      form.append("file", photo.file, "lotto.jpg");
       await api("/api/lotto", { method: "POST", body: form });
       setDigits(["", "", "", ""]);
-      setFile(null);
-      if (preview) URL.revokeObjectURL(preview);
-      setPreview(null);
-      await load();
+      photo.clear();
+      await reload();
     } catch (err) {
-      setError(err.message);
+      photo.setError(err.message);
     } finally {
-      setBusy(false);
+      photo.setBusy(false);
     }
   }
 
@@ -88,9 +49,9 @@ export default function LottoPage() {
     if (!confirm("이 응모를 취소할까요? 사진도 삭제됩니다.")) return;
     try {
       await api("/api/lotto", { method: "DELETE", body: JSON.stringify({ id }) });
-      await load();
+      await reload();
     } catch (err) {
-      setError(err.message);
+      photo.setError(err.message);
     }
   }
 
@@ -98,14 +59,12 @@ export default function LottoPage() {
     return (
       <main className="wrap">
         <Nav />
-        <p className="hint">{error || "불러오는 중..."}</p>
+        <p className="hint">{loadError || "불러오는 중..."}</p>
       </main>
     );
 
   const drawn = Boolean(data.winningNumbers);
   const canApply = !drawn && data.entries.length < data.maxEntries;
-
-  const fmt = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
   return (
     <main className="wrap">
@@ -121,7 +80,7 @@ export default function LottoPage() {
               <span key={i} className="winning-digit">{d}</span>
             ))}
           </div>
-          <p className="hint">기록 {fmt(data.winningNumbers)} km 와 자리별로 비교해요</p>
+          <p className="hint">기록 {fmtKm(data.winningNumbers)} km 와 자리별로 비교해요</p>
         </div>
       )}
 
@@ -130,7 +89,9 @@ export default function LottoPage() {
         <p style={{ fontWeight: 700 }}>
           내 응모 ({data.entries.length}/{data.maxEntries})
         </p>
-        {data.entries.length === 0 && <p className="hint" style={{ marginTop: 6 }}>아직 응모한 기록이 없어요.</p>}
+        {data.entries.length === 0 && (
+          <p className="hint" style={{ marginTop: 6 }}>아직 응모한 기록이 없어요.</p>
+        )}
         {data.entries.map((e) => (
           <div className="entry-item" key={e.id}>
             {e.photoUrl && <img src={e.photoUrl} alt="인증" />}
@@ -176,15 +137,15 @@ export default function LottoPage() {
             ))}
           </div>
           <div className="warn-box">{PRIVACY_WARNING}</div>
-          <input ref={fileRef} type="file" accept="image/*" onChange={onPick} style={{ display: "none" }} />
-          {preview && <img className="preview" src={preview} alt="미리보기" style={{ width: "100%", borderRadius: 10 }} />}
-          {error && <p className="error-msg">{error}</p>}
+          <input ref={fileRef} type="file" accept="image/*" onChange={photo.pick} style={{ display: "none" }} />
+          {photo.preview && <img className="preview" src={photo.preview} alt="미리보기" />}
+          {photo.error && <p className="error-msg">{photo.error}</p>}
           <div className="modal-actions">
-            <button className="btn ghost" onClick={() => fileRef.current?.click()} disabled={busy}>
-              {file ? "사진 다시 선택" : "인증 사진 선택"}
+            <button className="btn ghost" onClick={() => fileRef.current?.click()} disabled={photo.busy}>
+              {photo.file ? "사진 다시 선택" : "인증 사진 선택"}
             </button>
-            <button className="btn primary" onClick={submit} disabled={busy || !file}>
-              {busy ? "응모 중..." : "응모하기"}
+            <button className="btn primary" onClick={submit} disabled={photo.busy || !photo.file}>
+              {photo.busy ? "응모 중..." : "응모하기"}
             </button>
           </div>
         </div>
@@ -206,7 +167,7 @@ export default function LottoPage() {
               {data.winners.map((w) => (
                 <tr key={w.nickname}>
                   <td>{w.nickname}</td>
-                  <td>{fmt(w.digits)} km</td>
+                  <td>{fmtKm(w.digits)} km</td>
                   <td className="num">
                     <b style={{ color: "var(--accent)" }}>{w.matches}개 일치</b>
                   </td>

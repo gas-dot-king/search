@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
-import { api, getToken } from "@/lib/client";
+import { useApiData } from "@/lib/hooks";
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -16,22 +14,7 @@ function timeAgo(iso) {
 }
 
 export default function FeedPage() {
-  const router = useRouter();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/");
-      return;
-    }
-    api("/api/feed")
-      .then(setData)
-      .catch((err) => {
-        if (err.status === 401) router.replace("/");
-        else setError(err.message);
-      });
-  }, [router]);
+  const { data, error } = useApiData("/api/feed");
 
   if (!data)
     return (
@@ -64,7 +47,9 @@ export default function FeedPage() {
                 <td>{i < 3 && r.filled > 0 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>
                 <td>{r.nickname}</td>
                 <td className="num">{r.filled}/16</td>
-                <td className="num"><b style={{ color: r.lines ? "var(--accent)" : undefined }}>{r.lines}</b></td>
+                <td className="num">
+                  <b style={{ color: r.lines ? "var(--accent)" : undefined }}>{r.lines}</b>
+                </td>
                 <td className="num">{r.lottoEntries}장</td>
               </tr>
             ))}
@@ -75,7 +60,9 @@ export default function FeedPage() {
 
       <div className="card">
         <p style={{ fontWeight: 700, marginBottom: 4 }}>최근 활동</p>
-        {data.activity.length === 0 && <p className="hint">아직 활동이 없어요. 첫 인증의 주인공이 되어보세요!</p>}
+        {data.activity.length === 0 && (
+          <p className="hint">아직 활동이 없어요. 첫 인증의 주인공이 되어보세요!</p>
+        )}
         {data.activity.map((a, i) => (
           <div className="feed-item" key={i}>
             {a.type === "bingo" ? "🟩" : "🎰"} <b>{a.nickname}</b>님이{" "}
