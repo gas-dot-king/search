@@ -49,7 +49,7 @@ export default function EntryPage() {
     <main className="wrap">
       <div style={{ textAlign: "center", margin: "48px 0 24px" }}>
         <div style={{ fontSize: "3rem" }}>🏃‍♀️🏃‍♂️</div>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>러닝크루 온라인 위크</h1>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>양산 슬로우러닝 온라인 위크</h1>
         <p className="hint" style={{ marginTop: 6 }}>
           8/1 ~ 8/13 · 빙고 인증 + 달리기 로또 🎰
         </p>

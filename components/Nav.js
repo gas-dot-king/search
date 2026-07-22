@@ -42,7 +42,7 @@ export default function Nav({ config }) {
   return (
     <>
       <nav className="nav">
-        <span className="brand">🏃 온라인 위크</span>
+        <span className="brand">🏃 양산 슬로우러닝</span>
         {links.map(([href, label]) => (
           <a key={href} href={href} className={pathname === href ? "active" : ""}>
             {label}

@@ -25,7 +25,7 @@ body {
 
 /* ---- 상단 네비 ---- */
 .nav {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 12px 0; margin-bottom: 4px;
 }
 .nav .brand { font-weight: 800; font-size: 1.05rem; margin-right: auto; color: var(--accent); }
@@ -134,7 +134,10 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 12px 0 6px
   max-height: 88vh; overflow-y: auto;
 }
 .modal h3 { font-size: 1rem; margin-bottom: 4px; }
-.modal .preview { width: 100%; border-radius: 10px; margin: 10px 0; }
+.preview {
+  display: block; width: 100%; max-height: 30vh; object-fit: contain;
+  background: #f1f5f9; border-radius: 10px; margin: 10px 0;
+}
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 .modal-actions .btn { flex: 1; }
 
