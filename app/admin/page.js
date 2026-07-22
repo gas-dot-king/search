@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { adminApi, adminPw } from "@/lib/adminClient";
 import SettingsCard from "@/components/admin/SettingsCard";
 import UserDetail from "@/components/admin/UserDetail";
@@ -19,12 +19,6 @@ export default function AdminPage() {
     setOverview(data);
     setAuthed(true);
   }, []);
-
-  useEffect(() => {
-    if (adminPw.get()) {
-      loadOverview().catch(() => adminPw.clear());
-    }
-  }, [loadOverview]);
 
   async function login(e) {
     e.preventDefault();

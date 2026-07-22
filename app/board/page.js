@@ -3,8 +3,17 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Nav from "@/components/Nav";
+import ItemsList from "@/components/ItemsList";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto } from "@/lib/hooks";
+import { LINES } from "@/lib/bingo";
+
+/** 카테고리별 인증 사진 예시 안내 */
+const PHOTO_EXAMPLES = {
+  1: "예시: 러닝 앱 기록 화면 캡처(거리·시간이 보이게), 만보기·건강 앱 걸음 수 캡처 등",
+  2: "예시: 시간이 보이는 러닝 앱 기록 캡처, 그 장소·풍경·랜드마크에서 찍은 사진 등",
+  3: "예시: 함께 찍은 인증샷, 단톡방 댓글·플레이리스트 화면 캡처, 러닝화·물·음식 사진 등",
+};
 
 function BoardInner() {
   const router = useRouter();
@@ -12,12 +21,30 @@ function BoardInner() {
   const { data: board, error: loadError, reload } = useApiData("/api/board");
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
+  const [showItems, setShowItems] = useState(false);
+  const [allItems, setAllItems] = useState(null);
+  const [celebrate, setCelebrate] = useState(0);
+  const prevLines = useRef(null);
   const fileRef = useRef(null);
 
   // 빙고판이 아직 없으면 뽑기로
   useEffect(() => {
     if (board && board.cells.length === 0) router.replace("/draw");
   }, [board, router]);
+
+  // 줄 수가 늘어나면 축하 연출 (아래 효과가 이전 값 갱신)
+  const lines = board?.lines;
+  useEffect(() => {
+    if (lines == null) return;
+    if (prevLines.current != null && lines > prevLines.current) {
+      setCelebrate(lines);
+      const t = setTimeout(() => setCelebrate(0), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [lines]);
+  useEffect(() => {
+    if (lines != null) prevLines.current = lines;
+  }, [lines]);
 
   function openCell(cell) {
     setSelected(cell);
@@ -27,6 +54,18 @@ function BoardInner() {
   function closeModal() {
     setSelected(null);
     photo.clear();
+  }
+
+  async function openItems() {
+    setShowItems(true);
+    if (!allItems) {
+      try {
+        const d = await api("/api/items");
+        setAllItems(d.items);
+      } catch {
+        /* 목록 로드 실패 시 모달에 안내 표시 */
+      }
+    }
   }
 
   async function upload() {
@@ -73,6 +112,10 @@ function BoardInner() {
       </main>
     );
 
+  // 완성된 줄에 속한 칸들 (금색 하이라이트)
+  const filledSet = new Set(board.cells.filter((c) => c.photoUrl).map((c) => c.position));
+  const lineCells = new Set(LINES.filter((l) => l.every((p) => filledSet.has(p))).flat());
+
   return (
     <main className="wrap">
       <Nav />
@@ -97,7 +140,7 @@ function BoardInner() {
         {board.cells.map((cell, i) => (
           <div
             key={cell.position}
-            className={`cell ${cell.photoUrl ? "done" : ""} ${fresh ? "reveal" : ""}`}
+            className={`cell ${cell.photoUrl ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""} ${fresh ? "reveal" : ""}`}
             style={fresh ? { animationDelay: `${i * 0.05}s` } : undefined}
             onClick={() => openCell(cell)}
           >
@@ -121,10 +164,30 @@ function BoardInner() {
         <span><i className="cat1" />기록 달성</span>
         <span><i className="cat2" />시간·장소 탐험</span>
         <span><i className="cat3" />크루 소통·재미</span>
+        <button className="btn ghost sm" style={{ marginLeft: "auto" }} onClick={openItems}>
+          📋 전체 항목 보기
+        </button>
       </div>
 
       <div className="rule-box">{CATEGORY_RULE}</div>
 
+      {/* 전체 항목 모달 */}
+      {showItems && (
+        <div className="modal-bg" onClick={() => setShowItems(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>📋 전체 빙고 항목 (24개)</h3>
+            <p className="hint" style={{ margin: "4px 0 10px" }}>
+              이 중에서 카테고리별 5~6개, 총 16개가 내 빙고판에 랜덤으로 뽑혔어요.
+            </p>
+            {allItems ? <ItemsList items={allItems} /> : <p className="hint">불러오는 중...</p>}
+            <div className="modal-actions">
+              <button className="btn ghost" onClick={() => setShowItems(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 업로드 모달 */}
       {selected && (
         <div className="modal-bg" onClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -135,6 +198,11 @@ function BoardInner() {
               />
               {selected.content}
             </h3>
+            <div className="rule-box" style={{ marginBottom: 6 }}>
+              📷 본인이 직접 올리는 인증이에요. <b>항목 내용이 잘 나타나는 사진이면 충분합니다!</b>
+              <br />
+              {PHOTO_EXAMPLES[selected.category]}
+            </div>
             <div className="warn-box">{PRIVACY_WARNING}</div>
 
             {photo.preview ? (
@@ -167,6 +235,26 @@ function BoardInner() {
                 닫기
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 빙고 완성 축하 */}
+      {celebrate > 0 && (
+        <div className="celebrate-overlay" onClick={() => setCelebrate(0)}>
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span
+              key={i}
+              className="confetti"
+              style={{ left: `${(i * 53) % 100}%`, animationDelay: `${(i % 9) * 0.22}s` }}
+            >
+              {["🎉", "🎊", "✨", "🏃"][i % 4]}
+            </span>
+          ))}
+          <div className="celebrate-box">
+            <div className="celebrate-emoji">🎉</div>
+            <div className="celebrate-text">{celebrate}줄 빙고 달성!</div>
+            <p className="hint" style={{ marginTop: 6 }}>대단해요! 계속 달려봐요 🏃</p>
           </div>
         </div>
       )}

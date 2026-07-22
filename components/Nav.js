@@ -23,6 +23,34 @@ function dDayText(cfg) {
   return "이벤트 종료";
 }
 
+/** 공지 여러 개를 5초 간격 로테이션 + 수동 이동 버튼 */
+function NoticeBar({ notices }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (notices.length < 2) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % notices.length), 5000);
+    return () => clearInterval(t);
+  }, [notices.length, idx]); // idx 포함 → 수동 이동 후에도 5초 다시 대기
+
+  if (notices.length === 0) return null;
+  const cur = idx % notices.length;
+  const move = (d) => setIdx((cur + d + notices.length) % notices.length);
+
+  return (
+    <div className="notice-bar">
+      <span className="notice-text">📢 {notices[cur]}</span>
+      {notices.length > 1 && (
+        <span className="notice-ctrl">
+          <button type="button" onClick={() => move(-1)} aria-label="이전 공지">‹</button>
+          <em>{cur + 1}/{notices.length}</em>
+          <button type="button" onClick={() => move(1)} aria-label="다음 공지">›</button>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function Nav({ config }) {
   const pathname = usePathname();
   const [cfg, setCfg] = useState(config || null);
@@ -50,7 +78,7 @@ export default function Nav({ config }) {
         ))}
         <span className="dday">{dDayText(cfg)}</span>
       </nav>
-      {cfg?.notice && <div className="notice-bar">📢 {cfg.notice}</div>}
+      <NoticeBar notices={cfg?.notices || []} />
     </>
   );
 }

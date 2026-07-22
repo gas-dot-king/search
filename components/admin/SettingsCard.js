@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { adminPost } from "@/lib/adminClient";
+import { parseNotices, MAX_NOTICES } from "@/lib/notices";
 
 export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
   async function setSetting(key, value, confirmMsg) {
@@ -35,8 +36,12 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
     <div className="card">
       <p style={{ fontWeight: 700, marginBottom: 8 }}>이벤트 설정</p>
 
-      <label>공지 (모든 페이지 상단 노출)</label>
-      <NoticeEditor value={settings.notice || ""} onSave={(v) => setSetting("notice", v)} busy={busy} />
+      <label>공지 (모든 페이지 상단, 5초마다 자동 전환, 최대 {MAX_NOTICES}개)</label>
+      <NoticesEditor
+        raw={settings.notice || ""}
+        onSave={(list) => setSetting("notice", JSON.stringify(list))}
+        busy={busy}
+      />
 
       <label>로또 최대 응모 장수</label>
       <select
@@ -79,15 +84,50 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
   );
 }
 
-function NoticeEditor({ value, onSave, busy }) {
-  const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
+function NoticesEditor({ raw, onSave, busy }) {
+  const notices = parseNotices(raw);
+  const [text, setText] = useState("");
+
+  function add() {
+    const t = text.trim();
+    if (!t) return;
+    if (notices.length >= MAX_NOTICES) return alert(`공지는 최대 ${MAX_NOTICES}개까지 가능합니다.`);
+    onSave([...notices, t]);
+    setText("");
+  }
+
   return (
-    <div style={{ display: "flex", gap: 8 }}>
-      <input value={text} onChange={(e) => setText(e.target.value)} placeholder="예: 추첨은 8/15 저녁 8시!" />
-      <button className="btn ghost" onClick={() => onSave(text)} disabled={busy}>
-        저장
-      </button>
+    <div>
+      {notices.map((n, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
+            borderBottom: "1px dashed var(--line)", fontSize: "0.85rem",
+          }}
+        >
+          <span style={{ flex: 1 }}>📢 {n}</span>
+          <button
+            className="btn danger sm"
+            disabled={busy}
+            onClick={() => confirm("이 공지를 삭제할까요?") && onSave(notices.filter((_, j) => j !== i))}
+          >
+            삭제
+          </button>
+        </div>
+      ))}
+      {notices.length === 0 && <p className="hint" style={{ padding: "4px 0" }}>등록된 공지가 없습니다.</p>}
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+          placeholder="예: 추첨은 8/15 저녁 8시!"
+        />
+        <button className="btn ghost" onClick={add} disabled={busy || notices.length >= MAX_NOTICES}>
+          추가
+        </button>
+      </div>
     </div>
   );
 }
