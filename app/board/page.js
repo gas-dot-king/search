@@ -22,6 +22,7 @@ function BoardInner() {
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
   const [showItems, setShowItems] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
   const [allItems, setAllItems] = useState(null);
   const [celebrate, setCelebrate] = useState(0);
   const prevLines = useRef(null);
@@ -140,7 +141,7 @@ function BoardInner() {
         {board.cells.map((cell, i) => (
           <div
             key={cell.position}
-            className={`cell ${cell.photoUrl ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""} ${fresh ? "reveal" : ""}`}
+            className={`cell cellcat${cell.category} ${cell.photoUrl ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""} ${fresh ? "reveal" : ""}`}
             style={fresh ? { animationDelay: `${i * 0.05}s` } : undefined}
             onClick={() => openCell(cell)}
           >
@@ -164,18 +165,67 @@ function BoardInner() {
         <span><i className="cat1" />기록 달성</span>
         <span><i className="cat2" />시간·장소 탐험</span>
         <span><i className="cat3" />크루 소통·재미</span>
-        <button className="btn ghost sm" style={{ marginLeft: "auto" }} onClick={openItems}>
-          📋 전체 항목 보기
+      </div>
+
+      <div style={{ display: "grid", gap: 8, margin: "12px 0" }}>
+        <button className="btn primary xl" onClick={() => setShowExamples(true)}>
+          📖 인증 예시 보기
+        </button>
+        <button className="btn ghost wide" onClick={openItems}>
+          📋 빙고 항목 전체 보기
         </button>
       </div>
 
       <div className="rule-box">{CATEGORY_RULE}</div>
 
+      {/* 인증 예시 모달 */}
+      {showExamples && (
+        <div className="modal-bg" onClick={() => setShowExamples(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>📖 인증 예시</h3>
+            <p className="hint" style={{ margin: "4px 0 8px" }}>
+              하루 러닝(운동) 한 번으로는 <b>각 카테고리에서 1칸씩만</b> 채울 수 있어요.
+            </p>
+
+            <div className="diagram">
+              <span className="d-top">🏃 하루 러닝 1번</span>
+              <div className="d-arrow">↓</div>
+              <div className="d-row">
+                <div className="d-box b1">① 기록 달성<small>1칸만</small></div>
+                <div className="d-box b2">② 시간·장소<small>1칸만</small></div>
+                <div className="d-box b3">③ 소통·재미<small>1칸만</small></div>
+              </div>
+              <div className="d-note">= 하루 최대 3칸까지 OK!</div>
+            </div>
+
+            <div className="case">
+              <span className="case-no">사례 1)</span> 6.2km를 42분 동안 달렸어요.
+              <br />→ ①에서 2km·3km·5km·30분 달리기 <b>모두 해당하지만, 딱 1칸만</b> 선택!
+              (보통 가장 높은 "5km 이상 달리기" 추천)
+            </div>
+            <div className="case">
+              <span className="case-no">사례 2)</span> 토요일 저녁 7시에 부산에서 달렸어요.
+              <br />→ ②에서 주말 러닝·저녁 러닝·양산이 아닌 곳 <b>모두 해당하지만, 딱 1칸만</b> 선택!
+            </div>
+            <div className="case">
+              <span className="case-no">사례 3)</span> 일요일 아침 7시에 5km를 달리고, 크루원과 사진도 찍었어요.
+              <br />→ ① "5km 이상 달리기" + ② "아침 러닝" + ③ "크루원과 인증사진" ={" "}
+              <b>같은 날이어도 카테고리가 다르면 각각 인정, 하루 3칸 완성!</b>
+              <br />다른 날 또 달리면 새 칸을 또 채울 수 있어요 🏃
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn ghost" onClick={() => setShowExamples(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 전체 항목 모달 */}
       {showItems && (
         <div className="modal-bg" onClick={() => setShowItems(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>📋 전체 빙고 항목 (24개)</h3>
+            <h3>📋 빙고 항목 전체 보기 (24개)</h3>
             <p className="hint" style={{ margin: "4px 0 10px" }}>
               이 중에서 카테고리별 5~6개, 총 16개가 내 빙고판에 랜덤으로 뽑혔어요.
             </p>

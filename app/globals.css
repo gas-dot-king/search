@@ -68,6 +68,8 @@ body {
 .btn.ghost { background: #f1f5f9; color: var(--text); }
 .btn.danger { background: #fee2e2; color: #b91c1c; }
 .btn.sm { padding: 7px 12px; font-size: 0.82rem; border-radius: 8px; }
+.btn.xl { width: 100%; padding: 16px; font-size: 1.05rem; border-radius: 12px; }
+.btn.wide { width: 100%; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 input, select, textarea {
@@ -118,6 +120,10 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 12px 0 6px
   border-radius: 50%; width: 18px; height: 18px; font-size: 0.65rem;
   display: flex; align-items: center; justify-content: center;
 }
+/* 카테고리별 칸 배경 (한눈에 구분) */
+.cell.cellcat1 { background: #eff6ff; border-color: #93c5fd; }
+.cell.cellcat2 { background: #f0fdf4; border-color: #86efac; }
+.cell.cellcat3 { background: #fff7ed; border-color: #fdba74; }
 .cell.done { border-color: var(--accent); }
 /* 완성된 빙고 줄에 속한 칸: 금색 강조 */
 .cell.line-done {
@@ -186,6 +192,40 @@ th { color: var(--muted); font-size: 0.75rem; }
 td.num, th.num { text-align: right; }
 .feed-item { padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 0.85rem; }
 .feed-item time { color: var(--muted); font-size: 0.72rem; margin-left: 6px; }
+
+/* ---- 인증 예시 도식화 ---- */
+.diagram { text-align: center; margin: 14px 0; }
+.diagram .d-top {
+  display: inline-block; background: #f1f5f9; border-radius: 999px;
+  padding: 8px 18px; font-weight: 800; font-size: 0.92rem;
+}
+.diagram .d-arrow { font-size: 1.2rem; color: var(--muted); margin: 4px 0; }
+.diagram .d-row { display: flex; gap: 6px; }
+.diagram .d-box { flex: 1; border-radius: 10px; padding: 10px 4px; font-size: 0.8rem; font-weight: 800; }
+.diagram .d-box small { display: block; font-weight: 700; font-size: 0.72rem; margin-top: 2px; opacity: 0.85; }
+.d-box.b1 { background: #dbeafe; color: #1e40af; }
+.d-box.b2 { background: #dcfce7; color: #166534; }
+.d-box.b3 { background: #ffedd5; color: #9a3412; }
+.diagram .d-note { margin-top: 10px; font-weight: 800; color: var(--accent); font-size: 0.95rem; }
+
+.case {
+  border-radius: 10px; padding: 10px 12px; margin: 8px 0;
+  font-size: 0.84rem; border: 1px solid var(--line); background: #f8fafc; line-height: 1.6;
+}
+.case .case-no { color: var(--accent); font-weight: 800; }
+
+/* 전체 항목 모달: 카테고리별 색 구분 그룹 */
+.items-group { border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.items-group.g1 { background: #eff6ff; border: 1px solid #bfdbfe; }
+.items-group.g2 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.items-group.g3 { background: #fff7ed; border: 1px solid #fed7aa; }
+.items-group .g-title { font-weight: 800; font-size: 0.88rem; margin-bottom: 4px; }
+.items-group.g1 .g-title { color: var(--cat1); }
+.items-group.g2 .g-title { color: var(--cat2); }
+.items-group.g3 .g-title { color: var(--cat3); }
+.items-group ul { list-style: none; font-size: 0.85rem; color: #334155; }
+.items-group li { padding: 4px 0 4px 4px; border-bottom: 1px dashed rgba(100, 116, 139, 0.25); }
+.items-group li:last-child { border-bottom: none; }
 
 /* ---- 빙고 축하 연출 ---- */
 .celebrate-overlay {
