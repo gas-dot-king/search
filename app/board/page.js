@@ -6,7 +6,8 @@ import Nav from "@/components/Nav";
 import ItemsList from "@/components/ItemsList";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto } from "@/lib/hooks";
-import { LINES } from "@/lib/bingo";
+import { getNearCompleteLines, LINES } from "@/lib/bingo";
+import { downloadBoardImage } from "@/lib/boardImage";
 
 /** 카테고리별 인증 사진 예시 안내 */
 const PHOTO_EXAMPLES = {
@@ -24,6 +25,7 @@ export default function BoardPage() {
   const [showExamples, setShowExamples] = useState(false);
   const [allItems, setAllItems] = useState(null);
   const [celebrate, setCelebrate] = useState(0);
+  const [shareBusy, setShareBusy] = useState(false);
   const prevLines = useRef(null);
   const fileRef = useRef(null);
 
@@ -104,6 +106,18 @@ export default function BoardPage() {
     }
   }
 
+  async function saveBoardImage() {
+    if (!board) return;
+    setShareBusy(true);
+    try {
+      await downloadBoardImage(board);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
   if (!board)
     return (
       <main className="wrap">
@@ -115,6 +129,7 @@ export default function BoardPage() {
   // 완성된 줄에 속한 칸들 (금색 하이라이트)
   const filledSet = new Set(board.cells.filter((c) => c.photoUrl).map((c) => c.position));
   const lineCells = new Set(LINES.filter((l) => l.every((p) => filledSet.has(p))).flat());
+  const nearCompleteLines = getNearCompleteLines(filledSet);
 
   return (
     <main className="wrap">
@@ -135,6 +150,12 @@ export default function BoardPage() {
       </div>
 
       {board.lines > 0 && <div className="notice-bar">🎉 현재 {board.lines}줄 빙고! 계속 달려봐요!</div>}
+
+      {nearCompleteLines.length > 0 && (
+        <div className="bingo-nudge" role="status">
+          🎯 한 칸만 더 채우면 {nearCompleteLines.length}줄 빙고!
+        </div>
+      )}
 
       <div className="bingo-grid">
         {board.cells.map((cell) => (
@@ -166,6 +187,9 @@ export default function BoardPage() {
       </div>
 
       <div className="stack" style={{ margin: "12px 0" }}>
+        <button className="btn ghost wide" onClick={saveBoardImage} disabled={shareBusy}>
+          {shareBusy ? "이미지 만드는 중..." : "내 빙고판 이미지 저장"}
+        </button>
         <button className="btn primary xl" onClick={() => setShowExamples(true)}>
           📖 인증 예시 보기
         </button>

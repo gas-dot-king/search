@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countLines, DRAW_COUNTS, drawBoard } from "../lib/bingo";
+import { countLines, DRAW_COUNTS, drawBoard, getNearCompleteLines } from "../lib/bingo";
 
 function createItems() {
   return [
@@ -18,6 +18,11 @@ describe("countLines", () => {
 
   it("16칸이 모두 채워지면 10줄을 계산한다", () => {
     expect(countLines(Array.from({ length: 16 }, (_, index) => index))).toBe(10);
+  });
+
+  it("한 칸만 남은 줄을 찾아낸다", () => {
+    expect(getNearCompleteLines([0, 1, 2])).toEqual([[0, 1, 2, 3]]);
+    expect(getNearCompleteLines([0, 1, 2, 3])).toEqual([]);
   });
 });
 

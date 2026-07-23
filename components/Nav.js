@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import LottoDeadlineReminder from "./LottoDeadlineReminder";
 
 function dDayText(cfg) {
   if (!cfg) return "";
@@ -80,6 +81,7 @@ export default function Nav({ config }) {
         <span className="dday">{dDayText(cfg)}</span>
       </nav>
       <NoticeBar notices={cfg?.notices || []} />
+      <LottoDeadlineReminder />
     </>
   );
 }

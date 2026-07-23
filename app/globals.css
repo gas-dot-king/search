@@ -63,6 +63,15 @@ body {
   display: flex; align-items: center; gap: 8px;
 }
 .notice-bar .notice-text { flex: 1; }
+.install-prompt {
+  position: sticky; top: 8px; z-index: 100; max-width: 560px; margin: 8px auto -2px;
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  background: #1e293b; color: #fff; border-radius: 12px; box-shadow: var(--shadow); font-size: 0.8rem;
+}
+.install-prompt > span:first-child { flex: 1; }
+.install-prompt button { border: 0; border-radius: 8px; padding: 6px 9px; background: #fff; color: #1e293b; font-weight: 800; cursor: pointer; }
+.install-prompt .install-dismiss { background: transparent; color: #fff; font-size: 1.2rem; padding: 2px 6px; }
+.install-guide { font-size: 0.72rem; color: #cbd5e1; }
 .notice-ctrl { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .notice-ctrl button {
   border: none; background: #fde68a; color: #92400e; border-radius: 8px;
@@ -163,6 +172,12 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   box-shadow: 0 0 0 2px #fbbf24 inset, 0 0 10px rgba(251, 191, 36, 0.45);
 }
 .cell.line-done .check { background: #f59e0b; }
+.bingo-nudge, .lotto-reminder {
+  margin: 0 0 12px; padding: 11px 13px; border-radius: var(--r-md);
+  font-size: 0.88rem; font-weight: 800;
+}
+.bingo-nudge { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+.lotto-reminder { background: #fdf2f8; border: 1px solid #fbcfe8; color: #9d174d; }
 .cell .catdot {
   position: absolute; top: 7px; left: 7px; width: 8px; height: 8px; border-radius: 50%;
 }
@@ -251,6 +266,7 @@ td.num, th.num { text-align: right; }
 .feed-item { padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 0.85rem; }
 .feed-item:last-child { border-bottom: none; }
 .feed-item time { color: var(--muted); font-size: 0.72rem; margin-left: 6px; }
+.feed-item-line { color: #9d174d; font-weight: 700; }
 
 /* ---- 인증 예시 도식화 ---- */
 .diagram { text-align: center; margin: 14px 0; }

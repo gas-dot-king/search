@@ -4,25 +4,39 @@ import Nav from "@/components/Nav";
 import { useApiData } from "@/lib/hooks";
 
 function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "방금";
-  if (min < 60) return `${min}분 전`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
-  return `${Math.floor(hr / 24)}일 전`;
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return "방금";
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
+}
+
+function activityText(activity) {
+  if (activity.type === "bingo_line") {
+    return activity.lines > 1
+      ? `한 번에 ${activity.lines}줄 빙고를 달성했어요!`
+      : "빙고 한 줄을 달성했어요!";
+  }
+  return activity.type === "bingo" ? "빙고 한 칸을 채웠어요!" : "러닝 로또에 응모했어요!";
+}
+
+function activityIcon(type) {
+  if (type === "bingo_line") return "🎉";
+  return type === "bingo" ? "🏃" : "🎟️";
 }
 
 export default function FeedPage() {
   const { data, error } = useApiData("/api/feed");
 
-  if (!data)
+  if (!data) {
     return (
       <main className="wrap">
         <Nav />
         <p className="hint">{error || "불러오는 중..."}</p>
       </main>
     );
+  }
 
   return (
     <main className="wrap">
@@ -42,15 +56,13 @@ export default function FeedPage() {
             </tr>
           </thead>
           <tbody>
-            {data.rankings.map((r, i) => (
-              <tr key={r.nickname}>
-                <td>{i < 3 && r.filled > 0 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>
-                <td>{r.nickname}</td>
-                <td className="num">{r.filled}/16</td>
-                <td className="num">
-                  <b style={{ color: r.lines ? "var(--accent)" : undefined }}>{r.lines}</b>
-                </td>
-                <td className="num">{r.lottoEntries}장</td>
+            {data.rankings.map((rank, index) => (
+              <tr key={rank.nickname}>
+                <td>{index < 3 && rank.filled > 0 ? ["🥇", "🥈", "🥉"][index] : index + 1}</td>
+                <td>{rank.nickname}</td>
+                <td className="num">{rank.filled}/16</td>
+                <td className="num"><b style={{ color: rank.lines ? "var(--accent)" : undefined }}>{rank.lines}</b></td>
+                <td className="num">{rank.lottoEntries}장</td>
               </tr>
             ))}
           </tbody>
@@ -60,14 +72,11 @@ export default function FeedPage() {
 
       <div className="card">
         <p className="card-title">최근 활동</p>
-        {data.activity.length === 0 && (
-          <p className="hint">아직 활동이 없어요. 첫 인증의 주인공이 되어보세요!</p>
-        )}
-        {data.activity.map((a, i) => (
-          <div className="feed-item" key={i}>
-            {a.type === "bingo" ? "🟩" : "🎰"} <b>{a.nickname}</b>님이{" "}
-            {a.type === "bingo" ? "빙고 한 칸을 채웠어요!" : "로또에 응모했어요!"}
-            <time>{timeAgo(a.at)}</time>
+        {data.activity.length === 0 && <p className="hint">아직 활동이 없어요. 첫 인증의 주인공이 되어보세요!</p>}
+        {data.activity.map((activity, index) => (
+          <div className={`feed-item ${activity.type === "bingo_line" ? "feed-item-line" : ""}`} key={`${activity.type}-${activity.nickname}-${activity.at}-${index}`}>
+            {activityIcon(activity.type)} <b>{activity.nickname}</b>님이 {activityText(activity)}
+            <time>{timeAgo(activity.at)}</time>
           </div>
         ))}
       </div>

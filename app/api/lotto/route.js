@@ -9,6 +9,21 @@ export const GET = route(async (req) => {
   const settings = await getSettings();
   const winning = settings.winning_numbers || ""; // 0~4자리 (진행 중 부분 공개)
   const complete = winning.length === 4;
+  const maxEntries = Number(settings.max_lotto_entries || 1);
+
+  if (new URL(req.url).searchParams.get("summary") === "1") {
+    const { count, error } = await sb()
+      .from("lotto_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (error) throw new ApiError("응모 현황을 불러오지 못했습니다.", 500);
+    return {
+      entryCount: count || 0,
+      maxEntries,
+      uploadEnd: settings.upload_end,
+      winningNumbers: winning,
+    };
+  }
 
   const { data: mine } = await sb()
     .from("lotto_entries")
@@ -31,7 +46,8 @@ export const GET = route(async (req) => {
       photoUrl: urlMap[e.photo_path] || null,
       matches: complete ? matchCount(e.digits, winning) : null,
     })),
-    maxEntries: Number(settings.max_lotto_entries || 1),
+    maxEntries,
+    uploadEnd: settings.upload_end,
     winningNumbers: winning,
     winners,
   };
