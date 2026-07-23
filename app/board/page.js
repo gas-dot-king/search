@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import ItemsList from "@/components/ItemsList";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
@@ -15,9 +15,8 @@ const PHOTO_EXAMPLES = {
   3: "예시: 함께 찍은 인증샷, 단톡방 댓글·플레이리스트 화면 캡처, 러닝화·물·음식 사진 등",
 };
 
-function BoardInner() {
+export default function BoardPage() {
   const router = useRouter();
-  const fresh = useSearchParams().get("fresh") === "1";
   const { data: board, error: loadError, reload } = useApiData("/api/board");
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
@@ -138,11 +137,10 @@ function BoardInner() {
       {board.lines > 0 && <div className="notice-bar">🎉 현재 {board.lines}줄 빙고! 계속 달려봐요!</div>}
 
       <div className="bingo-grid">
-        {board.cells.map((cell, i) => (
+        {board.cells.map((cell) => (
           <div
             key={cell.position}
-            className={`cell cellcat${cell.category} ${cell.photoUrl ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""} ${fresh ? "reveal" : ""}`}
-            style={fresh ? { animationDelay: `${i * 0.05}s` } : undefined}
+            className={`cell cellcat${cell.category} ${cell.photoUrl ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""}`}
             onClick={() => openCell(cell)}
           >
             {cell.photoUrl ? (
@@ -227,7 +225,7 @@ function BoardInner() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>📋 빙고 항목 전체 보기 (24개)</h3>
             <p className="hint" style={{ margin: "4px 0 10px" }}>
-              이 중에서 카테고리별 5~6개, 총 16개가 내 빙고판에 랜덤으로 뽑혔어요.
+              이 중에서 ① 4개 · ② 6개 · ③ 6개, 총 16개가 내 빙고판에 랜덤으로 뽑혔어요.
             </p>
             {allItems ? <ItemsList items={allItems} /> : <p className="hint">불러오는 중...</p>}
             <div className="modal-actions">
@@ -309,13 +307,5 @@ function BoardInner() {
         </div>
       )}
     </main>
-  );
-}
-
-export default function BoardPage() {
-  return (
-    <Suspense>
-      <BoardInner />
-    </Suspense>
   );
 }

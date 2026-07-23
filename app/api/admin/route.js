@@ -96,6 +96,8 @@ export const POST = route(async (req) => {
       const { error } = await sb().from("cells").delete().eq("user_id", userId);
       if (error) throw new ApiError(error.message, 500);
       for (const c of cells || []) await removePhoto(c.photo_path);
+      // 다시 뽑기 기회도 초기화 → 처음 흐름부터 다시
+      await sb().from("settings").delete().eq("key", `redraw:${userId}`);
       return { ok: true };
     }
 

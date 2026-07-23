@@ -1,12 +1,37 @@
 import { sb, userHasBoard } from "@/lib/db";
-import { route, requireUser, ApiError } from "@/lib/api";
+import { route, requireUser, readJson, ApiError } from "@/lib/api";
 import { drawBoard } from "@/lib/bingo";
 
-/** 빙고판 뽑기 (최초 1회) */
+const redrawKey = (userId) => `redraw:${userId}`;
+
+/**
+ * 빙고판 뽑기.
+ * - 최초 1회 생성
+ * - { redraw: true } 로 딱 한 번 다시 뽑기 가능 (사진 업로드 전, 이후 강제 확정)
+ */
 export const POST = route(async (req) => {
   const user = await requireUser(req);
+  const { redraw } = await readJson(req);
+  const hasBoard = await userHasBoard(user.id);
 
-  if (await userHasBoard(user.id)) throw new ApiError("이미 빙고판이 확정되었습니다.");
+  if (hasBoard && !redraw) throw new ApiError("이미 빙고판이 확정되었습니다.");
+
+  if (hasBoard && redraw) {
+    // 다시 뽑기는 1회만
+    const { data: used } = await sb().from("settings").select("key").eq("key", redrawKey(user.id)).single();
+    if (used) throw new ApiError("다시 뽑기 기회를 이미 사용했습니다.");
+
+    // 인증을 시작했다면 다시 뽑기 불가
+    const { count } = await sb()
+      .from("cells")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .not("photo_path", "is", null);
+    if ((count || 0) > 0) throw new ApiError("이미 인증을 시작해서 다시 뽑을 수 없습니다.");
+
+    await sb().from("settings").insert({ key: redrawKey(user.id), value: "1" });
+    await sb().from("cells").delete().eq("user_id", user.id);
+  }
 
   const { data: items, error } = await sb().from("bingo_items").select("id, category");
   if (error || !items?.length) throw new ApiError("빙고 항목을 불러오지 못했습니다.", 500);

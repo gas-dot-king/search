@@ -144,6 +144,11 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 12px 0 6px
 /* 뽑기 연출 */
 @keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
 .cell.reveal { animation: pop 0.35s ease both; }
+@keyframes roll-pulse {
+  from { transform: scale(0.9); opacity: 0.45; }
+  to { transform: scale(1.06); opacity: 1; }
+}
+.cell.rolling { animation: roll-pulse 0.45s ease infinite alternate; cursor: default; }
 
 /* ---- 모달 ---- */
 .modal-bg {
