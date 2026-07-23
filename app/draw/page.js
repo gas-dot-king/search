@@ -63,9 +63,9 @@ export default function DrawPage() {
   if (phase === "intro")
     return (
       <main className="wrap">
-        <div style={{ textAlign: "center", margin: "40px 0 20px" }}>
-          <div style={{ fontSize: "3.2rem" }}>🎲</div>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, margin: "10px 0" }}>내 빙고 만들기</h1>
+        <div className="page-head">
+          <div className="emoji">🎲</div>
+          <h1 className="page-title">내 빙고 만들기</h1>
           <p className="hint">
             세 카테고리에서 각각 랜덤으로 뽑아
             <br />
@@ -99,8 +99,9 @@ export default function DrawPage() {
   if (phase === "rolling")
     return (
       <main className="wrap">
-        <div style={{ textAlign: "center", margin: "40px 0 16px" }}>
-          <h1 style={{ fontSize: "1.3rem", fontWeight: 800 }}>두구두구두구... 🥁</h1>
+        <div className="page-head">
+          <div className="emoji">🥁</div>
+          <h1 className="page-title">두구두구두구...</h1>
           <p className="hint">빙고판을 뽑고 있어요!</p>
         </div>
         <div className="bingo-grid">
@@ -116,8 +117,8 @@ export default function DrawPage() {
   /* ---------- 3단계: 결과 + 재도전/확정 ---------- */
   return (
     <main className="wrap">
-      <div style={{ textAlign: "center", margin: "28px 0 14px" }}>
-        <h1 style={{ fontSize: "1.35rem", fontWeight: 800 }}>🎉 빙고판 완성!</h1>
+      <div className="page-head" style={{ margin: "28px 0 14px" }}>
+        <h1 className="page-title">🎉 빙고판 완성!</h1>
         <p className="hint">{redrawUsed ? "다시 뽑기까지 마친 최종 빙고판이에요." : "이 빙고판으로 시작할까요?"}</p>
       </div>
 
@@ -147,7 +148,7 @@ export default function DrawPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 8 }}>
+      <div className="stack">
         <button className="btn primary xl" onClick={() => router.replace("/board")}>
           ✅ 이 빙고판으로 시작하기
         </button>

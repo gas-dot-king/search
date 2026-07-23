@@ -47,12 +47,10 @@ export default function EntryPage() {
 
   return (
     <main className="wrap">
-      <div style={{ textAlign: "center", margin: "48px 0 24px" }}>
-        <div style={{ fontSize: "3rem" }}>🏃‍♀️🏃‍♂️</div>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>양산 슬로우러닝 온라인 위크</h1>
-        <p className="hint" style={{ marginTop: 6 }}>
-          8/1 ~ 8/13 · 빙고 인증 + 달리기 로또 🎰
-        </p>
+      <div className="page-head" style={{ marginTop: 48 }}>
+        <div className="emoji">🏃‍♀️🏃‍♂️</div>
+        <h1 className="page-title">양산 슬로우러닝 온라인 위크</h1>
+        <p className="hint">8/1 ~ 8/13 · 빙고 인증 + 달리기 로또 🎰</p>
       </div>
 
       <form className="card" onSubmit={submit}>

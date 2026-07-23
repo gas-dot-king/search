@@ -27,10 +27,10 @@ export default function FeedPage() {
   return (
     <main className="wrap">
       <Nav />
-      <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "8px 0" }}>📊 크루 현황</h2>
+      <h2 className="section-title">📊 크루 현황</h2>
 
       <div className="card">
-        <p style={{ fontWeight: 700, marginBottom: 8 }}>진행률 랭킹</p>
+        <p className="card-title">진행률 랭킹</p>
         <table>
           <thead>
             <tr>
@@ -59,7 +59,7 @@ export default function FeedPage() {
       </div>
 
       <div className="card">
-        <p style={{ fontWeight: 700, marginBottom: 4 }}>최근 활동</p>
+        <p className="card-title">최근 활동</p>
         {data.activity.length === 0 && (
           <p className="hint">아직 활동이 없어요. 첫 인증의 주인공이 되어보세요!</p>
         )}

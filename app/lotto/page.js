@@ -71,12 +71,12 @@ export default function LottoPage() {
   return (
     <main className="wrap">
       <Nav />
-      <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "8px 0" }}>🎰 달리기 로또</h2>
+      <h2 className="section-title">🎰 달리기 로또</h2>
 
       {/* 추첨 결과 / 진행 상황 */}
       {winning.length > 0 && (
         <div className="card" style={{ textAlign: "center" }}>
-          <p style={{ fontWeight: 700, marginBottom: 4 }}>{drawn ? "당첨 번호" : "추첨 진행 중... 🥁"}</p>
+          <p className="card-title">{drawn ? "당첨 번호" : "추첨 진행 중... 🥁"}</p>
           <div className="winning-digits">
             {[0, 1, 2, 3].map((i) => (
               <span key={i} className={`winning-digit ${i < winning.length ? "" : "pending"}`}>
@@ -94,7 +94,7 @@ export default function LottoPage() {
 
       {/* 내 응모 */}
       <div className="card">
-        <p style={{ fontWeight: 700 }}>
+        <p className="card-title">
           내 응모 ({data.entries.length}/{data.maxEntries})
         </p>
         {data.entries.length === 0 && (
@@ -125,7 +125,7 @@ export default function LottoPage() {
       {/* 응모 폼 */}
       {canApply && (
         <div className="card">
-          <p style={{ fontWeight: 700 }}>응모하기</p>
+          <p className="card-title">응모하기</p>
           <p className="hint" style={{ margin: "6px 0" }}>
             러닝 앱 기록의 거리를 그대로 입력하세요. 10km 미만이면 앞에 0을 붙여요. (5.24km → 05.24)
           </p>
@@ -168,7 +168,7 @@ export default function LottoPage() {
       {/* 당첨자 명단 */}
       {drawn && data.winners && (
         <div className="card">
-          <p style={{ fontWeight: 700, marginBottom: 8 }}>🏆 당첨자</p>
+          <p className="card-title">🏆 당첨자</p>
           {data.winners.length === 0 && <p className="hint">2개 이상 일치한 사람이 없어요 😢</p>}
           <table>
             <tbody>

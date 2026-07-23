@@ -165,7 +165,7 @@ export default function BoardPage() {
         <span><i className="cat3" />크루 소통·재미</span>
       </div>
 
-      <div style={{ display: "grid", gap: 8, margin: "12px 0" }}>
+      <div className="stack" style={{ margin: "12px 0" }}>
         <button className="btn primary xl" onClick={() => setShowExamples(true)}>
           📖 인증 예시 보기
         </button>
