@@ -3,18 +3,12 @@ import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError 
 import { getSettings } from "@/lib/settings";
 import { matchCount, computeWinners } from "@/lib/lotto";
 
-/** 응모/추첨이 열려 있는지 (기간 내 + 추첨 전) */
-async function requireOpenLotto() {
-  const settings = await requireUploadPeriod();
-  if (settings.winning_numbers) throw new ApiError("이미 추첨이 완료되었습니다.");
-  return settings;
-}
-
-/** 내 응모 목록 + (추첨 후) 전체 결과 */
+/** 내 응모 목록 + 추첨 진행 상황(자리별 공개) + 완료 시 전체 결과 */
 export const GET = route(async (req) => {
   const user = await requireUser(req);
   const settings = await getSettings();
-  const winning = settings.winning_numbers || "";
+  const winning = settings.winning_numbers || ""; // 0~4자리 (진행 중 부분 공개)
+  const complete = winning.length === 4;
 
   const { data: mine } = await sb()
     .from("lotto_entries")
@@ -25,7 +19,7 @@ export const GET = route(async (req) => {
   const urlMap = await signedUrls((mine || []).map((e) => e.photo_path));
 
   let winners = null;
-  if (winning) {
+  if (complete) {
     const { data: all } = await sb().from("lotto_entries").select("digits, users ( nickname )");
     winners = computeWinners(all, winning);
   }
@@ -35,7 +29,7 @@ export const GET = route(async (req) => {
       id: e.id,
       digits: e.digits,
       photoUrl: urlMap[e.photo_path] || null,
-      matches: winning ? matchCount(e.digits, winning) : null,
+      matches: complete ? matchCount(e.digits, winning) : null,
     })),
     maxEntries: Number(settings.max_lotto_entries || 1),
     winningNumbers: winning,
@@ -43,10 +37,10 @@ export const GET = route(async (req) => {
   };
 });
 
-/** 로또 응모: digits("0524") + 사진 */
+/** 로또 응모: digits("0524") + 사진 (기간 내라면 추첨 진행과 무관하게 가능) */
 export const POST = route(async (req) => {
   const user = await requireUser(req);
-  const settings = await requireOpenLotto();
+  const settings = await requireUploadPeriod();
 
   const form = await req.formData().catch(() => null);
   const digits = String(form?.get("digits") || "");
@@ -71,10 +65,10 @@ export const POST = route(async (req) => {
   return { ok: true };
 });
 
-/** 내 응모 취소 (기간 내, 추첨 전) */
+/** 내 응모 취소 (기간 내) */
 export const DELETE = route(async (req) => {
   const user = await requireUser(req);
-  await requireOpenLotto();
+  await requireUploadPeriod();
 
   const { id } = await readJson(req);
   const { data: entry } = await sb()

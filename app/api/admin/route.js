@@ -74,11 +74,29 @@ export const POST = route(async (req) => {
     }
 
     case "draw_numbers": {
-      // 각 자리 0~9 균등 랜덤 (crypto 기반)
-      const digits = Array.from({ length: 4 }, () => crypto.randomInt(10)).join("");
+      // 버튼 누를 때마다 한 자리씩 뽑기 (0~9 균등, crypto 기반)
+      const settings = await getSettings();
+      const cur = settings.winning_numbers || "";
+      if (cur.length >= 4) throw new ApiError("이미 4자리 모두 추첨되었습니다. 다시 하려면 초기화하세요.");
+      const digits = cur + crypto.randomInt(10);
       const { error } = await sb().from("settings").upsert({ key: "winning_numbers", value: digits });
       if (error) throw new ApiError(error.message, 500);
       return { ok: true, digits };
+    }
+
+    case "reset_board": {
+      // 회원 빙고판 리셋: 칸 + 업로드 사진 전부 삭제 → 다시 뽑기 가능
+      const userId = String(body.userId || "");
+      if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
+      const { data: cells } = await sb()
+        .from("cells")
+        .select("photo_path")
+        .eq("user_id", userId)
+        .not("photo_path", "is", null);
+      const { error } = await sb().from("cells").delete().eq("user_id", userId);
+      if (error) throw new ApiError(error.message, 500);
+      for (const c of cells || []) await removePhoto(c.photo_path);
+      return { ok: true };
     }
 
     case "delete_cell_photo": {

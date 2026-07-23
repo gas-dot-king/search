@@ -10,7 +10,8 @@ function dDayText(cfg) {
   const end = new Date(cfg.uploadEnd);
   const days = (a, b) => Math.ceil((a - b) / 86400000);
 
-  if (cfg.winningNumbers) return "🎉 추첨 완료!";
+  if (cfg.winningNumbers?.length === 4) return "🎉 추첨 완료!";
+  if (cfg.winningNumbers?.length > 0) return "🎰 추첨 진행 중!";
   if (now < start) return `시작까지 D-${days(start, now)}`;
   if (now <= end) {
     const d = days(end, now);

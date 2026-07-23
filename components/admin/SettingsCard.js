@@ -18,12 +18,11 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
     }
   }
 
-  async function drawNumbers() {
-    if (!confirm("당첨 번호를 추첨할까요? 추첨 후에는 응모가 잠깁니다.")) return;
+  // 버튼 누를 때마다 한 자리씩 뽑기
+  async function drawNextDigit() {
     setBusy(true);
     try {
-      const res = await adminPost({ action: "draw_numbers" });
-      alert(`당첨 번호: ${res.digits.slice(0, 2)}.${res.digits.slice(2)}`);
+      await adminPost({ action: "draw_numbers" });
       await onChanged();
     } catch (err) {
       alert(err.message);
@@ -54,32 +53,49 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
         ))}
       </select>
 
-      <label>로또 추첨</label>
-      {settings.winning_numbers ? (
-        <div className="rule-box">
-          🎉 당첨 번호:{" "}
-          <b>
-            {settings.winning_numbers.slice(0, 2)}.{settings.winning_numbers.slice(2)}
-          </b>
-          <button
-            className="btn danger sm"
-            style={{ marginLeft: 10 }}
-            onClick={() =>
-              setSetting("winning_numbers", "", "추첨 결과를 초기화할까요? 회원들에게 보이던 결과가 사라집니다.")
-            }
-          >
-            초기화
-          </button>
-        </div>
-      ) : (
-        <button className="btn primary" onClick={drawNumbers} disabled={busy}>
-          🎰 당첨 번호 추첨하기
-        </button>
-      )}
+      <label>로또 추첨 (자리마다 버튼 한 번씩, 회원 화면에 실시간 공개)</label>
+      <LottoDraw
+        digits={settings.winning_numbers || ""}
+        busy={busy}
+        onDraw={drawNextDigit}
+        onReset={() =>
+          setSetting("winning_numbers", "", "추첨을 초기화할까요? 회원들에게 보이던 번호가 사라집니다.")
+        }
+      />
       <p className="hint" style={{ marginTop: 6 }}>
         업로드 기간: {settings.upload_start?.slice(0, 10)} ~ {settings.upload_end?.slice(0, 10)} · 추첨일{" "}
         {settings.draw_date}
       </p>
+    </div>
+  );
+}
+
+function LottoDraw({ digits, busy, onDraw, onReset }) {
+  const complete = digits.length === 4;
+  return (
+    <div>
+      <div className="winning-digits" style={{ justifyContent: "flex-start", margin: "8px 0" }}>
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className={`winning-digit ${i < digits.length ? "" : "pending"}`}>
+            {i < digits.length ? digits[i] : "?"}
+          </span>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {!complete && (
+          <button className="btn primary" style={{ width: "auto" }} onClick={onDraw} disabled={busy}>
+            🎰 {digits.length + 1}번째 자리 뽑기
+          </button>
+        )}
+        {complete && (
+          <span className="rule-box" style={{ margin: 0, flex: 1 }}>
+            🎉 추첨 완료: <b>{digits.slice(0, 2)}.{digits.slice(2)}</b> km
+          </span>
+        )}
+        {digits.length > 0 && (
+          <button className="btn danger sm" onClick={onReset} disabled={busy}>초기화</button>
+        )}
+      </div>
     </div>
   );
 }

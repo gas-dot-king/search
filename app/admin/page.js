@@ -67,6 +67,10 @@ export default function AdminPage() {
         data={detail.data}
         onBack={() => setDetail(null)}
         onRefresh={() => openUser(detail.user)}
+        onBoardReset={async () => {
+          setDetail(null);
+          await loadOverview();
+        }}
       />
     );
   }

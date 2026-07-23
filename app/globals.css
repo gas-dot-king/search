@@ -174,7 +174,9 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 12px 0 6px
 .winning-digit {
   width: 54px; height: 64px; border-radius: 12px; background: var(--accent); color: #fff;
   font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  animation: pop 0.35s ease both;
 }
+.winning-digit.pending { background: #e2e8f0; color: #94a3b8; animation: none; }
 .entry-digits { display: flex; gap: 4px; align-items: center; font-weight: 800; font-size: 1.1rem; }
 .entry-digits .hit { color: var(--accent); }
 .entry-digits .miss { color: #cbd5e1; }

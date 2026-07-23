@@ -63,24 +63,32 @@ export default function LottoPage() {
       </main>
     );
 
-  const drawn = Boolean(data.winningNumbers);
-  const canApply = !drawn && data.entries.length < data.maxEntries;
+  const winning = data.winningNumbers || ""; // 0~4자리 (진행 중 부분 공개)
+  const drawn = winning.length === 4;
+  const drawing = winning.length > 0 && !drawn;
+  const canApply = data.entries.length < data.maxEntries;
 
   return (
     <main className="wrap">
       <Nav />
       <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "8px 0" }}>🎰 달리기 로또</h2>
 
-      {/* 추첨 결과 */}
-      {drawn && (
+      {/* 추첨 결과 / 진행 상황 */}
+      {winning.length > 0 && (
         <div className="card" style={{ textAlign: "center" }}>
-          <p style={{ fontWeight: 700, marginBottom: 4 }}>당첨 번호</p>
+          <p style={{ fontWeight: 700, marginBottom: 4 }}>{drawn ? "당첨 번호" : "추첨 진행 중... 🥁"}</p>
           <div className="winning-digits">
-            {data.winningNumbers.split("").map((d, i) => (
-              <span key={i} className="winning-digit">{d}</span>
+            {[0, 1, 2, 3].map((i) => (
+              <span key={i} className={`winning-digit ${i < winning.length ? "" : "pending"}`}>
+                {i < winning.length ? winning[i] : "?"}
+              </span>
             ))}
           </div>
-          <p className="hint">기록 {fmtKm(data.winningNumbers)} km 와 자리별로 비교해요</p>
+          <p className="hint">
+            {drawn
+              ? `기록 ${fmtKm(winning)} km 와 자리별로 비교해요`
+              : `${winning.length}번째 자리까지 공개! 다음 자리를 기다려주세요`}
+          </p>
         </div>
       )}
 
@@ -98,7 +106,7 @@ export default function LottoPage() {
             <div style={{ flex: 1 }}>
               <div className="entry-digits">
                 {e.digits.split("").map((d, i) => (
-                  <span key={i} className={drawn ? (data.winningNumbers[i] === d ? "hit" : "miss") : ""}>
+                  <span key={i} className={i < winning.length ? (winning[i] === d ? "hit" : "miss") : ""}>
                     {d}
                     {i === 1 ? "." : ""}
                   </span>

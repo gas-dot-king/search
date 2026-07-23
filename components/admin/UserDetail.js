@@ -4,7 +4,7 @@ import { adminPost } from "@/lib/adminClient";
 
 const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
-export default function UserDetail({ user, data, onBack, onRefresh }) {
+export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset }) {
   async function deletePhoto(kind, id) {
     if (!confirm("이 사진을 삭제할까요?")) return;
     try {
@@ -17,12 +17,33 @@ export default function UserDetail({ user, data, onBack, onRefresh }) {
     }
   }
 
+  async function resetBoard() {
+    if (
+      !confirm(
+        `정말 ${user.nickname} 님의 빙고판을 리셋할까요?\n뽑힌 16칸과 올린 사진이 전부 삭제되고, 다시 뽑기부터 시작합니다.`
+      )
+    )
+      return;
+    try {
+      await adminPost({ action: "reset_board", userId: user.id });
+      alert("빙고판이 리셋되었습니다.");
+      await onBoardReset();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   return (
     <main className="wrap">
       <button className="btn ghost sm" onClick={onBack}>← 목록으로</button>
       <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: "12px 0" }}>{user.nickname} 님의 인증</h2>
 
-      <p style={{ fontWeight: 700, margin: "10px 0 6px" }}>빙고판</p>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 6px" }}>
+        <p style={{ fontWeight: 700, flex: 1 }}>빙고판</p>
+        {data.cells.length > 0 && (
+          <button className="btn danger sm" onClick={resetBoard}>🔄 빙고판 리셋</button>
+        )}
+      </div>
       <div className="admin-grid bingo-grid">
         {data.cells.map((c) => (
           <div key={c.position} className={`cell ${c.photoUrl ? "done" : ""}`}>
