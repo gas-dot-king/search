@@ -42,6 +42,10 @@ create table if not exists settings (
   value text not null default ''
 );
 
+-- 사용자별 로또 목록 조회·개수 확인·생성일 정렬을 위한 복합 인덱스
+create index if not exists lotto_entries_user_created_at_idx
+  on lotto_entries (user_id, created_at);
+
 -- 모든 접근이 서버(service role)를 통해서만 이루어지므로 RLS로 외부 접근 차단
 alter table users enable row level security;
 alter table bingo_items enable row level security;

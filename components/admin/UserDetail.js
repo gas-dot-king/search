@@ -50,7 +50,7 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
             {c.photoUrl ? (
               <>
                 <a href={c.photoUrl} target="_blank" rel="noopener">
-                  <img src={c.photoUrl} alt={c.content} />
+                  <img src={c.photoUrl} alt={c.content} loading="lazy" decoding="async" />
                 </a>
                 <div className="overlay">{c.content}</div>
                 <button
@@ -79,7 +79,7 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
           <div className="entry-item" key={e.id}>
             {e.photoUrl && (
               <a href={e.photoUrl} target="_blank" rel="noopener">
-                <img src={e.photoUrl} alt="인증" />
+                <img src={e.photoUrl} alt="인증" loading="lazy" decoding="async" />
               </a>
             )}
             <b style={{ flex: 1 }}>{fmtKm(e.digits)} km</b>

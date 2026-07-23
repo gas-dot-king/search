@@ -37,8 +37,7 @@ export default function DrawPage() {
     setPhase("rolling");
     const t0 = Date.now();
     try {
-      await api("/api/draw", { method: "POST", body: JSON.stringify({ redraw }) });
-      const b = await api("/api/board");
+      const { board: b } = await api("/api/draw", { method: "POST", body: JSON.stringify({ redraw }) });
       await sleep(Math.max(0, 1600 - (Date.now() - t0))); // 두구두구 최소 연출 시간
       setBoard(b);
       setPhase("result");

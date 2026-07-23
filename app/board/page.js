@@ -166,7 +166,7 @@ export default function BoardPage() {
           >
             {cell.photoUrl ? (
               <>
-                <img src={cell.photoUrl} alt={cell.content} />
+                <img src={cell.photoUrl} alt={cell.content} loading="lazy" decoding="async" />
                 <span className="check">✓</span>
                 <div className="overlay">{cell.content}</div>
               </>

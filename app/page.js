@@ -84,6 +84,7 @@ export default function EntryPage() {
           </button>
         </div>
       </form>
+      <p className="app-version">v1.0.1</p>
     </main>
   );
 }

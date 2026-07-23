@@ -39,15 +39,31 @@ export const POST = route(async (req) => {
     requireDbSuccess(deleteError, "기존 빙고판 삭제에 실패했습니다");
   }
 
-  const { data: items, error } = await sb().from("bingo_items").select("id, category");
+  const { data: items, error } = await sb().from("bingo_items").select("id, category, content");
   if (error || !items?.length) throw new ApiError("빙고 항목을 불러오지 못했습니다.", 500);
 
   const order = drawBoard(items); // 16개 item id, index = position
   const rows = order.map((itemId, position) => ({ user_id: user.id, position, item_id: itemId }));
+  const itemById = new Map(items.map((item) => [item.id, item]));
 
   // 동시 클릭으로 중복 생성 시 unique 제약이 막아줌
   const { error: insErr } = await sb().from("cells").insert(rows);
   if (insErr) throw new ApiError("빙고판 생성 실패: " + insErr.message, 500);
 
-  return { ok: true };
+  return {
+    ok: true,
+    board: {
+      cells: order.map((itemId, position) => {
+        const item = itemById.get(itemId);
+        return {
+          position,
+          content: item?.content || "",
+          category: item?.category || 0,
+          photoUrl: null,
+        };
+      }),
+      filled: 0,
+      lines: 0,
+    },
+  };
 });

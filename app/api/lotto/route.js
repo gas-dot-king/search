@@ -6,7 +6,13 @@ import { matchCount, computeWinners } from "@/lib/lotto";
 /** 내 응모 목록 + 추첨 진행 상황(자리별 공개) + 완료 시 전체 결과 */
 export const GET = route(async (req) => {
   const user = await requireUser(req);
-  const settings = await getSettings();
+  const settingsPromise = getSettings();
+  const minePromise = sb()
+    .from("lotto_entries")
+    .select("id, digits, photo_path, created_at")
+    .eq("user_id", user.id)
+    .order("created_at");
+  const settings = await settingsPromise;
   const winning = settings.winning_numbers || ""; // 0~4자리 (진행 중 부분 공개)
   const complete = winning.length === 4;
   const maxEntries = Number(settings.max_lotto_entries || 1);
@@ -25,18 +31,20 @@ export const GET = route(async (req) => {
     };
   }
 
-  const { data: mine } = await sb()
-    .from("lotto_entries")
-    .select("id, digits, photo_path, created_at")
-    .eq("user_id", user.id)
-    .order("created_at");
-
-  const urlMap = await signedUrls((mine || []).map((e) => e.photo_path));
+  const { data: mine } = await minePromise;
+  const urlMapPromise = signedUrls((mine || []).map((e) => e.photo_path));
 
   let winners = null;
+  let urlMap;
   if (complete) {
-    const { data: all } = await sb().from("lotto_entries").select("digits, users ( nickname )");
+    const [{ data: all }, urls] = await Promise.all([
+      sb().from("lotto_entries").select("digits, users ( nickname )"),
+      urlMapPromise,
+    ]);
     winners = computeWinners(all, winning);
+    urlMap = urls;
+  } else {
+    urlMap = await urlMapPromise;
   }
 
   return {

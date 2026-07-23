@@ -102,7 +102,7 @@ export default function LottoPage() {
         )}
         {data.entries.map((e) => (
           <div className="entry-item" key={e.id}>
-            {e.photoUrl && <img src={e.photoUrl} alt="인증" />}
+            {e.photoUrl && <img src={e.photoUrl} alt="인증" loading="lazy" decoding="async" />}
             <div style={{ flex: 1 }}>
               <div className="entry-digits">
                 {e.digits.split("").map((d, i) => (

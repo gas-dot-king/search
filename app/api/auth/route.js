@@ -10,7 +10,11 @@ export const POST = route(async (req) => {
   if (name.length < 1 || name.length > 12) throw new ApiError("닉네임은 1~12자로 입력해주세요.");
   if (!/^\d{4}$/.test(String(pin || ""))) throw new ApiError("비밀번호는 숫자 4자리입니다.");
 
-  const { data: existing } = await sb().from("users").select("*").eq("nickname", name).single();
+  const { data: existing } = await sb()
+    .from("users")
+    .select("id, nickname, pin_hash, token")
+    .eq("nickname", name)
+    .single();
 
   let user = existing;
   let isNew = false;
@@ -22,7 +26,7 @@ export const POST = route(async (req) => {
     const { data, error } = await sb()
       .from("users")
       .insert({ nickname: name, pin_hash: hashPin(String(pin)), token: newToken() })
-      .select()
+      .select("id, nickname, token")
       .single();
     if (error) throw new ApiError("가입 실패: " + error.message, 500);
     user = data;
