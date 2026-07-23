@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken, TOKEN_KEY } from "@/lib/client";
 
+function deadlineText(uploadEnd) {
+  if (!uploadEnd) return "마감일을 확인하고 있어요";
+  const days = Math.ceil((new Date(uploadEnd) - new Date()) / 86400000);
+  if (days < 0) return "온라인 위크가 마감되었어요";
+  return days === 0 ? "오늘 마감입니다" : `마감까지 ${days}일`;
+}
+
 export default function EntryPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -11,6 +18,7 @@ export default function EntryPage() {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [uploadEnd, setUploadEnd] = useState("");
 
   // 같은 기기 재방문 → 자동 입장
   useEffect(() => {
@@ -25,6 +33,13 @@ export default function EntryPage() {
         setChecking(false);
       });
   }, [router]);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((response) => response.ok && response.json())
+      .then((config) => config?.uploadEnd && setUploadEnd(config.uploadEnd))
+      .catch(() => {});
+  }, []);
 
   async function submit(e) {
     e.preventDefault();
@@ -47,10 +62,12 @@ export default function EntryPage() {
 
   return (
     <main className="wrap">
-      <div className="page-head" style={{ marginTop: 48 }}>
-        <div className="emoji">🏃‍♀️🏃‍♂️</div>
-        <h1 className="page-title">양산 슬로우러닝 온라인 위크</h1>
-        <p className="hint">8/1 ~ 8/13 · 빙고 인증 + 달리기 로또 🎰</p>
+      <div className="landing-head">
+        <span className="landing-mark" aria-hidden="true">🏃</span>
+        <p className="landing-eyebrow">YANGSAN SLOW RUNNING</p>
+        <h1 className="landing-title">양산 슬로우러닝 <span>온라인 위크</span></h1>
+        <p className="landing-countdown">{deadlineText(uploadEnd)}</p>
+        <p className="hint">빙고 인증과 달리기 로또를 함께 즐겨요.</p>
       </div>
 
       <form className="card" onSubmit={submit}>
@@ -84,7 +101,7 @@ export default function EntryPage() {
           </button>
         </div>
       </form>
-      <p className="app-version">v1.0.1</p>
+      <p className="app-version">v1.0.2</p>
     </main>
   );
 }

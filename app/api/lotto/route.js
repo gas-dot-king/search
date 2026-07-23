@@ -6,18 +6,15 @@ import { matchCount, computeWinners } from "@/lib/lotto";
 /** 내 응모 목록 + 추첨 진행 상황(자리별 공개) + 완료 시 전체 결과 */
 export const GET = route(async (req) => {
   const user = await requireUser(req);
+  const url = new URL(req.url);
+  const includePhotos = url.searchParams.get("photos") === "1";
   const settingsPromise = getSettings();
-  const minePromise = sb()
-    .from("lotto_entries")
-    .select("id, digits, photo_path, created_at")
-    .eq("user_id", user.id)
-    .order("created_at");
   const settings = await settingsPromise;
   const winning = settings.winning_numbers || ""; // 0~4자리 (진행 중 부분 공개)
   const complete = winning.length === 4;
   const maxEntries = Number(settings.max_lotto_entries || 1);
 
-  if (new URL(req.url).searchParams.get("summary") === "1") {
+  if (url.searchParams.get("summary") === "1") {
     const { count, error } = await sb()
       .from("lotto_entries")
       .select("id", { count: "exact", head: true })
@@ -31,8 +28,15 @@ export const GET = route(async (req) => {
     };
   }
 
+  const minePromise = sb()
+    .from("lotto_entries")
+    .select("id, digits, photo_path, created_at")
+    .eq("user_id", user.id)
+    .order("created_at");
   const { data: mine } = await minePromise;
-  const urlMapPromise = signedUrls((mine || []).map((e) => e.photo_path));
+  const urlMapPromise = includePhotos
+    ? signedUrls((mine || []).map((e) => e.photo_path))
+    : Promise.resolve({});
 
   let winners = null;
   let urlMap;
@@ -51,13 +55,15 @@ export const GET = route(async (req) => {
     entries: (mine || []).map((e) => ({
       id: e.id,
       digits: e.digits,
-      photoUrl: urlMap[e.photo_path] || null,
+      hasPhoto: Boolean(e.photo_path),
+      photoUrl: includePhotos ? urlMap[e.photo_path] || null : null,
       matches: complete ? matchCount(e.digits, winning) : null,
     })),
     maxEntries,
     uploadEnd: settings.upload_end,
     winningNumbers: winning,
     winners,
+    photosLoaded: includePhotos,
   };
 });
 

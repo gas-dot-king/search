@@ -1,8 +1,8 @@
 export default function manifest() {
   return {
-    name: "러닝크루 온라인 위크",
-    short_name: "러닝크루 빙고",
-    description: "빙고 인증과 러닝 로또 이벤트",
+    name: "양산 슬로우러닝 온라인 위크",
+    short_name: "양산 슬로우러닝",
+    description: "빙고 인증, 러닝 로또와 행사 안내",
     start_url: "/",
     display: "standalone",
     background_color: "#faf9f7",

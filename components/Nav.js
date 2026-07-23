@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import LottoDeadlineReminder from "./LottoDeadlineReminder";
+import { prefetchApiData } from "@/lib/hooks";
 
 function dDayText(config) {
   if (!config) return "";
@@ -14,10 +15,10 @@ function dDayText(config) {
 
   if (config.winningNumbers?.length === 4) return "🎉 추첨 완료!";
   if (config.winningNumbers?.length > 0) return "🎰 추첨 진행 중!";
-  if (now < start) return `시작까지 D-${daysUntil(start)}`;
+  if (now < start) return `시작까지 ${daysUntil(start)}일`;
   if (now <= end) {
     const days = daysUntil(end);
-    return days === 0 ? "오늘 마감!" : `마감까지 D-${days}`;
+    return days === 0 ? "오늘 마감" : `마감까지 ${days}일`;
   }
 
   const drawDate = config.drawDate ? new Date(`${config.drawDate}T00:00:00+09:00`) : null;
@@ -59,6 +60,10 @@ export default function Nav({ config }) {
   const [currentConfig, setCurrentConfig] = useState(config || null);
 
   useEffect(() => {
+    if (config) setCurrentConfig(config);
+  }, [config]);
+
+  useEffect(() => {
     if (currentConfig) return;
     let active = true;
     fetch("/api/config")
@@ -71,21 +76,43 @@ export default function Nav({ config }) {
   }, [currentConfig]);
 
   const links = [
-    ["/board", "빙고판"],
+    ["/board", "빙고"],
     ["/lotto", "로또"],
     ["/feed", "현황"],
+    ["/event", "행사 안내"],
   ];
+
+  const prefetchMenu = (href) => {
+    const apiPath = href === "/board" ? "/api/board" : href === "/lotto" ? "/api/lotto" : null;
+    if (apiPath) prefetchApiData(apiPath).catch(() => {});
+  };
 
   return (
     <>
       <nav className="nav">
-        <span className="brand">🏃 양산 슬로우러닝</span>
-        {links.map(([href, label]) => (
-          <Link key={href} href={href} className={pathname === href ? "active" : ""}>
-            {label}
+        <div className="nav-heading">
+          <Link href="/" className="brand" aria-label="양산 슬로우러닝 온라인 위크 홈">
+            <span className="brand-mark" aria-hidden="true">🏃</span>
+            <span className="brand-copy">
+              <strong>양산 슬로우러닝 <em>온라인 위크</em></strong>
+              {currentConfig && <span className="nav-deadline">{dDayText(currentConfig)}</span>}
+            </span>
           </Link>
-        ))}
-        <span className="dday">{dDayText(currentConfig)}</span>
+        </div>
+        <div className="nav-links">
+          {links.map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              className={pathname === href ? "active" : ""}
+              onMouseEnter={() => prefetchMenu(href)}
+              onFocus={() => prefetchMenu(href)}
+              onTouchStart={() => prefetchMenu(href)}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
       </nav>
       <NoticeBar notices={currentConfig?.notices || []} />
       <LottoDeadlineReminder config={currentConfig} />

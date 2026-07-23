@@ -18,7 +18,7 @@ const PHOTO_EXAMPLES = {
 
 export default function BoardPage() {
   const router = useRouter();
-  const { data: board, error: loadError, reload } = useApiData("/api/board");
+  const { data: board, error: loadError, reload, setData: setBoard } = useApiData("/api/board");
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
   const [showItems, setShowItems] = useState(false);
@@ -33,6 +33,28 @@ export default function BoardPage() {
   useEffect(() => {
     if (board && board.cells.length === 0) router.replace("/draw");
   }, [board, router]);
+
+  // 판의 텍스트·진행률을 먼저 보여주고, 사진 URL은 뒤이어 불러온다.
+  // Storage 서명 URL 생성을 기다리지 않아 첫 화면이 훨씬 빨리 열린다.
+  useEffect(() => {
+    if (!board || board.photosLoaded || board.cells.length === 0) return;
+    let active = true;
+    api("/api/board?photos=1")
+      .then((withPhotos) => {
+        if (active) setBoard(withPhotos);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [board, setBoard]);
+
+  // 사진 URL이 도착한 뒤 열려 있는 칸에도 즉시 반영한다.
+  useEffect(() => {
+    if (!selected || !board?.photosLoaded) return;
+    const refreshed = board.cells.find((cell) => cell.position === selected.position);
+    if (refreshed && refreshed !== selected) setSelected(refreshed);
+  }, [board, selected]);
 
   // 줄 수가 늘어나면 축하 연출 (아래 효과가 이전 값 갱신)
   const lines = board?.lines;
@@ -127,7 +149,7 @@ export default function BoardPage() {
     );
 
   // 완성된 줄에 속한 칸들 (금색 하이라이트)
-  const filledSet = new Set(board.cells.filter((c) => c.photoUrl).map((c) => c.position));
+  const filledSet = new Set(board.cells.filter((c) => c.hasPhoto).map((c) => c.position));
   const lineCells = new Set(LINES.filter((l) => l.every((p) => filledSet.has(p))).flat());
   const nearCompleteLines = getNearCompleteLines(filledSet);
 
@@ -161,12 +183,18 @@ export default function BoardPage() {
         {board.cells.map((cell) => (
           <div
             key={cell.position}
-            className={`cell cellcat${cell.category} ${cell.photoUrl ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""}`}
+            className={`cell cellcat${cell.category} ${cell.hasPhoto ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""}`}
             onClick={() => openCell(cell)}
           >
             {cell.photoUrl ? (
               <>
                 <img src={cell.photoUrl} alt={cell.content} loading="lazy" decoding="async" />
+                <span className="check">✓</span>
+                <div className="overlay">{cell.content}</div>
+              </>
+            ) : cell.hasPhoto ? (
+              <>
+                <span className="cell-photo-pending" aria-label="인증 사진 불러오는 중" />
                 <span className="check">✓</span>
                 <div className="overlay">{cell.content}</div>
               </>

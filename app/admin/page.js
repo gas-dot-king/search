@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { adminApi, adminPw } from "@/lib/adminClient";
+import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
 import SettingsCard from "@/components/admin/SettingsCard";
 import UserDetail from "@/components/admin/UserDetail";
 import ItemsCard from "@/components/admin/ItemsCard";
+import EventGuideCard from "@/components/admin/EventGuideCard";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -44,6 +45,20 @@ export default function AdminPage() {
     }
   }, []);
 
+  async function saveEventGuide(value) {
+    setBusy(true);
+    setError("");
+    try {
+      await adminPost({ action: "set_setting", key: "event_guide", value });
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!authed) {
     return (
       <main className="wrap">
@@ -80,6 +95,12 @@ export default function AdminPage() {
       <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "16px 0" }}>🛠 관리자</h2>
 
       <SettingsCard settings={overview?.settings || {}} busy={busy} setBusy={setBusy} onChanged={loadOverview} />
+
+      <EventGuideCard
+        raw={overview?.settings?.event_guide || ""}
+        busy={busy}
+        onSave={saveEventGuide}
+      />
 
       <div className="card">
         <p style={{ fontWeight: 700, marginBottom: 8 }}>회원 ({overview.users.length}명)</p>

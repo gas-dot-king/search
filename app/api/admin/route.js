@@ -3,6 +3,7 @@ import { sb, removePhoto, signedUrls } from "@/lib/db";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
+import { serializeEventGuide } from "@/lib/event";
 
 export const GET = route(async (req) => {
   requireAdmin(req);
@@ -66,9 +67,24 @@ export const POST = route(async (req) => {
   switch (body.action) {
     case "set_setting": {
       if (!EDITABLE_KEYS.includes(body.key)) throw new ApiError("수정할 수 없는 설정입니다.");
+      let value = String(body.value ?? "");
+
+      if (body.key === "event_guide") {
+        let guide;
+        try {
+          guide = typeof body.value === "string" ? JSON.parse(body.value) : body.value;
+        } catch {
+          throw new ApiError("행사 안내 형식이 올바르지 않습니다.");
+        }
+        if (!guide || typeof guide !== "object" || Array.isArray(guide)) {
+          throw new ApiError("행사 안내 형식이 올바르지 않습니다.");
+        }
+        value = serializeEventGuide(guide);
+      }
+
       const { error } = await sb()
         .from("settings")
-        .upsert({ key: body.key, value: String(body.value ?? "") });
+        .upsert({ key: body.key, value });
       if (error) throw new ApiError(error.message, 500);
       return { ok: true };
     }

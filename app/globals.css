@@ -38,26 +38,50 @@ body {
 .card-title { font-weight: 800; font-size: 0.95rem; margin-bottom: 8px; }
 .stack { display: grid; gap: 8px; }
 
+.landing-head { text-align: center; margin: 44px 0 24px; }
+.landing-mark {
+  display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px;
+  border-radius: 18px; background: var(--accent-soft); font-size: 1.8rem;
+}
+.landing-eyebrow { margin-top: 14px; color: var(--accent); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.13em; }
+.landing-title { margin: 4px 0 8px; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -0.055em; }
+.landing-title span { color: var(--accent); }
+.landing-countdown { display: inline-flex; padding: 5px 10px; border-radius: 999px; background: #fff1f2; color: var(--accent-deep); font-size: 0.82rem; font-weight: 800; }
+
 /* ---- 상단 네비 ---- */
 .nav {
   position: sticky; top: 0; z-index: 40;
-  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
-  padding: 12px 0 10px; margin-bottom: 6px;
+  display: grid; gap: 9px;
+  padding: 11px 0 12px; margin-bottom: 6px;
   background: linear-gradient(var(--bg) 85%, rgba(250, 249, 247, 0));
 }
-.nav .brand { font-weight: 800; font-size: 1.05rem; margin-right: auto; color: var(--accent); }
-.nav a {
-  text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 700;
-  padding: 8px 12px; border-radius: 999px; transition: background 0.15s, color 0.15s;
+.nav-heading { display: flex; align-items: center; gap: 10px; }
+.nav .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; min-width: 0; }
+.brand-mark {
+  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border-radius: 11px; background: var(--accent-soft); font-size: 1.1rem; flex: 0 0 auto;
 }
-.nav a:hover { color: var(--text); }
-.nav a.active { background: var(--accent-soft); color: var(--accent); }
-
-.dday {
-  display: inline-block; background: var(--accent); color: #fff;
-  font-size: 0.75rem; font-weight: 700; padding: 4px 11px; border-radius: 999px;
-  box-shadow: var(--shadow);
+.brand-copy { min-width: 0; }
+.nav .brand strong { display: block; white-space: nowrap; }
+.nav .brand em { font-style: normal; }
+.nav .brand strong { font-size: 0.98rem; font-weight: 850; letter-spacing: -0.035em; }
+.nav .brand em { color: var(--accent); font-weight: 850; }
+.nav-deadline {
+  display: inline-block; margin-top: 2px; padding: 3px 8px; border: 1px solid #fecdd3; border-radius: 999px;
+  background: #fff; color: var(--accent-deep);
+  font-size: 0.72rem; font-weight: 800; white-space: nowrap;
 }
+.nav-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.nav-links a {
+  display: flex; align-items: center; justify-content: center; min-height: 39px; padding: 7px 5px;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--muted);
+  text-decoration: none; font-size: 0.8rem; font-weight: 800; text-align: center;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
+}
+.nav-links a:hover { border-color: #fda4af; color: var(--accent); }
+.nav-links a:active { transform: scale(0.97); }
+.nav-links a.active { border-color: var(--accent); background: var(--accent); color: #fff; box-shadow: 0 3px 9px rgba(225, 29, 72, 0.2); }
+.nav-links a:focus-visible, .nav .brand:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
 .notice-bar {
   background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
   border-radius: var(--r-md); padding: 11px 14px; font-size: 0.85rem; margin: 10px 0;
@@ -162,6 +186,11 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
+.cell-photo-pending {
+  width: 34%; aspect-ratio: 1; border: 3px solid #fecdd3; border-top-color: var(--accent);
+  border-radius: 50%; animation: loading-spin 0.8s linear infinite;
+}
+@keyframes loading-spin { to { transform: rotate(360deg); } }
 /* 카테고리별 칸 배경 (한눈에 구분) */
 .cell.cellcat1 { background: #eff6ff; border-color: #bfdbfe; }
 .cell.cellcat2 { background: #f0fdf4; border-color: #bbf7d0; }
@@ -257,6 +286,12 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
 }
 .entry-item:last-child { border-bottom: none; }
 .entry-item img { width: 56px; height: 56px; object-fit: cover; border-radius: var(--r-sm); }
+.entry-photo-pending {
+  display: block; width: 56px; height: 56px; flex: 0 0 56px; border-radius: var(--r-sm);
+  background: linear-gradient(110deg, #f1efec 35%, #fff 50%, #f1efec 65%); background-size: 220% 100%;
+  animation: photo-placeholder 1.2s ease-in-out infinite;
+}
+@keyframes photo-placeholder { to { background-position: -120% 0; } }
 
 /* ---- 현황/랭킹 ---- */
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -329,10 +364,50 @@ td.num, th.num { text-align: right; }
 .admin-grid .cell { cursor: default; }
 .tabbar { display: flex; gap: 6px; margin-bottom: 12px; }
 .tabbar .btn { flex: 1; }
+.event-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.event-editor-heading label { margin-right: auto; }
+.event-editor-timeline { display: grid; gap: 10px; margin-top: 8px; }
+.event-editor-row { padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); }
+.event-editor-fields { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 7px; }
+.event-editor-fields input, .event-editor-activity input { padding: 9px 10px; font-size: 0.86rem; }
+.event-editor-activities { margin-top: 10px; }
+.event-editor-activities .hint { margin-bottom: 5px; }
+.event-editor-activity { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+.event-editor-activity input { min-width: 0; }
+.event-editor-save { margin-top: 14px; }
+
+/* ---- 행사 안내 ---- */
+.event-hero { margin: 30px 0 18px; text-align: center; }
+.event-kicker { color: var(--accent); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.11em; }
+.event-title { margin: 4px 0 6px; font-size: clamp(1.48rem, 6vw, 1.9rem); letter-spacing: -0.055em; line-height: 1.25; }
+.event-date { color: var(--muted); font-size: 0.88rem; font-weight: 700; }
+.event-load-error { margin: -8px 0 12px; text-align: center; }
+.event-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.event-summary-item { min-width: 0; padding: 4px 0; }
+.event-summary-item + .event-summary-item { border-left: 1px solid var(--line); padding-left: 14px; }
+.event-summary-item span { display: block; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
+.event-summary-item strong { display: block; margin-top: 3px; font-size: 0.93rem; word-break: keep-all; }
+.event-schedule { margin-top: 20px; }
+.event-timeline { list-style: none; position: relative; display: grid; gap: 12px; }
+.event-timeline::before { content: ""; position: absolute; top: 18px; bottom: 18px; left: 68px; width: 1px; background: #fecdd3; }
+.event-timeline-item { position: relative; display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 18px; }
+.event-timeline-time { position: relative; z-index: 1; padding-top: 11px; color: var(--accent-deep); font-size: 0.75rem; font-weight: 850; white-space: nowrap; }
+.event-timeline-time::after { content: ""; position: absolute; top: 15px; right: -16px; width: 9px; height: 9px; border: 2px solid var(--accent); border-radius: 50%; background: var(--bg); }
+.event-timeline-content { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: #fff; box-shadow: var(--shadow); }
+.event-timeline-content h3 { font-size: 0.94rem; }
+.event-activities { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin-top: 8px; }
+.event-activities li { padding: 3px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-deep); font-size: 0.73rem; font-weight: 700; }
 
 @media (min-width: 600px) {
   .cell .txt { font-size: 0.92rem; }
   .cell .overlay { font-size: 0.74rem; }
+}
+
+@media (max-width: 360px) {
+  .nav-links { gap: 4px; }
+  .nav-links a { padding-inline: 3px; font-size: 0.74rem; }
+  .nav-deadline { padding-inline: 7px; font-size: 0.68rem; }
+  .event-editor-fields { grid-template-columns: 1fr; }
 }
 
 /* 모션 최소화 설정 존중 */
