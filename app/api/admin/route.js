@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { sb, removePhoto, signedUrls } from "@/lib/db";
-import { route, requireAdmin, readJson, ApiError } from "@/lib/api";
+import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
 
@@ -97,7 +97,8 @@ export const POST = route(async (req) => {
       if (error) throw new ApiError(error.message, 500);
       for (const c of cells || []) await removePhoto(c.photo_path);
       // 다시 뽑기 기회도 초기화 → 처음 흐름부터 다시
-      await sb().from("settings").delete().eq("key", `redraw:${userId}`);
+      const { error: resetFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
+      requireDbSuccess(resetFlagError, "다시 뽑기 상태 초기화에 실패했습니다");
       return { ok: true };
     }
 
@@ -108,7 +109,8 @@ export const POST = route(async (req) => {
         .eq("id", body.cellId)
         .single();
       if (!cell?.photo_path) throw new ApiError("사진이 없습니다.");
-      await sb().from("cells").update({ photo_path: null, uploaded_at: null }).eq("id", cell.id);
+      const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null }).eq("id", cell.id);
+      requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
       await removePhoto(cell.photo_path);
       return { ok: true };
     }
@@ -120,7 +122,8 @@ export const POST = route(async (req) => {
         .eq("id", body.entryId)
         .single();
       if (!entry) throw new ApiError("응모를 찾을 수 없습니다.", 404);
-      await sb().from("lotto_entries").delete().eq("id", entry.id);
+      const { error } = await sb().from("lotto_entries").delete().eq("id", entry.id);
+      requireDbSuccess(error, "응모 삭제에 실패했습니다");
       await removePhoto(entry.photo_path);
       return { ok: true };
     }

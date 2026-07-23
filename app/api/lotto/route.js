@@ -1,5 +1,5 @@
-import { sb, uploadPhoto, removePhoto, signedUrls } from "@/lib/db";
-import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError } from "@/lib/api";
+import { sb, uploadPhotoAndPersist, removePhoto, signedUrls } from "@/lib/db";
+import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings } from "@/lib/settings";
 import { matchCount, computeWinners } from "@/lib/lotto";
 
@@ -55,11 +55,10 @@ export const POST = route(async (req) => {
   if ((count || 0) >= max) throw new ApiError(`응모는 최대 ${max}장까지 가능합니다.`);
 
   const path = `lotto/${user.id}/${Date.now()}.jpg`;
-  await uploadPhoto(path, buffer);
-
-  const { error } = await sb().from("lotto_entries").insert({ user_id: user.id, digits, photo_path: path });
+  const { error } = await uploadPhotoAndPersist(path, buffer, () =>
+    sb().from("lotto_entries").insert({ user_id: user.id, digits, photo_path: path })
+  );
   if (error) {
-    await removePhoto(path);
     throw new ApiError("응모 실패: " + error.message, 500);
   }
   return { ok: true };
@@ -79,7 +78,8 @@ export const DELETE = route(async (req) => {
     .single();
   if (!entry) throw new ApiError("응모를 찾을 수 없습니다.", 404);
 
-  await sb().from("lotto_entries").delete().eq("id", entry.id);
+  const { error } = await sb().from("lotto_entries").delete().eq("id", entry.id);
+  requireDbSuccess(error, "응모 취소에 실패했습니다");
   await removePhoto(entry.photo_path);
   return { ok: true };
 });

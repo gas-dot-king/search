@@ -1,5 +1,5 @@
-import { sb, uploadPhoto, removePhoto } from "@/lib/db";
-import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError } from "@/lib/api";
+import { sb, uploadPhotoAndPersist, removePhoto } from "@/lib/db";
+import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 
 async function findCell(userId, position) {
   const { data: cell } = await sb()
@@ -25,15 +25,12 @@ export const POST = route(async (req) => {
   if (!cell) throw new ApiError("빙고판이 없습니다. 먼저 빙고를 뽑아주세요.");
 
   const path = `bingo/${user.id}/${position}-${Date.now()}.jpg`;
-  await uploadPhoto(path, buffer);
-
   const oldPath = cell.photo_path;
-  const { error } = await sb()
+  const { error } = await uploadPhotoAndPersist(path, buffer, () => sb()
     .from("cells")
     .update({ photo_path: path, uploaded_at: new Date().toISOString() })
-    .eq("id", cell.id);
+    .eq("id", cell.id));
   if (error) {
-    await removePhoto(path);
     throw new ApiError("저장 실패: " + error.message, 500);
   }
   if (oldPath && oldPath !== path) await removePhoto(oldPath);
@@ -50,7 +47,8 @@ export const DELETE = route(async (req) => {
   const cell = await findCell(user.id, position);
   if (!cell?.photo_path) throw new ApiError("삭제할 사진이 없습니다.");
 
-  await sb().from("cells").update({ photo_path: null, uploaded_at: null }).eq("id", cell.id);
+  const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null }).eq("id", cell.id);
+  requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
   await removePhoto(cell.photo_path);
   return { ok: true };
 });

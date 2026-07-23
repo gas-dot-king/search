@@ -1,5 +1,5 @@
 import { sb, userHasBoard } from "@/lib/db";
-import { route, requireUser, readJson, ApiError } from "@/lib/api";
+import { route, requireUser, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { drawBoard } from "@/lib/bingo";
 
 const redrawKey = (userId) => `redraw:${userId}`;
@@ -29,8 +29,14 @@ export const POST = route(async (req) => {
       .not("photo_path", "is", null);
     if ((count || 0) > 0) throw new ApiError("이미 인증을 시작해서 다시 뽑을 수 없습니다.");
 
-    await sb().from("settings").insert({ key: redrawKey(user.id), value: "1" });
-    await sb().from("cells").delete().eq("user_id", user.id);
+    const { error: redrawError } = await sb().from("settings").insert({ key: redrawKey(user.id), value: "1" });
+    requireDbSuccess(redrawError, "다시 뽑기 상태 저장에 실패했습니다");
+    const { error: deleteError } = await sb().from("cells").delete().eq("user_id", user.id);
+    if (deleteError) {
+      const { error: rollbackError } = await sb().from("settings").delete().eq("key", redrawKey(user.id));
+      requireDbSuccess(rollbackError, "다시 뽑기 상태 복구에 실패했습니다");
+    }
+    requireDbSuccess(deleteError, "기존 빙고판 삭제에 실패했습니다");
   }
 
   const { data: items, error } = await sb().from("bingo_items").select("id, category");
