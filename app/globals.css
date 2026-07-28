@@ -496,6 +496,17 @@ td.num, th.num { text-align: right; }
   background: #fef2f2; color: #b91c1c; font-size: 0.82rem; text-align: center;
 }
 .event-editor-coords { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* 핀 끝이 좌표에 오도록 위로 올리고, 이름 길이와 무관하게 가운데 정렬한다. */
+.map-poi {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transform: translate(-50%, -38px); white-space: nowrap; pointer-events: none;
+}
+.map-poi-pin { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)); }
+.map-poi-name {
+  padding: 3px 8px; border-radius: 999px; background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  color: #1e293b; font-size: 0.78rem; font-weight: 800; letter-spacing: -0.02em;
+}
 .freerun-card {
   border: 2px solid #fb923c; background: linear-gradient(155deg, #fff 40%, #fff7ed);
   box-shadow: 0 6px 20px rgba(234, 88, 12, 0.11);

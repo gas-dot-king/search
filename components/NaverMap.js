@@ -35,6 +35,37 @@ function loadNaverMaps() {
   return sdkLoader;
 }
 
+// 장소 이름은 관리자가 입력한 값이라 innerHTML로 들어가기 전에 반드시 이스케이프한다.
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+}
+
+const PIN_HEIGHT = 38;
+
+/**
+ * 네이버 지도에서 장소를 검색했을 때처럼 핀 아래에 이름표를 붙인 마커.
+ * 앵커는 (0,0)으로 두고 CSS transform으로 핀 끝을 좌표에 맞춘다.
+ * 이름 길이에 따라 너비가 달라져도 가운데 정렬이 유지된다.
+ */
+function markerContent(venue) {
+  const name = venue ? `<span class="map-poi-name">${escapeHtml(venue)}</span>` : "";
+  return `
+    <div class="map-poi">
+      <svg class="map-poi-pin" width="26" height="${PIN_HEIGHT}" viewBox="0 0 26 38" aria-hidden="true">
+        <path d="M13 0C5.8 0 0 5.8 0 13c0 9.4 11.6 23.3 12.1 23.9a1.2 1.2 0 0 0 1.8 0C14.4 36.3 26 22.4 26 13 26 5.8 20.2 0 13 0z" fill="#e11d48"/>
+        <circle cx="13" cy="13" r="5" fill="#fff"/>
+      </svg>
+      ${name}
+    </div>
+  `;
+}
+
 /**
  * 행사장 위치 지도. 좌표나 키가 없으면 아무것도 그리지 않아,
  * 호출자가 기존 지도 링크만 노출하도록 둔다.
@@ -69,7 +100,12 @@ export default function NaverMap({ lat, lng, venue }) {
               // 페이지를 스크롤하다 지도 위에서 확대되는 것을 막는다.
               scrollWheel: false,
             });
-            new maps.Marker({ position: center, map, title: venue || "" });
+            new maps.Marker({
+              position: center,
+              map,
+              title: venue || "",
+              icon: { content: markerContent(venue), anchor: new maps.Point(0, 0) },
+            });
           })
           .catch(() => {
             if (!cancelled) setFailed(true);
