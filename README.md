@@ -39,8 +39,14 @@ ADMIN_PASSWORD=demo
 데모 모드에서는 가입, 빙고판 뽑기·사진 인증, 로또 2장 응모, 피드와 관리자 화면을 메모리 데이터로 사용할 수 있습니다. 데이터는 개발 서버를 재시작하면 초기화되며, 운영 환경에서는 반드시 `DEMO_MODE=false`로 설정해야 합니다.
 
 업로드·응모 기간 제한은 데모 모드에서도 똑같이 적용됩니다. 기간 밖 화면(보기 전용)이 아니라
-업로드 흐름을 확인하려면 관리자 화면에서 `upload_start`/`upload_end`를 현재 시각이 포함되도록
-바꾸세요. (데모 관리자 비밀번호는 `demo`)
+업로드 흐름을 확인하려면 기간을 현재 시각이 포함되도록 옮기세요. 관리자 화면에는 기간 표시만
+있고 수정 입력이 없으므로, API로 직접 바꿉니다. (데모 관리자 비밀번호는 `demo`)
+
+```bash
+curl -X POST localhost:3000/api/admin \
+  -H "x-admin-password: demo" -H "Content-Type: application/json" \
+  -d '{"action":"set_setting","key":"upload_start","value":"2026-01-01T00:00:00+09:00"}'
+```
 
 ## 3. Vercel 배포
 
