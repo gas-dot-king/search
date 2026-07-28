@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { api, PRIVACY_WARNING } from "@/lib/client";
@@ -9,25 +9,11 @@ import { useApiData, usePhoto } from "@/lib/hooks";
 const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
 export default function LottoPage() {
-  const { data, error: loadError, reload, setData: setLotto } = useApiData("/api/lotto");
+  const { data, error: loadError, reload } = useApiData("/api/lotto");
   const photo = usePhoto();
   const [digits, setDigits] = useState(["", "", "", ""]);
   const fileRef = useRef(null);
   const digitRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
-
-  // 응모 정보부터 표시하고 인증 사진의 서명 URL은 뒤이어 요청한다.
-  useEffect(() => {
-    if (!data || data.photosLoaded) return;
-    let active = true;
-    api("/api/lotto?photos=1")
-      .then((withPhotos) => {
-        if (active) setLotto(withPhotos);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [data, setLotto]);
 
   function setDigit(i, v) {
     const d = v.replace(/\D/g, "").slice(-1);

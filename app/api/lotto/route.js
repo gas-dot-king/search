@@ -7,36 +7,35 @@ import { matchCount, computeWinners } from "@/lib/lotto";
 export const GET = route(async (req) => {
   const user = await requireUser(req);
   const url = new URL(req.url);
-  const includePhotos = url.searchParams.get("photos") === "1";
-  const settingsPromise = getSettings();
-  const settings = await settingsPromise;
+
+  if (url.searchParams.get("summary") === "1") {
+    const [settings, { count, error }] = await Promise.all([
+      getSettings(),
+      sb().from("lotto_entries").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]);
+    if (error) throw new ApiError("응모 현황을 불러오지 못했습니다.", 500);
+    return {
+      entryCount: count || 0,
+      maxEntries: Number(settings.max_lotto_entries || 1),
+      uploadEnd: settings.upload_end,
+      winningNumbers: settings.winning_numbers || "",
+    };
+  }
+
+  // getSettings()와 내 응모 조회는 서로 의존하지 않으므로 동시에 실행해 왕복을 줄인다.
+  const [settings, { data: mine }] = await Promise.all([
+    getSettings(),
+    sb()
+      .from("lotto_entries")
+      .select("id, digits, photo_path, created_at")
+      .eq("user_id", user.id)
+      .order("created_at"),
+  ]);
   const winning = settings.winning_numbers || ""; // 0~4자리 (진행 중 부분 공개)
   const complete = winning.length === 4;
   const maxEntries = Number(settings.max_lotto_entries || 1);
 
-  if (url.searchParams.get("summary") === "1") {
-    const { count, error } = await sb()
-      .from("lotto_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    if (error) throw new ApiError("응모 현황을 불러오지 못했습니다.", 500);
-    return {
-      entryCount: count || 0,
-      maxEntries,
-      uploadEnd: settings.upload_end,
-      winningNumbers: winning,
-    };
-  }
-
-  const minePromise = sb()
-    .from("lotto_entries")
-    .select("id, digits, photo_path, created_at")
-    .eq("user_id", user.id)
-    .order("created_at");
-  const { data: mine } = await minePromise;
-  const urlMapPromise = includePhotos
-    ? signedUrls((mine || []).map((e) => e.photo_path))
-    : Promise.resolve({});
+  const urlMapPromise = signedUrls((mine || []).map((e) => e.photo_path));
 
   let winners = null;
   let urlMap;
@@ -56,14 +55,14 @@ export const GET = route(async (req) => {
       id: e.id,
       digits: e.digits,
       hasPhoto: Boolean(e.photo_path),
-      photoUrl: includePhotos ? urlMap[e.photo_path] || null : null,
+      photoUrl: urlMap[e.photo_path] || null,
       matches: complete ? matchCount(e.digits, winning) : null,
     })),
     maxEntries,
     uploadEnd: settings.upload_end,
     winningNumbers: winning,
     winners,
-    photosLoaded: includePhotos,
+    photosLoaded: true,
   };
 });
 

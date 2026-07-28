@@ -42,6 +42,24 @@ export default function AdminPage() {
     setError("");
   }
 
+  async function deleteUser(user) {
+    if (
+      !confirm(
+        `정말 ${user.nickname} 님 계정을 삭제할까요?\n빙고판·로또 응모·업로드한 사진이 모두 삭제되고 되돌릴 수 없습니다.`
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await adminPost({ action: "delete_user", userId: user.id });
+      await loadOverview();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const openUser = useCallback(async (user) => {
     setBusy(true);
     try {
@@ -127,6 +145,7 @@ export default function AdminPage() {
               <th className="num">줄</th>
               <th className="num">로또</th>
               <th />
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -138,6 +157,9 @@ export default function AdminPage() {
                 <td className="num">{u.lottoEntries}장</td>
                 <td className="num">
                   <button className="btn ghost sm" onClick={() => openUser(u)} disabled={busy}>보기</button>
+                </td>
+                <td className="num">
+                  <button className="btn danger sm" onClick={() => deleteUser(u)} disabled={busy}>삭제</button>
                 </td>
               </tr>
             ))}

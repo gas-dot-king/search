@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { sb, removePhoto, signedUrls } from "@/lib/db";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
-import { getSettings, EDITABLE_KEYS } from "@/lib/settings";
+import { getSettings, invalidateSettingsCache, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
 
@@ -86,6 +86,7 @@ export const POST = route(async (req) => {
         .from("settings")
         .upsert({ key: body.key, value });
       if (error) throw new ApiError(error.message, 500);
+      invalidateSettingsCache();
       return { ok: true };
     }
 
@@ -97,6 +98,7 @@ export const POST = route(async (req) => {
       const digits = cur + crypto.randomInt(10);
       const { error } = await sb().from("settings").upsert({ key: "winning_numbers", value: digits });
       if (error) throw new ApiError(error.message, 500);
+      invalidateSettingsCache();
       return { ok: true, digits };
     }
 
@@ -115,6 +117,25 @@ export const POST = route(async (req) => {
       // 다시 뽑기 기회도 초기화 → 처음 흐름부터 다시
       const { error: resetFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
       requireDbSuccess(resetFlagError, "다시 뽑기 상태 초기화에 실패했습니다");
+      return { ok: true };
+    }
+
+    case "delete_user": {
+      // 회원 계정 삭제: cells·lotto_entries는 FK cascade로 함께 삭제되므로
+      // 미리 사진 경로만 모아뒀다가 Storage 파일을 정리한다.
+      const userId = String(body.userId || "");
+      if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
+
+      const [{ data: cells }, { data: entries }] = await Promise.all([
+        sb().from("cells").select("photo_path").eq("user_id", userId).not("photo_path", "is", null),
+        sb().from("lotto_entries").select("photo_path").eq("user_id", userId),
+      ]);
+
+      const { error } = await sb().from("users").delete().eq("id", userId);
+      if (error) throw new ApiError(error.message, 500);
+
+      for (const c of cells || []) await removePhoto(c.photo_path);
+      for (const e of entries || []) await removePhoto(e.photo_path);
       return { ok: true };
     }
 

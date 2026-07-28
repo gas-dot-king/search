@@ -20,7 +20,7 @@ const PHOTO_EXAMPLES = {
 
 export default function BoardPage() {
   const router = useRouter();
-  const { data: board, error: loadError, reload, setData: setBoard } = useApiData("/api/board");
+  const { data: board, error: loadError, reload } = useApiData("/api/board");
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
   const [showItems, setShowItems] = useState(false);
@@ -36,24 +36,9 @@ export default function BoardPage() {
     if (board && board.cells.length === 0) router.replace("/draw");
   }, [board, router]);
 
-  // 판의 텍스트·진행률을 먼저 보여주고, 사진 URL은 뒤이어 불러온다.
-  // Storage 서명 URL 생성을 기다리지 않아 첫 화면이 훨씬 빨리 열린다.
+  // 업로드/삭제 후 재로딩되면 열려 있는 칸에도 최신 사진을 반영한다.
   useEffect(() => {
-    if (!board || board.photosLoaded || board.cells.length === 0) return;
-    let active = true;
-    api("/api/board?photos=1")
-      .then((withPhotos) => {
-        if (active) setBoard(withPhotos);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [board, setBoard]);
-
-  // 사진 URL이 도착한 뒤 열려 있는 칸에도 즉시 반영한다.
-  useEffect(() => {
-    if (!selected || !board?.photosLoaded) return;
+    if (!selected || !board) return;
     const refreshed = board.cells.find((cell) => cell.position === selected.position);
     if (refreshed && refreshed !== selected) setSelected(refreshed);
   }, [board, selected]);
