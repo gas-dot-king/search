@@ -22,8 +22,11 @@ describe("event guide settings", () => {
     });
 
     expect(guide).toEqual({
+      date: DEFAULT_EVENT_GUIDE.date,
       hours: "오전 8시 ~ 오후 2시",
       venue: "실내 체육관",
+      parkingInfo: DEFAULT_EVENT_GUIDE.parkingInfo,
+      mapUrl: DEFAULT_EVENT_GUIDE.mapUrl,
       timeline: [
         {
           id: "games",
@@ -34,5 +37,25 @@ describe("event guide settings", () => {
       ],
     });
     expect(JSON.parse(serializeEventGuide(guide))).toEqual(guide);
+  });
+
+  it("rejects an invalid date and a non-https map link", () => {
+    const guide = normalizeEventGuide({
+      date: "not-a-date",
+      mapUrl: "javascript:alert(1)",
+    });
+
+    expect(guide.date).toBe(DEFAULT_EVENT_GUIDE.date);
+    expect(guide.mapUrl).toBe(DEFAULT_EVENT_GUIDE.mapUrl);
+  });
+
+  it("accepts a valid date and https map link", () => {
+    const guide = normalizeEventGuide({
+      date: "2026-09-01",
+      mapUrl: "https://naver.me/example",
+    });
+
+    expect(guide.date).toBe("2026-09-01");
+    expect(guide.mapUrl).toBe("https://naver.me/example");
   });
 });

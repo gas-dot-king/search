@@ -76,6 +76,20 @@ export default function EventGuideCard({ raw, busy, onSave }) {
     }));
   }
 
+  function handleSave() {
+    const normalized = normalizeEventGuide(guide);
+    const droppedCount = guide.timeline.filter(
+      (item) => !item.time.trim() && !item.title.trim() && item.activities.every((a) => !a.trim())
+    ).length;
+    if (
+      droppedCount > 0 &&
+      !confirm(`시간과 이름이 모두 비어 있는 일정 ${droppedCount}개는 저장 시 삭제됩니다. 계속할까요?`)
+    ) {
+      return;
+    }
+    onSave(JSON.stringify(normalized));
+  }
+
   return (
     <section className="card event-editor">
       <p className="card-title">행사 안내 편집</p>
@@ -94,6 +108,23 @@ export default function EventGuideCard({ raw, busy, onSave }) {
         id="event-venue"
         value={guide.venue}
         onChange={(event) => updateGuide("venue", event.target.value)}
+        disabled={busy}
+      />
+
+      <label htmlFor="event-parking">주차 안내</label>
+      <input
+        id="event-parking"
+        value={guide.parkingInfo}
+        onChange={(event) => updateGuide("parkingInfo", event.target.value)}
+        disabled={busy}
+      />
+
+      <label htmlFor="event-map-url">오시는 길 지도 링크 (https://로 시작)</label>
+      <input
+        id="event-map-url"
+        value={guide.mapUrl}
+        onChange={(event) => updateGuide("mapUrl", event.target.value)}
+        placeholder="https://naver.me/..."
         disabled={busy}
       />
 
@@ -173,12 +204,7 @@ export default function EventGuideCard({ raw, busy, onSave }) {
       </div>
 
       <div className="event-editor-save">
-        <button
-          type="button"
-          className="btn primary"
-          onClick={() => onSave(JSON.stringify(normalizeEventGuide(guide)))}
-          disabled={busy}
-        >
+        <button type="button" className="btn primary" onClick={handleSave} disabled={busy}>
           행사 안내 저장
         </button>
       </div>
