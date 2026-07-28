@@ -128,6 +128,30 @@ export default function EventGuideCard({ raw, busy, onSave }) {
         disabled={busy}
       />
 
+      <label>행사장 좌표 (지도 표시용)</label>
+      <p className="hint">
+        네이버 지도 PC 화면에서 행사장을 우클릭 → <b>이 위치의 정보</b>를 누르면 위도·경도가 나옵니다.
+        비워 두면 지도 대신 링크만 표시돼요.
+      </p>
+      <div className="event-editor-coords">
+        <input
+          value={guide.lat ?? ""}
+          onChange={(event) => updateGuide("lat", event.target.value)}
+          inputMode="decimal"
+          aria-label="행사장 위도"
+          placeholder="위도 (예: 35.3350)"
+          disabled={busy}
+        />
+        <input
+          value={guide.lng ?? ""}
+          onChange={(event) => updateGuide("lng", event.target.value)}
+          inputMode="decimal"
+          aria-label="행사장 경도"
+          placeholder="경도 (예: 129.0356)"
+          disabled={busy}
+        />
+      </div>
+
       <div className="event-editor-heading">
         <label>타임라인</label>
         <button

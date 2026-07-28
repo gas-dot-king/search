@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/client";
+import { prefetchApiData } from "@/lib/hooks";
 import Footer from "@/components/Footer";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -40,8 +41,13 @@ export default function DrawPage() {
     try {
       const { board: b } = await api("/api/draw", { method: "POST", body: JSON.stringify({ redraw }) });
       await sleep(Math.max(0, 1600 - (Date.now() - t0))); // 두구두구 최소 연출 시간
+      // 실제로 다시 뽑기가 성공했을 때만 기회를 소진 처리한다.
+      // (네트워크 오류 등으로 실패하면 버튼을 유지하고, 최종 판정은 서버가 한다.)
+      if (redraw) setRedrawUsed(true);
       setBoard(b);
       setPhase("result");
+      // 확정 후 이동할 빙고판 데이터를 미리 받아 둔다.
+      prefetchApiData("/api/board", { force: true }).catch(() => {});
     } catch (err) {
       setError(err.message);
       setPhase(redraw ? "result" : "intro");
@@ -55,7 +61,6 @@ export default function DrawPage() {
       )
     )
       return;
-    setRedrawUsed(true);
     makeBoard(true);
   }
 

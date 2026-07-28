@@ -30,22 +30,26 @@ export const POST = route(async (req) => {
   let isNew = false;
 
   if (existing) {
-    if (!verifyPin(String(pin), existing.pin_hash)) throw new ApiError("비밀번호가 틀렸습니다.", 401);
+    if (!(await verifyPin(String(pin), existing.pin_hash))) throw new ApiError("비밀번호가 틀렸습니다.", 401);
   } else {
     isNew = true;
     const { data, error } = await sb()
       .from("users")
-      .insert({ nickname: name, pin_hash: hashPin(String(pin)), token: newToken() })
+      .insert({ nickname: name, pin_hash: await hashPin(String(pin)), token: newToken() })
       .select("id, nickname, token")
       .single();
-    if (error) throw new ApiError("가입 실패: " + error.message, 500);
+    if (error) {
+      // 동시에 같은 닉네임으로 가입한 경우 unique 제약이 막는다 → 재시도 안내
+      if (error.code === "23505") throw new ApiError("방금 같은 닉네임으로 가입되었어요. 다시 입장을 눌러주세요.", 409);
+      throw new ApiError("가입 실패: " + error.message, 500);
+    }
     user = data;
   }
 
   return {
     token: user.token,
     nickname: user.nickname,
-    hasBoard: await userHasBoard(user.id),
+    hasBoard: isNew ? false : await userHasBoard(user.id),
     isNew,
   };
 });

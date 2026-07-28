@@ -13,7 +13,8 @@ export default function LottoDeadlineReminder({ config }) {
     }
 
     const deadlineDiff = new Date(config.uploadEnd).getTime() - Date.now();
-    const days = deadlineDiff < 0 ? null : Math.ceil(deadlineDiff / 86400000);
+    // 하루 미만 남으면 0(오늘 마감)으로 표시되도록 floor 사용
+    const days = deadlineDiff < 0 ? null : Math.floor(deadlineDiff / 86400000);
     if (days == null || days > 2) {
       setReminder(null);
       return;

@@ -27,6 +27,8 @@ describe("event guide settings", () => {
       venue: "실내 체육관",
       parkingInfo: DEFAULT_EVENT_GUIDE.parkingInfo,
       mapUrl: DEFAULT_EVENT_GUIDE.mapUrl,
+      lat: null,
+      lng: null,
       timeline: [
         {
           id: "games",
@@ -57,5 +59,18 @@ describe("event guide settings", () => {
 
     expect(guide.date).toBe("2026-09-01");
     expect(guide.mapUrl).toBe("https://naver.me/example");
+  });
+
+  it("keeps map coordinates inside Korea and drops anything else", () => {
+    const inside = normalizeEventGuide({ lat: "35.335", lng: 129.0356 });
+    expect(inside.lat).toBe(35.335);
+    expect(inside.lng).toBe(129.0356);
+
+    // 빈 값·오타·다른 나라 좌표는 지도를 숨기도록 null로 떨어뜨린다.
+    for (const bad of [{}, { lat: "", lng: "" }, { lat: "abc", lng: "129" }, { lat: 48.85, lng: 2.35 }]) {
+      const guide = normalizeEventGuide(bad);
+      expect(guide.lat).toBeNull();
+      expect(guide.lng).toBeNull();
+    }
   });
 });

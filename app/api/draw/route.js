@@ -54,7 +54,10 @@ export const POST = route(async (req) => {
 
   // 동시 클릭으로 중복 생성 시 unique 제약이 막아줌
   const { error: insErr } = await sb().from("cells").insert(rows);
-  if (insErr) throw new ApiError("빙고판 생성 실패: " + insErr.message, 500);
+  if (insErr) {
+    if (insErr.code === "23505") throw new ApiError("이미 빙고판이 확정되었습니다.");
+    throw new ApiError("빙고판 생성 실패: " + insErr.message, 500);
+  }
 
   return {
     ok: true,

@@ -18,7 +18,7 @@ function bingoLineActivities(cells, nickOf) {
       const completedCells = line.map((position) => cellByPosition.get(position));
       if (completedCells.some((cell) => !cell)) continue;
       const at = completedCells.reduce((latest, cell) =>
-        new Date(cell.uploaded_at) > new Date(latest) ? cell.uploaded_at : latest,
+        Date.parse(cell.uploaded_at) > Date.parse(latest) ? cell.uploaded_at : latest,
       completedCells[0].uploaded_at);
       const key = `${userId}:${at}`;
       const event = events.get(key) || {
@@ -52,6 +52,7 @@ export const GET = route(async (req) => {
     .map(({ nickname, filled, lines, lottoEntries }) => ({ nickname, filled, lines, lottoEntries }))
     .sort((a, b) => b.lines - a.lines || b.filled - a.filled || a.nickname.localeCompare(b.nickname));
 
+  // 정렬 비교마다 Date 객체를 만들지 않도록 타임스탬프를 한 번만 계산해 정렬한다.
   const activity = [
     ...cells
       .filter((c) => c.uploaded_at)
@@ -59,8 +60,10 @@ export const GET = route(async (req) => {
     ...lotto.map((e) => ({ nickname: nickOf.get(e.user_id) || "?", type: "lotto", at: e.created_at })),
     ...bingoLineActivities(cells, nickOf),
   ]
-    .sort((a, b) => new Date(b.at) - new Date(a.at))
-    .slice(0, 30);
+    .map((event) => [Date.parse(event.at), event])
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, 30)
+    .map(([, event]) => event);
 
   return { rankings, activity };
 });

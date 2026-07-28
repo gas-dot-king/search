@@ -487,6 +487,15 @@ td.num, th.num { text-align: right; }
 .event-map-placeholder > span { font-size: 1.5rem; }
 .event-map-placeholder > strong { margin-top: 2px; font-size: 0.9rem; }
 .event-map-placeholder > small { margin-top: 2px; color: #64748b; font-size: 0.7rem; }
+.event-map {
+  height: 220px; margin-top: 12px; border: 1px solid var(--line);
+  border-radius: var(--r-md); background: #eef2f6; overflow: hidden;
+}
+.event-map-error {
+  margin-top: 12px; padding: 12px; border-radius: var(--r-md);
+  background: #fef2f2; color: #b91c1c; font-size: 0.82rem; text-align: center;
+}
+.event-editor-coords { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .freerun-card {
   border: 2px solid #fb923c; background: linear-gradient(155deg, #fff 40%, #fff7ed);
   box-shadow: 0 6px 20px rgba(234, 88, 12, 0.11);

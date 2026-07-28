@@ -17,7 +17,8 @@ function dDayText(config) {
   if (config.winningNumbers?.length > 0) return "🎰 추첨 진행 중!";
   if (now < start) return `시작까지 ${daysUntil(start)}일`;
   if (now <= end) {
-    const days = daysUntil(end);
+    // 남은 시간이 하루 미만이면 "오늘 마감" (ceil을 쓰면 마지막 날에도 1일로 보인다)
+    const days = Math.floor((end - now) / 86400000);
     return days === 0 ? "오늘 마감" : `마감까지 ${days}일`;
   }
 

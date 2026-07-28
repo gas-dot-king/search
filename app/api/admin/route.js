@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
-import { sb, removePhoto, signedUrls } from "@/lib/db";
+import { sb, removePhoto, removePhotos, signedUrls } from "@/lib/db";
+import { clearUserCache } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
-import { getSettings, invalidateSettingsCache, EDITABLE_KEYS } from "@/lib/settings";
+import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
 import { LOTTO_DRAW_DIGITS } from "@/lib/lotto";
@@ -39,7 +40,7 @@ export const GET = route(async (req) => {
       getAllProgress(),
       sb().from("bingo_items").select("id, category, content").order("category").order("id"),
     ]);
-    return { settings, users: progress, items: items || [] };
+    return { settings: editableSettings(settings), users: progress, items: items || [] };
   }
 
   if (action === "user") {
@@ -143,8 +144,9 @@ export const POST = route(async (req) => {
 
     case "draw_numbers": {
       // 버튼 누를 때마다 한 자리씩 뽑기 (0~9 균등, crypto 기반)
-      const settings = await getSettings();
-      const cur = settings.winning_numbers || "";
+      // 캐시된 설정을 쓰면 다른 서버 인스턴스에서 방금 뽑은 자리를 덮어쓸 수 있어 DB에서 직접 읽는다.
+      const { data: row } = await sb().from("settings").select("value").eq("key", "winning_numbers").maybeSingle();
+      const cur = row?.value || "";
       if (cur.length >= LOTTO_DRAW_DIGITS) {
         throw new ApiError("이미 3자리 모두 추첨되었습니다. 다시 하려면 초기화하세요.");
       }
@@ -166,7 +168,7 @@ export const POST = route(async (req) => {
         .not("photo_path", "is", null);
       const { error } = await sb().from("cells").delete().eq("user_id", userId);
       if (error) throw new ApiError(error.message, 500);
-      for (const c of cells || []) await removePhoto(c.photo_path);
+      await removePhotos((cells || []).map((c) => c.photo_path));
       // 다시 뽑기 기회도 초기화 → 처음 흐름부터 다시
       const { error: resetFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
       requireDbSuccess(resetFlagError, "다시 뽑기 상태 초기화에 실패했습니다");
@@ -187,8 +189,14 @@ export const POST = route(async (req) => {
       const { error } = await sb().from("users").delete().eq("id", userId);
       if (error) throw new ApiError(error.message, 500);
 
-      for (const c of cells || []) await removePhoto(c.photo_path);
-      for (const e of entries || []) await removePhoto(e.photo_path);
+      await removePhotos([
+        ...(cells || []).map((c) => c.photo_path),
+        ...(entries || []).map((e) => e.photo_path),
+      ]);
+      // 다시 뽑기 플래그가 settings에 남지 않게 정리하고, 캐시된 토큰도 즉시 무효화한다.
+      const { error: redrawFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
+      requireDbSuccess(redrawFlagError, "다시 뽑기 상태 정리에 실패했습니다");
+      clearUserCache();
       return { ok: true };
     }
 

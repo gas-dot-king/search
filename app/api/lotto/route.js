@@ -111,6 +111,8 @@ export const POST = route(async (req) => {
       .single()
   );
   if (error) {
+    // 더블 클릭 등으로 같은 슬롯에 동시 응모하면 unique 제약이 막는다.
+    if (error.code === "23505") throw new ApiError(`응모권 ${slot}은 이미 사용했습니다.`);
     throw new ApiError("응모 실패: " + error.message, 500);
   }
   return {

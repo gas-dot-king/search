@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken, TOKEN_KEY } from "@/lib/client";
+import { prefetchApiData } from "@/lib/hooks";
 import Footer from "@/components/Footer";
 
 function deadlineText(uploadEnd) {
   if (!uploadEnd) return "마감일을 확인하고 있어요";
-  const days = Math.ceil((new Date(uploadEnd) - new Date()) / 86400000);
-  if (days < 0) return "온라인 위크가 마감되었어요";
+  const diff = new Date(uploadEnd) - new Date();
+  if (diff < 0) return "온라인 위크가 마감되었어요";
+  const days = Math.floor(diff / 86400000);
   return days === 0 ? "오늘 마감입니다" : `마감까지 ${days}일`;
 }
 
@@ -28,7 +30,11 @@ export default function EntryPage() {
       return;
     }
     api("/api/me")
-      .then((me) => router.replace(me.hasBoard ? "/board" : "/draw"))
+      .then((me) => {
+        // 이동할 페이지의 데이터를 미리 받아 두면 도착 즉시 화면이 뜬다.
+        if (me.hasBoard) prefetchApiData("/api/board").catch(() => {});
+        router.replace(me.hasBoard ? "/board" : "/draw");
+      })
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY);
         setChecking(false);
@@ -52,6 +58,7 @@ export default function EntryPage() {
         body: JSON.stringify({ nickname, pin }),
       });
       localStorage.setItem(TOKEN_KEY, res.token);
+      if (res.hasBoard) prefetchApiData("/api/board").catch(() => {});
       router.replace(res.hasBoard ? "/board" : "/draw");
     } catch (err) {
       setError(err.message);

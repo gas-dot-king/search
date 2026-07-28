@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import NaverMap, { isNaverMapConfigured } from "@/components/NaverMap";
 import { normalizeEventGuide } from "@/lib/event";
 
 const FREERUN_ITEM = {
@@ -60,6 +61,7 @@ export default function EventPage() {
   }
 
   const guide = normalizeEventGuide(config.eventGuide);
+  const showMap = isNaverMapConfigured && guide.lat !== null && guide.lng !== null;
   const workshopTimeline = [
     FREERUN_ITEM,
     ...guide.timeline.filter((item) => item.id !== "freerun"),
@@ -93,11 +95,15 @@ export default function EventPage() {
                 🗺️ 네이버 지도에서 보기
               </a>
             )}
-            <div id="naver-map" className="event-map-placeholder" aria-label="네이버 지도 표시 영역">
-              <span aria-hidden="true">🗺️</span>
-              <strong>네이버 지도</strong>
-              <small>지도 API 연결 예정</small>
-            </div>
+            {showMap ? (
+              <NaverMap lat={guide.lat} lng={guide.lng} venue={guide.venue} />
+            ) : (
+              <div className="event-map-placeholder" aria-label="네이버 지도 표시 영역">
+                <span aria-hidden="true">🗺️</span>
+                <strong>네이버 지도</strong>
+                <small>관리자 화면에서 좌표를 입력하면 표시됩니다</small>
+              </div>
+            )}
           </div>
         )}
       </section>
