@@ -78,7 +78,7 @@ export default function Nav({ config }) {
   const links = [
     ["/board", "빙고"],
     ["/lotto", "로또"],
-    ["/feed", "현황"],
+    ["/challenge", "챌린지"],
     ["/event", "행사 안내"],
   ];
 
@@ -91,10 +91,11 @@ export default function Nav({ config }) {
     <>
       <nav className="nav">
         <div className="nav-heading">
-          <Link href="/" className="brand" aria-label="양산 슬로우러닝 온라인 위크 홈">
-            <span className="brand-mark" aria-hidden="true">🏃</span>
+          <Link href="/" className="brand" aria-label="YSRC SUMMER FEST 2026 온라인 위크 이벤트 홈">
+            <img className="brand-logo" src="/YSRC_logo_black.png" alt="" width="592" height="174" />
             <span className="brand-copy">
-              <strong>양산 슬로우러닝 <em>온라인 위크</em></strong>
+              <strong>SUMMER FEST <em>2026</em></strong>
+              <span className="brand-sub">온라인 위크 이벤트</span>
               {currentConfig && <span className="nav-deadline">{dDayText(currentConfig)}</span>}
             </span>
           </Link>

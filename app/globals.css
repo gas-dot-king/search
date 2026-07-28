@@ -43,13 +43,10 @@ body {
 .stack { display: grid; gap: 8px; }
 
 .landing-head { text-align: center; margin: 44px 0 24px; }
-.landing-mark {
-  display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px;
-  border-radius: 18px; background: var(--accent-soft); font-size: 1.8rem;
-}
-.landing-eyebrow { margin-top: 14px; color: var(--accent); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.13em; }
-.landing-title { margin: 4px 0 8px; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -0.055em; }
+.landing-logo { width: auto; height: 48px; max-width: 78%; }
+.landing-title { margin: 14px 0 2px; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -0.055em; }
 .landing-title span { color: var(--accent); }
+.landing-subtitle { margin-bottom: 10px; color: var(--muted); font-size: 0.95rem; font-weight: 700; }
 .landing-countdown { display: inline-flex; padding: 5px 10px; border-radius: 999px; background: #fff1f2; color: var(--accent-deep); font-size: 0.82rem; font-weight: 800; }
 
 /* ---- 상단 네비 ---- */
@@ -60,26 +57,24 @@ body {
   background: linear-gradient(var(--bg) 85%, rgba(250, 249, 247, 0));
 }
 .nav-heading { display: flex; align-items: center; gap: 10px; }
-.nav .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; min-width: 0; }
-.brand-mark {
-  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-  border-radius: 11px; background: var(--accent-soft); font-size: 1.1rem; flex: 0 0 auto;
-}
+.nav .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; min-width: 0; }
+.brand-logo { width: auto; height: 26px; flex: 0 0 auto; }
 .brand-copy { min-width: 0; }
 .nav .brand strong { display: block; white-space: nowrap; }
 .nav .brand em { font-style: normal; }
 .nav .brand strong { font-size: 0.98rem; font-weight: 850; letter-spacing: -0.035em; }
 .nav .brand em { color: var(--accent); font-weight: 850; }
+.brand-sub { display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
 .nav-deadline {
-  display: inline-block; margin-top: 2px; padding: 3px 8px; border: 1px solid #fecdd3; border-radius: 999px;
+  display: inline-block; margin-top: 3px; padding: 3px 8px; border: 1px solid #fecdd3; border-radius: 999px;
   background: #fff; color: var(--accent-deep);
   font-size: 0.72rem; font-weight: 800; white-space: nowrap;
 }
-.nav-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.nav-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .nav-links a {
-  display: flex; align-items: center; justify-content: center; min-height: 39px; padding: 7px 5px;
-  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--muted);
-  text-decoration: none; font-size: 0.8rem; font-weight: 800; text-align: center;
+  display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 9px 5px;
+  border: 2px solid #ded9d2; border-radius: 12px; background: #fff; color: var(--muted);
+  text-decoration: none; font-size: 0.86rem; font-weight: 800; text-align: center;
   transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
 }
 .nav-links a:hover { border-color: #fda4af; color: var(--accent); }
@@ -406,15 +401,37 @@ td.num, th.num { text-align: right; }
 .event-activities { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin-top: 8px; }
 .event-activities li { padding: 3px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-deep); font-size: 0.73rem; font-weight: 700; }
 
+/* ---- 28일 챌린지 ---- */
+.challenge-section { margin-top: 22px; }
+.challenge-section .card + .card { margin-top: 10px; }
+.challenge-body { font-size: 0.86rem; word-break: keep-all; }
+.challenge-note { margin-top: 8px; color: var(--muted); font-size: 0.78rem; word-break: keep-all; }
+.challenge-list { margin: 4px 0 0; padding-left: 18px; font-size: 0.86rem; }
+.challenge-list li { margin-top: 5px; word-break: keep-all; }
+.challenge-carrot {
+  margin-top: 18px; padding: 16px 16px 14px;
+  border: 2px solid var(--accent); border-radius: var(--r-lg);
+  background: #fff1f2; box-shadow: var(--shadow);
+}
+.challenge-carrot-badge {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 850; letter-spacing: 0.04em;
+}
+.challenge-carrot-title { margin: 9px 0 10px; font-size: 1.05rem; font-weight: 850; line-height: 1.4; word-break: keep-all; }
+.challenge-carrot-title span { color: var(--accent); }
+.challenge-carrot-list { margin: 0; padding-left: 18px; font-size: 0.86rem; }
+.challenge-carrot-list li { margin-top: 6px; word-break: keep-all; }
+
 @media (min-width: 600px) {
   .cell .txt { font-size: 0.92rem; }
   .cell .overlay { font-size: 0.74rem; }
 }
 
 @media (max-width: 360px) {
-  .nav-links { gap: 4px; }
-  .nav-links a { padding-inline: 3px; font-size: 0.74rem; }
+  .nav-links { gap: 5px; }
+  .nav-links a { min-height: 46px; padding-inline: 3px; font-size: 0.78rem; }
   .nav-deadline { padding-inline: 7px; font-size: 0.68rem; }
+  .brand-logo { height: 22px; }
   .event-editor-fields { grid-template-columns: 1fr; }
 }
 

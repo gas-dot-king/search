@@ -61,7 +61,7 @@ export default function EventPage() {
 
       <header className="event-hero">
         <p className="event-kicker">행사 안내</p>
-        <h1 className="event-title">양산 슬로우러닝 온라인 위크</h1>
+        <h1 className="event-title">YSRC SUMMER FEST 2026</h1>
         <p className="event-date">{formatEventDate(guide.date)}</p>
       </header>
 

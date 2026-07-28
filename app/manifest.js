@@ -1,8 +1,8 @@
 export default function manifest() {
   return {
-    name: "양산 슬로우러닝 온라인 위크",
-    short_name: "양산 슬로우러닝",
-    description: "빙고 인증, 러닝 로또와 행사 안내",
+    name: "YSRC SUMMER FEST 2026 — 온라인 위크 이벤트",
+    short_name: "YSRC SUMMER FEST",
+    description: "빙고 인증, 러닝 로또, 28일 챌린지와 행사 안내",
     start_url: "/",
     display: "standalone",
     background_color: "#faf9f7",

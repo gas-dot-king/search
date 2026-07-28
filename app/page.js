@@ -64,9 +64,9 @@ export default function EntryPage() {
   return (
     <main className="wrap">
       <div className="landing-head">
-        <span className="landing-mark" aria-hidden="true">🏃</span>
-        <p className="landing-eyebrow">YANGSAN SLOW RUNNING</p>
-        <h1 className="landing-title">양산 슬로우러닝 <span>온라인 위크</span></h1>
+        <img className="landing-logo" src="/YSRC_logo_black.png" alt="YSRC" width="592" height="174" />
+        <h1 className="landing-title">SUMMER FEST <span>2026</span></h1>
+        <p className="landing-subtitle">온라인 위크 이벤트</p>
         <p className="landing-countdown">{deadlineText(uploadEnd)}</p>
         <p className="hint">빙고 인증과 달리기 로또를 함께 즐겨요.</p>
       </div>
