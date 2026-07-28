@@ -56,7 +56,9 @@ alter table lotto_entries enable row level security;
 alter table settings enable row level security;
 
 -- =====================================================
--- 기본 설정 (이벤트 기간: 2026-08-01 ~ 08-13, 추첨 08-15)
+-- 기본 설정
+-- 업로드·응모 기간: 2026-08-01 06:00 ~ 08-14 18:00 (KST), 추첨 08-15
+-- 이 기간 밖에서는 서버가 업로드·응모를 거부하고, 화면은 보기 전용이 된다.
 -- =====================================================
 insert into settings (key, value) values
   ('upload_start', '2026-08-01T06:00:00+09:00'),

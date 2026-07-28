@@ -4,11 +4,11 @@ import { useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { api, PRIVACY_WARNING } from "@/lib/client";
-import { useApiData, usePhoto } from "@/lib/hooks";
+import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 
 const fmtKm = (digits) => `${digits.slice(0, 2)}.${digits.slice(2)}`;
 
-function LottoEntrySlot({ slotNumber, entry, onSubmitted }) {
+function LottoEntrySlot({ slotNumber, entry, locked, onSubmitted }) {
   const photo = usePhoto();
   const [digits, setDigits] = useState(["", "", "", ""]);
   const [submitting, setSubmitting] = useState(false);
@@ -69,6 +69,20 @@ function LottoEntrySlot({ slotNumber, entry, onSubmitted }) {
     );
   }
 
+  // 기간 밖에는 응모 폼 대신 잠긴 응모권만 보여준다 (내역·추첨 결과는 계속 볼 수 있다).
+  // 자세한 사유는 바로 위 안내 배너에 한 번만 적는다.
+  if (locked) {
+    return (
+      <article className="lotto-entry-ticket locked">
+        <div className="lotto-ticket-heading">
+          <strong>응모권 {slotNumber}</strong>
+          <span>🔒 응모 불가</span>
+        </div>
+        <p>지금은 응모 기간이 아니에요.</p>
+      </article>
+    );
+  }
+
   return (
     <article className="lotto-entry-ticket">
       <div className="lotto-ticket-heading">
@@ -124,6 +138,7 @@ function LottoEntrySlot({ slotNumber, entry, onSubmitted }) {
 
 export default function LottoPage() {
   const { data, error: loadError, reload, setData } = useApiData("/api/lotto");
+  const period = useUploadPeriod();
   const [viewPhoto, setViewPhoto] = useState(null);
   const [historyError, setHistoryError] = useState("");
   const [photoBusyId, setPhotoBusyId] = useState("");
@@ -173,6 +188,8 @@ export default function LottoPage() {
 
   const winning = data.winningNumbers || "";
   const drawn = winning.length === 3;
+  // 기간 밖에는 응모·취소를 막는다.
+  const locked = !period.loading && !period.open;
 
   return (
     <main className="wrap">
@@ -222,7 +239,7 @@ export default function LottoPage() {
                 >
                   {photoBusyId === entry.id ? "불러오는 중..." : "인증사진 보기"}
                 </button>
-                {!drawn && (
+                {!drawn && !locked && (
                   <button type="button" className="btn danger sm" onClick={() => cancel(entry.id)}>
                     취소
                   </button>
@@ -255,13 +272,18 @@ export default function LottoPage() {
 
       <section className="lotto-entry-section" aria-labelledby="lotto-entry-title">
         <h2 id="lotto-entry-title" className="section-title">응모하기</h2>
-        <div className="warn-box lotto-privacy">{PRIVACY_WARNING}</div>
+        {locked ? (
+          <div className="period-lock" role="status">🔒 {period.notice}</div>
+        ) : (
+          <div className="warn-box lotto-privacy">{PRIVACY_WARNING}</div>
+        )}
         <div className="lotto-entry-tickets">
           {[0, 1].map((index) => (
             <LottoEntrySlot
               key={`entry-slot-${index}`}
               slotNumber={index + 1}
               entry={data.entries.find((item) => item.slot === index + 1) || null}
+              locked={locked}
               onSubmitted={addEntry}
             />
           ))}

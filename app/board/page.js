@@ -6,7 +6,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ItemsList from "@/components/ItemsList";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
-import { useApiData, usePhoto } from "@/lib/hooks";
+import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 import { getNearCompleteLines, LINES } from "@/lib/bingo";
 import { downloadBoardImage } from "@/lib/boardImage";
 import { todayGreetingMessage } from "@/lib/greeting";
@@ -21,6 +21,7 @@ const PHOTO_EXAMPLES = {
 export default function BoardPage() {
   const router = useRouter();
   const { data: board, error: loadError, reload } = useApiData("/api/board");
+  const period = useUploadPeriod();
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
   const [showItems, setShowItems] = useState(false);
@@ -81,6 +82,7 @@ export default function BoardPage() {
 
   async function upload() {
     if (!photo.file || !selected) return;
+    if (!period.loading && !period.open) return photo.setError(period.notice);
     photo.setBusy(true);
     photo.setError("");
     try {
@@ -99,6 +101,7 @@ export default function BoardPage() {
 
   async function removePhoto() {
     if (!selected) return;
+    if (!period.loading && !period.open) return photo.setError(period.notice);
     if (!confirm("이 칸의 사진을 삭제할까요?")) return;
     photo.setBusy(true);
     try {
@@ -135,6 +138,9 @@ export default function BoardPage() {
       </main>
     );
 
+  // 기간 밖에는 빙고판·인증 사진을 보기만 하고 업로드·삭제는 막는다.
+  const locked = !period.loading && !period.open;
+
   // 완성된 줄에 속한 칸들 (금색 하이라이트)
   const filledSet = new Set(board.cells.filter((c) => c.hasPhoto).map((c) => c.position));
   const lineCells = new Set(LINES.filter((l) => l.every((p) => filledSet.has(p))).flat());
@@ -167,6 +173,12 @@ export default function BoardPage() {
       {nearCompleteLines.length > 0 && (
         <div className="bingo-nudge" role="status">
           🎯 한 칸만 더 채우면 {nearCompleteLines.length}줄 빙고!
+        </div>
+      )}
+
+      {locked && (
+        <div className="period-lock" role="status">
+          🔒 {period.notice}
         </div>
       )}
 
@@ -291,12 +303,20 @@ export default function BoardPage() {
               />
               {selected.content}
             </h3>
-            <div className="rule-box" style={{ marginBottom: 6 }}>
-              📷 본인이 직접 올리는 인증이에요. <b>항목 내용이 잘 나타나는 사진이면 충분합니다!</b>
-              <br />
-              {PHOTO_EXAMPLES[selected.category]}
-            </div>
-            <div className="warn-box">{PRIVACY_WARNING}</div>
+            {locked ? (
+              <div className="period-lock" role="status">
+                🔒 {period.notice}
+              </div>
+            ) : (
+              <>
+                <div className="rule-box" style={{ marginBottom: 6 }}>
+                  📷 본인이 직접 올리는 인증이에요. <b>항목 내용이 잘 나타나는 사진이면 충분합니다!</b>
+                  <br />
+                  {PHOTO_EXAMPLES[selected.category]}
+                </div>
+                <div className="warn-box">{PRIVACY_WARNING}</div>
+              </>
+            )}
 
             {photo.preview ? (
               <img className="preview" src={photo.preview} alt="미리보기" />
@@ -308,18 +328,20 @@ export default function BoardPage() {
 
             {photo.error && <p className="error-msg">{photo.error}</p>}
 
-            <div className="modal-actions">
-              <button className="btn ghost" onClick={() => fileRef.current?.click()} disabled={photo.busy}>
-                {selected.photoUrl || photo.preview ? "사진 다시 선택" : "사진 선택"}
-              </button>
-              {photo.file && (
-                <button className="btn primary" onClick={upload} disabled={photo.busy}>
-                  {photo.busy ? "올리는 중..." : "인증 완료!"}
+            {!locked && (
+              <div className="modal-actions">
+                <button className="btn ghost" onClick={() => fileRef.current?.click()} disabled={photo.busy}>
+                  {selected.photoUrl || photo.preview ? "사진 다시 선택" : "사진 선택"}
                 </button>
-              )}
-            </div>
+                {photo.file && (
+                  <button className="btn primary" onClick={upload} disabled={photo.busy}>
+                    {photo.busy ? "올리는 중..." : "인증 완료!"}
+                  </button>
+                )}
+              </div>
+            )}
             <div className="modal-actions">
-              {selected.photoUrl && !photo.file && (
+              {!locked && selected.photoUrl && !photo.file && (
                 <button className="btn danger" onClick={removePhoto} disabled={photo.busy}>
                   사진 삭제
                 </button>
