@@ -8,6 +8,7 @@ import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto } from "@/lib/hooks";
 import { getNearCompleteLines, LINES } from "@/lib/bingo";
 import { downloadBoardImage } from "@/lib/boardImage";
+import { todayGreetingMessage } from "@/lib/greeting";
 
 /** 카테고리별 인증 사진 예시 안내 */
 const PHOTO_EXAMPLES = {
@@ -156,6 +157,10 @@ export default function BoardPage() {
   return (
     <main className="wrap">
       <Nav />
+
+      <p className="board-greeting">
+        반가워요, {board.nickname}님! <span className="hint">{todayGreetingMessage()}</span>
+      </p>
 
       <div className="stats">
         <div className="stat">

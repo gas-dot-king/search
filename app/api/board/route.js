@@ -13,12 +13,13 @@ export const GET = route(async (req) => {
     .eq("user_id", user.id)
     .order("position");
   if (error) throw new ApiError(error.message, 500);
-  if (!cells?.length) return { cells: [], filled: 0, lines: 0, photosLoaded: includePhotos };
+  if (!cells?.length) return { nickname: user.nickname, cells: [], filled: 0, lines: 0, photosLoaded: includePhotos };
 
   const urlMap = includePhotos ? await signedUrls(cells.map((c) => c.photo_path)) : {};
   const filled = cells.filter((c) => c.photo_path).map((c) => c.position);
 
   return {
+    nickname: user.nickname,
     cells: cells.map((c) => ({
       position: c.position,
       content: c.bingo_items?.content || "",

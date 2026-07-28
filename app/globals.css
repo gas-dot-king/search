@@ -154,6 +154,8 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
 }
 
 /* ---- 빙고판 ---- */
+.board-greeting { margin: 14px 0 10px; font-size: 1.02rem; font-weight: 800; word-break: keep-all; }
+.board-greeting .hint { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 600; }
 .stats { display: flex; gap: 10px; margin-bottom: 12px; }
 .stat {
   flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
