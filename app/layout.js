@@ -3,7 +3,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 
 export const metadata = {
   title: "YSRC SUMMER FEST 2026 — 온라인 위크 이벤트",
-  description: "빙고 인증, 러닝 로또, 28일 챌린지와 행사 안내",
+  description: "빙고 인증, 러닝 로또, 28일 챌린지와 오프라인 행사",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "YSRC SUMMER FEST 2026" },
   icons: { apple: "/icon.png" },

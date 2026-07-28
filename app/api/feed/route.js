@@ -1,6 +1,7 @@
 import { route, requireUser } from "@/lib/api";
 import { getAllProgress } from "@/lib/progress";
 import { LINES } from "@/lib/bingo";
+import { demoProgress, isDemoMode } from "@/lib/demo";
 
 function bingoLineActivities(cells, nickOf) {
   const cellsByUser = new Map();
@@ -35,7 +36,14 @@ function bingoLineActivities(cells, nickOf) {
 
 /** 동호회 현황: 진행률 랭킹 + 최근 활동 (사진은 비공개) */
 export const GET = route(async (req) => {
-  await requireUser(req);
+  const user = await requireUser(req);
+  if (isDemoMode()) {
+    const { progress, activity } = demoProgress();
+    const rankings = progress
+      .map(({ nickname, filled, lines, lottoEntries }) => ({ nickname, filled, lines, lottoEntries }))
+      .sort((a, b) => b.lines - a.lines || b.filled - a.filled || a.nickname.localeCompare(b.nickname));
+    return { rankings, activity };
+  }
   const { progress, users, cells, lotto } = await getAllProgress();
 
   const nickOf = new Map(users.map((u) => [u.id, u.nickname]));

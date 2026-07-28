@@ -6,192 +6,300 @@ import Footer from "@/components/Footer";
 import { api, PRIVACY_WARNING } from "@/lib/client";
 import { useApiData, usePhoto } from "@/lib/hooks";
 
-const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
+const fmtKm = (digits) => `${digits.slice(0, 2)}.${digits.slice(2)}`;
 
-export default function LottoPage() {
-  const { data, error: loadError, reload } = useApiData("/api/lotto");
+function LottoEntrySlot({ slotNumber, entry, onSubmitted }) {
   const photo = usePhoto();
   const [digits, setDigits] = useState(["", "", "", ""]);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef(null);
   const digitRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
-  function setDigit(i, v) {
-    const d = v.replace(/\D/g, "").slice(-1);
-    setDigits((prev) => {
-      const next = [...prev];
-      next[i] = d;
+  function setDigit(index, value) {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    setDigits((current) => {
+      const next = [...current];
+      next[index] = digit;
       return next;
     });
-    if (d && i < 3) digitRefs[i + 1].current?.focus();
+    if (digit && index < 3) digitRefs[index + 1].current?.focus();
   }
 
   async function submit() {
     const code = digits.join("");
-    if (code.length !== 4) return photo.setError("기록 4자리를 모두 입력해주세요.");
+    if (code.length !== 4) return photo.setError("거리 4자리를 모두 입력해주세요.");
     if (!photo.file) return photo.setError("인증 사진을 선택해주세요.");
-    photo.setBusy(true);
+
+    setSubmitting(true);
     photo.setError("");
+    const controller = new AbortController();
+    const uploadTimeout = setTimeout(() => controller.abort(), 60_000);
     try {
       const form = new FormData();
+      form.append("slot", String(slotNumber));
       form.append("digits", code);
       form.append("file", photo.file, "lotto.jpg");
-      await api("/api/lotto", { method: "POST", body: form });
-      setDigits(["", "", "", ""]);
-      photo.clear();
-      await reload();
-    } catch (err) {
-      photo.setError(err.message);
+      const result = await api("/api/lotto", {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+      onSubmitted(result.entry);
+    } catch (error) {
+      photo.setError(
+        error.name === "AbortError"
+          ? "업로드 시간이 너무 오래 걸렸어요. 네트워크를 확인하고 다시 시도해주세요."
+          : error.message
+      );
     } finally {
-      photo.setBusy(false);
+      clearTimeout(uploadTimeout);
+      setSubmitting(false);
     }
+  }
+
+  if (entry) {
+    return (
+      <article className="lotto-entry-ticket complete">
+        <div className="lotto-ticket-heading">
+          <strong>응모권 {slotNumber}</strong>
+          <span>✓ 응모 완료!</span>
+        </div>
+        <p><b>{fmtKm(entry.digits)}km</b> 기록으로 응모했어요.</p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="lotto-entry-ticket">
+      <div className="lotto-ticket-heading">
+        <strong>응모권 {slotNumber}</strong>
+        <span>응모 가능</span>
+      </div>
+      <p className="hint">러닝 앱 거리 4자리를 입력해주세요. 예: 5.24km → 05.24</p>
+
+      <div className="digit-row compact">
+        {[0, 1, 2, 3].map((index) => (
+          <span key={index} className="digit-field">
+            {index === 2 && <span className="digit-dot">.</span>}
+            <input
+              ref={digitRefs[index]}
+              className="digit-input"
+              value={digits[index]}
+              onChange={(event) => setDigit(index, event.target.value)}
+              inputMode="numeric"
+              maxLength={1}
+              aria-label={`응모권 ${slotNumber} 거리 ${index + 1}번째 숫자`}
+            />
+          </span>
+        ))}
+        <span className="digit-km">km</span>
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" onChange={photo.pick} hidden />
+      {photo.busy && <p className="photo-processing" role="status">사진을 처리하는 중이에요...</p>}
+      {photo.preview && <img className="lotto-slot-preview" src={photo.preview} alt="선택한 인증 사진" />}
+      {photo.error && <p className="error-msg">{photo.error}</p>}
+
+      <div className="lotto-ticket-actions">
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => fileRef.current?.click()}
+          disabled={photo.busy || submitting}
+        >
+          {photo.busy ? "사진 처리 중..." : photo.file ? "사진 변경" : "인증 사진 선택"}
+        </button>
+        <button
+          type="button"
+          className="btn primary"
+          onClick={submit}
+          disabled={photo.busy || submitting || !photo.file}
+        >
+          {submitting ? "응모 중..." : `응모권 ${slotNumber} 등록`}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+export default function LottoPage() {
+  const { data, error: loadError, reload, setData } = useApiData("/api/lotto");
+  const [viewPhoto, setViewPhoto] = useState(null);
+  const [historyError, setHistoryError] = useState("");
+  const [photoBusyId, setPhotoBusyId] = useState("");
+
+  function addEntry(entry) {
+    setData((current) => current
+      ? { ...current, entries: [...current.entries, entry].sort((a, b) => a.slot - b.slot) }
+      : current
+    );
+    reload();
   }
 
   async function cancel(id) {
     if (!confirm("이 응모를 취소할까요? 사진도 삭제됩니다.")) return;
+    setHistoryError("");
     try {
       await api("/api/lotto", { method: "DELETE", body: JSON.stringify({ id }) });
       await reload();
-    } catch (err) {
-      photo.setError(err.message);
+    } catch (error) {
+      setHistoryError(error.message);
     }
   }
 
-  if (!data)
+  async function openPhoto(entry) {
+    setHistoryError("");
+    if (entry.photoUrl) {
+      setViewPhoto(entry);
+      return;
+    }
+
+    setPhotoBusyId(entry.id);
+    const latest = await reload();
+    const refreshed = latest?.entries?.find((item) => item.id === entry.id);
+    setPhotoBusyId("");
+    if (refreshed?.photoUrl) setViewPhoto(refreshed);
+    else setHistoryError("인증 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+  }
+
+  if (!data) {
     return (
       <main className="wrap">
         <Nav />
         <p className="hint">{loadError || "불러오는 중..."}</p>
       </main>
     );
+  }
 
-  const winning = data.winningNumbers || ""; // 0~4자리 (진행 중 부분 공개)
-  const drawn = winning.length === 4;
-  const drawing = winning.length > 0 && !drawn;
-  const canApply = data.entries.length < data.maxEntries;
+  const winning = data.winningNumbers || "";
+  const drawn = winning.length === 3;
 
   return (
     <main className="wrap">
       <Nav />
-      <h2 className="section-title">🎰 달리기 로또</h2>
+      <h1 className="section-title lotto-page-title">🎰 달리기 로또</h1>
 
-      {/* 추첨 결과 / 진행 상황 */}
+      <section className="card lotto-guide" aria-labelledby="lotto-guide-title">
+        <div className="lotto-guide-heading">
+          <h2 id="lotto-guide-title">응모 방법</h2>
+          <span>1인 최대 2장</span>
+        </div>
+        <p className="lotto-period">8월 1일 오전 6시부터 8월 14일 오후 6시까지</p>
+        <p>
+          러닝 앱의 거리와 인증 사진으로 응모해요. 거리의 <b>1의 자리·소수점 첫째 자리·둘째 자리</b>,
+          총 세 자리를 무작위 추첨 번호와 비교합니다.
+        </p>
+        <div className="lotto-example" aria-label="로또 응모 예시">
+          <span>예시</span>
+          <strong>05.24km</strong>
+          <i>→</i>
+          <b>5</b><b>2</b><b>4</b>
+        </div>
+        <p className="lotto-prize">
+          8월 15일 오프라인 행사에서 추첨하며, 세 자리 모두 일치한 1등에게
+          <b> 5만원 상당의 선물</b>을 드려요. 1등이 없으면 나올 때까지 다시 추첨합니다.
+        </p>
+      </section>
+
+      <section className="card lotto-history compact" aria-labelledby="lotto-history-title">
+        <div className="lotto-history-heading">
+          <p id="lotto-history-title" className="card-title">내 응모 내역</p>
+          <strong>{data.entries.length}/2장</strong>
+        </div>
+        {data.entries.length === 0 ? (
+          <p className="hint">아직 응모한 기록이 없어요.</p>
+        ) : (
+          <div className="lotto-history-list">
+            {data.entries.map((entry) => (
+              <div className="lotto-history-row" key={entry.id}>
+                <span>응모권 {entry.slot}</span>
+                <strong>{fmtKm(entry.digits)}km</strong>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  onClick={() => openPhoto(entry)}
+                  disabled={photoBusyId === entry.id}
+                >
+                  {photoBusyId === entry.id ? "불러오는 중..." : "인증사진 보기"}
+                </button>
+                {!drawn && (
+                  <button type="button" className="btn danger sm" onClick={() => cancel(entry.id)}>
+                    취소
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {historyError && <p className="error-msg">{historyError}</p>}
+      </section>
+
       {winning.length > 0 && (
-        <div className="card" style={{ textAlign: "center" }}>
+        <section className="card lotto-draw-result">
           <p className="card-title">{drawn ? "당첨 번호" : "추첨 진행 중... 🥁"}</p>
           <div className="winning-digits">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={`winning-digit ${i < winning.length ? "" : "pending"}`}>
-                {i < winning.length ? winning[i] : "?"}
-              </span>
+            {[0, 1, 2].map((index) => (
+              <div className="winning-digit-group" key={index}>
+                <span className={`winning-digit ${index < winning.length ? "" : "pending"}`}>
+                  {index < winning.length ? winning[index] : "?"}
+                </span>
+                <small>{["1의 자리", "소수점 첫째", "소수점 둘째"][index]}</small>
+              </div>
             ))}
           </div>
           <p className="hint">
-            {drawn
-              ? `기록 ${fmtKm(winning)} km 와 자리별로 비교해요`
-              : `${winning.length}번째 자리까지 공개! 다음 자리를 기다려주세요`}
+            {drawn ? `${winning[0]}.${winning.slice(1)}에 해당하는 세 자리를 비교해요.` : "다음 추첨 숫자를 기다려주세요."}
           </p>
+        </section>
+      )}
+
+      <section className="lotto-entry-section" aria-labelledby="lotto-entry-title">
+        <h2 id="lotto-entry-title" className="section-title">응모하기</h2>
+        <div className="warn-box lotto-privacy">{PRIVACY_WARNING}</div>
+        <div className="lotto-entry-tickets">
+          {[0, 1].map((index) => (
+            <LottoEntrySlot
+              key={`entry-slot-${index}`}
+              slotNumber={index + 1}
+              entry={data.entries.find((item) => item.slot === index + 1) || null}
+              onSubmitted={addEntry}
+            />
+          ))}
         </div>
-      )}
+      </section>
 
-      {/* 내 응모 */}
-      <div className="card">
-        <p className="card-title">
-          내 응모 ({data.entries.length}/{data.maxEntries})
-        </p>
-        {data.entries.length === 0 && (
-          <p className="hint" style={{ marginTop: 6 }}>아직 응모한 기록이 없어요.</p>
-        )}
-        {data.entries.map((e) => (
-          <div className="entry-item" key={e.id}>
-            {e.photoUrl ? (
-              <img src={e.photoUrl} alt="인증" loading="lazy" decoding="async" />
-            ) : e.hasPhoto ? (
-              <span className="entry-photo-pending" aria-label="인증 사진 불러오는 중" />
-            ) : null}
-            <div style={{ flex: 1 }}>
-              <div className="entry-digits">
-                {e.digits.split("").map((d, i) => (
-                  <span key={i} className={i < winning.length ? (winning[i] === d ? "hit" : "miss") : ""}>
-                    {d}
-                    {i === 1 ? "." : ""}
-                  </span>
-                ))}
-                <span style={{ fontSize: "0.8rem", color: "var(--muted)", fontWeight: 400 }}>km</span>
-              </div>
-              {drawn && <span className="hint">{e.matches}개 일치</span>}
-            </div>
-            {!drawn && (
-              <button className="btn danger sm" onClick={() => cancel(e.id)}>취소</button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* 응모 폼 */}
-      {canApply && (
-        <div className="card">
-          <p className="card-title">응모하기</p>
-          <p className="hint" style={{ margin: "6px 0" }}>
-            러닝 앱 기록의 거리를 그대로 입력하세요. 10km 미만이면 앞에 0을 붙여요. (5.24km → 05.24)
-          </p>
-          <div className="digit-row">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {i === 2 && <span className="digit-dot">.</span>}
-                <input
-                  ref={digitRefs[i]}
-                  className="digit-input"
-                  value={digits[i]}
-                  onChange={(e) => setDigit(i, e.target.value)}
-                  inputMode="numeric"
-                  maxLength={2}
-                />
-              </span>
-            ))}
-          </div>
-          <div className="warn-box">{PRIVACY_WARNING}</div>
-          <input ref={fileRef} type="file" accept="image/*" onChange={photo.pick} style={{ display: "none" }} />
-          {photo.preview && <img className="preview" src={photo.preview} alt="미리보기" />}
-          {photo.error && <p className="error-msg">{photo.error}</p>}
-          <div className="modal-actions">
-            <button className="btn ghost" onClick={() => fileRef.current?.click()} disabled={photo.busy}>
-              {photo.file ? "사진 다시 선택" : "인증 사진 선택"}
-            </button>
-            <button className="btn primary" onClick={submit} disabled={photo.busy || !photo.file}>
-              {photo.busy ? "응모 중..." : "응모하기"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!drawn && !canApply && data.entries.length >= data.maxEntries && (
-        <p className="hint" style={{ textAlign: "center" }}>
-          응모를 모두 사용했어요. 추첨일을 기다려주세요! 🍀
-        </p>
-      )}
-
-      {/* 당첨자 명단 */}
       {drawn && data.winners && (
-        <div className="card">
-          <p className="card-title">🏆 당첨자</p>
-          {data.winners.length === 0 && <p className="hint">2개 이상 일치한 사람이 없어요 😢</p>}
+        <section className="card">
+          <p className="card-title">🏆 1등 당첨자</p>
+          {data.winners.length === 0 && <p className="hint">아직 1등이 없어 다시 추첨할 예정이에요.</p>}
           <table>
             <tbody>
-              {data.winners.map((w) => (
-                <tr key={w.nickname}>
-                  <td>{w.nickname}</td>
-                  <td>{fmtKm(w.digits)} km</td>
-                  <td className="num">
-                    <b style={{ color: "var(--accent)" }}>{w.matches}개 일치</b>
-                  </td>
+              {data.winners.map((winner) => (
+                <tr key={winner.nickname}>
+                  <td>{winner.nickname}</td>
+                  <td>{fmtKm(winner.digits)}km</td>
+                  <td className="num"><b style={{ color: "var(--accent)" }}>세 자리 일치</b></td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </section>
       )}
 
       <Footer />
+
+      {viewPhoto && (
+        <div className="modal-bg" onClick={() => setViewPhoto(null)}>
+          <div className="modal lotto-photo-modal" onClick={(event) => event.stopPropagation()}>
+            <h3>응모 인증사진</h3>
+            <p className="hint">{fmtKm(viewPhoto.digits)}km 응모 기록</p>
+            <img className="preview" src={viewPhoto.photoUrl} alt={`${fmtKm(viewPhoto.digits)}km 인증사진`} />
+            <div className="modal-actions">
+              <button type="button" className="btn ghost" onClick={() => setViewPhoto(null)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

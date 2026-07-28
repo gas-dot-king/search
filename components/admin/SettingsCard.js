@@ -43,17 +43,11 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
       />
 
       <label>로또 최대 응모 장수</label>
-      <select
-        value={settings.max_lotto_entries || "2"}
-        onChange={(e) => setSetting("max_lotto_entries", e.target.value)}
-        disabled={busy}
-      >
-        {[1, 2, 3].map((n) => (
-          <option key={n} value={n}>{n}장</option>
-        ))}
-      </select>
+      <div className="rule-box" style={{ marginTop: 0 }}>
+        🎟️ 1인당 <b>2장</b>으로 고정되어 있습니다.
+      </div>
 
-      <label>로또 추첨 (자리마다 버튼 한 번씩, 회원 화면에 실시간 공개)</label>
+      <label>로또 추첨 (1의 자리·소수점 첫째·둘째, 총 3자리)</label>
       <LottoDraw
         digits={settings.winning_numbers || ""}
         busy={busy}
@@ -71,11 +65,11 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
 }
 
 function LottoDraw({ digits, busy, onDraw, onReset }) {
-  const complete = digits.length === 4;
+  const complete = digits.length === 3;
   return (
     <div>
       <div className="winning-digits" style={{ justifyContent: "flex-start", margin: "8px 0" }}>
-        {[0, 1, 2, 3].map((i) => (
+        {[0, 1, 2].map((i) => (
           <span key={i} className={`winning-digit ${i < digits.length ? "" : "pending"}`}>
             {i < digits.length ? digits[i] : "?"}
           </span>
@@ -89,7 +83,7 @@ function LottoDraw({ digits, busy, onDraw, onReset }) {
         )}
         {complete && (
           <span className="rule-box" style={{ margin: 0, flex: 1 }}>
-            🎉 추첨 완료: <b>{digits.slice(0, 2)}.{digits.slice(2)}</b> km
+            🎉 추첨 완료: <b>{digits[0]}.{digits.slice(1)}</b> km
           </span>
         )}
         {digits.length > 0 && (

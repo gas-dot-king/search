@@ -32,9 +32,11 @@ create table if not exists cells (
 create table if not exists lotto_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
+  slot int not null check (slot between 1 and 2),
   digits char(4) not null,        -- "05.24" → "0524"
   photo_path text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (user_id, slot)
 );
 
 create table if not exists settings (
@@ -57,8 +59,8 @@ alter table settings enable row level security;
 -- 기본 설정 (이벤트 기간: 2026-08-01 ~ 08-13, 추첨 08-15)
 -- =====================================================
 insert into settings (key, value) values
-  ('upload_start', '2026-08-01T00:00:00+09:00'),
-  ('upload_end',   '2026-08-13T23:59:59+09:00'),
+  ('upload_start', '2026-08-01T06:00:00+09:00'),
+  ('upload_end',   '2026-08-14T18:00:00+09:00'),
   ('draw_date',    '2026-08-15'),
   ('max_lotto_entries', '2'),
   ('winning_numbers', ''),

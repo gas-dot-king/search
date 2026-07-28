@@ -92,8 +92,8 @@ export default function EventGuideCard({ raw, busy, onSave }) {
 
   return (
     <section className="card event-editor">
-      <p className="card-title">행사 안내 편집</p>
-      <p className="hint">행사 시간, 장소, 타임라인과 세부 레크리에이션을 수정할 수 있습니다.</p>
+      <p className="card-title">오프라인 행사 편집</p>
+      <p className="hint">워크샵 시간, 장소, 오시는 길과 세부 일정을 수정할 수 있습니다.</p>
 
       <label htmlFor="event-hours">행사 시간</label>
       <input

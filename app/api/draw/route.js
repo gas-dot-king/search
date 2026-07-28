@@ -1,6 +1,7 @@
 import { sb, userHasBoard } from "@/lib/db";
 import { route, requireUser, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { drawBoard } from "@/lib/bingo";
+import { demoDraw, isDemoMode } from "@/lib/demo";
 
 const redrawKey = (userId) => `redraw:${userId}`;
 
@@ -12,6 +13,11 @@ const redrawKey = (userId) => `redraw:${userId}`;
 export const POST = route(async (req) => {
   const user = await requireUser(req);
   const { redraw } = await readJson(req);
+  if (isDemoMode()) {
+    const result = demoDraw(user.id, Boolean(redraw));
+    if (result.error) throw new ApiError(result.error);
+    return { ok: true, board: result.board };
+  }
   const hasBoard = await userHasBoard(user.id);
 
   if (hasBoard && !redraw) throw new ApiError("이미 빙고판이 확정되었습니다.");

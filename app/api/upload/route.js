@@ -1,5 +1,6 @@
 import { sb, uploadPhotoAndPersist, removePhoto } from "@/lib/db";
 import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
+import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 
 async function findCell(userId, position) {
   const { data: cell } = await sb()
@@ -19,6 +20,11 @@ export const POST = route(async (req) => {
   const form = await req.formData().catch(() => null);
   const position = Number(form?.get("position"));
   if (!Number.isInteger(position) || position < 0 || position > 15) throw new ApiError("잘못된 칸입니다.");
+  if (isDemoMode()) {
+    const result = demoUpload(user.id, position);
+    if (result.error) throw new ApiError(result.error);
+    return result;
+  }
   const buffer = await readPhoto(form);
 
   const cell = await findCell(user.id, position);
@@ -44,6 +50,11 @@ export const DELETE = route(async (req) => {
   await requireUploadPeriod();
 
   const { position } = await readJson(req);
+  if (isDemoMode()) {
+    const result = demoRemoveUpload(user.id, Number(position));
+    if (result.error) throw new ApiError(result.error);
+    return result;
+  }
   const cell = await findCell(user.id, position);
   if (!cell?.photo_path) throw new ApiError("삭제할 사진이 없습니다.");
 

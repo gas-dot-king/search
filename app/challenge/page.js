@@ -28,6 +28,9 @@ const FOUL_CASES = [
   "GPS 경로 이상, 차량·자전거 이용 정황",
 ];
 
+// 당근 챌린지 공유 링크가 만들어지면 아래 주소만 교체하면 됩니다.
+const CARROT_CHALLENGE_URL = "https://www.daangn.com/";
+
 export default function ChallengePage() {
   return (
     <main className="wrap">
@@ -50,6 +53,15 @@ export default function ChallengePage() {
           <li>달성 일수와 등수는 <b>모두 캘린더 기록을 기준으로</b> 집계됩니다.</li>
           <li>패스권도 캘린더에 글을 올려야 사용 처리되니, 시작 전에 꼭 가입해주세요.</li>
         </ul>
+        <a
+          className="btn challenge-carrot-button"
+          href={CARROT_CHALLENGE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          당근 앱에서 보기
+          <span aria-hidden="true">→</span>
+        </a>
       </section>
 
       <section className="challenge-section" aria-labelledby="rules-title">

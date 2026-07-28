@@ -13,7 +13,7 @@ function dDayText(config) {
   const end = new Date(config.uploadEnd);
   const daysUntil = (date) => Math.ceil((date - now) / 86400000);
 
-  if (config.winningNumbers?.length === 4) return "🎉 추첨 완료!";
+  if (config.winningNumbers?.length === 3) return "🎉 추첨 완료!";
   if (config.winningNumbers?.length > 0) return "🎰 추첨 진행 중!";
   if (now < start) return `시작까지 ${daysUntil(start)}일`;
   if (now <= end) {
@@ -79,7 +79,7 @@ export default function Nav({ config }) {
     ["/board", "빙고"],
     ["/lotto", "로또"],
     ["/challenge", "챌린지"],
-    ["/event", "행사 안내"],
+    ["/event", "오프라인 행사"],
   ];
 
   const prefetchMenu = (href) => {
@@ -100,6 +100,7 @@ export default function Nav({ config }) {
             </span>
           </Link>
         </div>
+        <NoticeBar notices={currentConfig?.notices || []} />
         <div className="nav-links">
           {links.map(([href, label]) => (
             <Link
@@ -115,7 +116,6 @@ export default function Nav({ config }) {
           ))}
         </div>
       </nav>
-      <NoticeBar notices={currentConfig?.notices || []} />
       <LottoDeadlineReminder config={currentConfig} />
     </>
   );

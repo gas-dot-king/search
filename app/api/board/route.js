@@ -1,10 +1,12 @@
 import { sb, signedUrls } from "@/lib/db";
 import { route, requireUser, ApiError } from "@/lib/api";
 import { countLines } from "@/lib/bingo";
+import { demoBoard, isDemoMode } from "@/lib/demo";
 
 /** 내 빙고판 조회 */
 export const GET = route(async (req) => {
   const user = await requireUser(req);
+  if (isDemoMode()) return demoBoard(user.id);
 
   const { data: cells, error } = await sb()
     .from("cells")

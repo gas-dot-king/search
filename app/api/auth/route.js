@@ -1,6 +1,7 @@
 import { sb, userHasBoard } from "@/lib/db";
 import { hashPin, verifyPin, newToken } from "@/lib/auth";
 import { route, readJson, ApiError } from "@/lib/api";
+import { demoAuth, demoHasBoard, isDemoMode } from "@/lib/demo";
 
 /** 가입/로그인 겸용: 닉네임이 없으면 가입, 있으면 PIN 검증 */
 export const POST = route(async (req) => {
@@ -9,6 +10,15 @@ export const POST = route(async (req) => {
   const name = String(nickname || "").trim();
   if (name.length < 1 || name.length > 12) throw new ApiError("닉네임은 1~12자로 입력해주세요.");
   if (!/^\d{4}$/.test(String(pin || ""))) throw new ApiError("비밀번호는 숫자 4자리입니다.");
+
+  if (isDemoMode()) {
+    const result = demoAuth(name, String(pin));
+    if (result.error) throw new ApiError(result.error, result.status);
+    return {
+      token: result.user.token, nickname: result.user.nickname,
+      hasBoard: demoHasBoard(result.user.id), isNew: result.isNew,
+    };
+  }
 
   const { data: existing } = await sb()
     .from("users")

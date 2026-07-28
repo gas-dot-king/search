@@ -4,11 +4,34 @@ import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib
 import { getSettings, invalidateSettingsCache, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
+import { LOTTO_DRAW_DIGITS } from "@/lib/lotto";
+import {
+  demoAdminUser,
+  demoDeleteCellPhoto,
+  demoDeleteLottoEntry,
+  demoDeleteUser,
+  demoDrawNumbers,
+  demoItems,
+  demoProgress,
+  demoResetBoard,
+  demoSetSetting,
+  demoSettings,
+  isDemoMode,
+} from "@/lib/demo";
 
 export const GET = route(async (req) => {
   requireAdmin(req);
   const url = new URL(req.url);
   const action = url.searchParams.get("action") || "overview";
+
+  if (isDemoMode()) {
+    if (action === "overview") {
+      const progress = demoProgress();
+      return { settings: demoSettings(), users: progress.progress, items: demoItems() };
+    }
+    if (action === "user") return demoAdminUser(url.searchParams.get("id"));
+    throw new ApiError("알 수 없는 요청입니다.");
+  }
 
   if (action === "overview") {
     const [settings, { progress }, { data: items }] = await Promise.all([
@@ -64,6 +87,34 @@ export const POST = route(async (req) => {
   requireAdmin(req);
   const body = await readJson(req);
 
+  if (isDemoMode()) {
+    switch (body.action) {
+      case "set_setting":
+        return demoSetSetting(body.key, body.key === "event_guide" ? serializeEventGuide(body.value) : body.value);
+      case "draw_numbers": {
+        const result = demoDrawNumbers();
+        if (result.error) throw new ApiError(result.error);
+        return result;
+      }
+      case "reset_board":
+        return demoResetBoard(String(body.userId || ""));
+      case "delete_user":
+        return demoDeleteUser(String(body.userId || ""));
+      case "delete_cell_photo": {
+        const result = demoDeleteCellPhoto(body.cellId);
+        if (result.error) throw new ApiError(result.error);
+        return result;
+      }
+      case "delete_lotto_entry": {
+        const result = demoDeleteLottoEntry(body.entryId);
+        if (result.error) throw new ApiError(result.error, result.status);
+        return result;
+      }
+      default:
+        throw new ApiError("알 수 없는 요청입니다.");
+    }
+  }
+
   switch (body.action) {
     case "set_setting": {
       if (!EDITABLE_KEYS.includes(body.key)) throw new ApiError("수정할 수 없는 설정입니다.");
@@ -94,7 +145,9 @@ export const POST = route(async (req) => {
       // 버튼 누를 때마다 한 자리씩 뽑기 (0~9 균등, crypto 기반)
       const settings = await getSettings();
       const cur = settings.winning_numbers || "";
-      if (cur.length >= 4) throw new ApiError("이미 4자리 모두 추첨되었습니다. 다시 하려면 초기화하세요.");
+      if (cur.length >= LOTTO_DRAW_DIGITS) {
+        throw new ApiError("이미 3자리 모두 추첨되었습니다. 다시 하려면 초기화하세요.");
+      }
       const digits = cur + crypto.randomInt(10);
       const { error } = await sb().from("settings").upsert({ key: "winning_numbers", value: digits });
       if (error) throw new ApiError(error.message, 500);

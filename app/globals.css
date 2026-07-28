@@ -53,8 +53,10 @@ body {
 .nav {
   position: sticky; top: 0; z-index: 40;
   display: grid; gap: 9px;
-  padding: 11px 0 12px; margin-bottom: 6px;
-  background: linear-gradient(var(--bg) 85%, rgba(250, 249, 247, 0));
+  padding: 11px 0 14px; margin-bottom: 22px;
+  border-bottom: 1px solid #ded9d2;
+  background: var(--bg);
+  box-shadow: 0 8px 12px -12px rgba(30, 41, 59, 0.45);
 }
 .nav-heading { display: flex; align-items: center; gap: 10px; }
 .nav .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; min-width: 0; }
@@ -74,7 +76,7 @@ body {
 .nav-links a {
   display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 9px 5px;
   border: 2px solid #ded9d2; border-radius: 12px; background: #fff; color: var(--muted);
-  text-decoration: none; font-size: 0.86rem; font-weight: 800; text-align: center;
+  text-decoration: none; font-size: 0.92rem; font-weight: 800; text-align: center;
   transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
 }
 .nav-links a:hover { border-color: #fda4af; color: var(--accent); }
@@ -86,6 +88,7 @@ body {
   border-radius: var(--r-md); padding: 11px 14px; font-size: 0.85rem; margin: 10px 0;
   display: flex; align-items: center; gap: 8px;
 }
+.nav .notice-bar { margin: 1px 0 0; }
 .notice-bar .notice-text { flex: 1; }
 .install-prompt {
   position: sticky; top: 8px; z-index: 100; max-width: 560px; margin: 8px auto -2px;
@@ -196,7 +199,10 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
 .cell.cellcat1 { background: #eff6ff; border-color: #bfdbfe; }
 .cell.cellcat2 { background: #f0fdf4; border-color: #bbf7d0; }
 .cell.cellcat3 { background: #fff7ed; border-color: #fed7aa; }
-.cell.done { border-color: var(--accent); }
+.cell.done {
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.86) inset, 0 3px 10px rgba(225, 29, 72, 0.3);
+}
 /* 완성된 빙고 줄에 속한 칸: 금색 강조 */
 .cell.line-done {
   border-color: #f59e0b;
@@ -261,14 +267,92 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
 .modal-actions .btn { flex: 1; }
 
 /* ---- 로또 ---- */
+.lotto-page-title { margin-bottom: 10px; }
+.lotto-guide { padding: 17px; font-size: 0.85rem; }
+.lotto-guide-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lotto-guide-heading h2 { font-size: 1rem; }
+.lotto-guide-heading span {
+  padding: 4px 9px; border-radius: 999px; background: var(--accent); color: #fff;
+  font-size: 0.72rem; font-weight: 850;
+}
+.lotto-period {
+  margin: 9px 0; padding: 8px 10px; border-radius: var(--r-sm);
+  background: #fff1f2; color: var(--accent-deep); font-weight: 850;
+}
+.lotto-example {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin: 12px 0; padding: 10px; border-radius: var(--r-md); background: #f8fafc;
+}
+.lotto-example > span { color: var(--muted); font-size: 0.72rem; font-weight: 800; }
+.lotto-example > strong { font-size: 1.05rem; }
+.lotto-example > i { color: var(--muted); font-style: normal; }
+.lotto-example > b {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 36px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 1.1rem;
+}
+.lotto-prize { word-break: keep-all; }
+.lotto-prize b { color: var(--accent-deep); }
+.lotto-history { padding: 17px; }
+.lotto-history.compact { padding: 13px 15px; }
+.lotto-history-heading {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 8px;
+}
+.lotto-history-heading .card-title { margin: 0; }
+.lotto-history-heading > strong {
+  flex: 0 0 auto; padding: 3px 8px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-deep); font-size: 0.82rem;
+}
+.lotto-history-list { display: grid; }
+.lotto-history-row {
+  display: grid; grid-template-columns: auto minmax(66px, 1fr) auto auto; align-items: center; gap: 7px;
+  padding: 7px 0; border-top: 1px solid var(--line);
+}
+.lotto-history-row > span { color: var(--muted); font-size: 0.75rem; font-weight: 750; }
+.lotto-history-row > strong { font-size: 0.92rem; }
+.lotto-history-row .btn { padding: 6px 9px; }
+.lotto-entry-section { margin-top: 18px; }
+.lotto-entry-section > .section-title { margin-bottom: 3px; }
+.lotto-privacy { margin: 0 0 10px; }
+.lotto-entry-tickets { display: grid; gap: 12px; }
+.lotto-entry-ticket {
+  padding: 16px; border: 2px solid #fda4af; border-radius: var(--r-lg);
+  background: #fff; box-shadow: var(--shadow);
+}
+.lotto-entry-ticket.complete { border-color: var(--accent); background: #fff7f8; }
+.lotto-entry-ticket.locked { border-style: dashed; border-color: #d6d3d1; background: #f5f5f4; color: var(--muted); }
+.lotto-ticket-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.lotto-ticket-heading > strong { font-size: 1rem; }
+.lotto-ticket-heading > span {
+  padding: 3px 8px; border-radius: 999px; background: var(--accent-soft);
+  color: var(--accent-deep); font-size: 0.72rem; font-weight: 850;
+}
+.lotto-entry-ticket.locked .lotto-ticket-heading > span { background: #e7e5e4; color: #78716c; }
+.lotto-entry-ticket > p { font-size: 0.82rem; }
+.photo-processing {
+  margin: 10px 0; padding: 9px 11px; border-radius: var(--r-sm);
+  background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 700;
+}
 .digit-row { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 14px 0; }
+.digit-row.compact { justify-content: flex-start; gap: 5px; margin: 12px 0; }
+.digit-field { display: flex; align-items: center; gap: 5px; }
 .digit-input {
   width: 54px; height: 62px; text-align: center; font-size: 1.6rem; font-weight: 800;
   border: 1.5px solid var(--line); border-radius: 12px; padding: 0;
 }
+.digit-row.compact .digit-input { width: 46px; height: 52px; font-size: 1.35rem; }
 .digit-dot { font-size: 1.6rem; font-weight: 800; color: var(--muted); }
+.digit-km { margin-left: 2px; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+.lotto-slot-preview {
+  display: block; width: 96px; height: 72px; margin: 8px 0; object-fit: cover;
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: #f5f5f4;
+}
+.lotto-ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.lotto-ticket-actions .btn { width: 100%; padding-inline: 10px; }
+.lotto-draw-result { text-align: center; }
 
 .winning-digits { display: flex; gap: 8px; justify-content: center; margin: 14px 0; }
+.winning-digit-group { display: grid; justify-items: center; gap: 5px; }
+.winning-digit-group small { color: var(--muted); font-size: 0.68rem; font-weight: 700; }
 .winning-digit {
   width: 54px; height: 64px; border-radius: var(--r-md);
   background: linear-gradient(160deg, #f43f5e, var(--accent-deep)); color: #fff;
@@ -277,9 +361,11 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   animation: pop 0.35s ease both;
 }
 .winning-digit.pending { background: #eceae6; color: #a8a49e; animation: none; box-shadow: none; }
+.lotto-photo-modal .preview { max-height: 55vh; }
 .entry-digits { display: flex; gap: 4px; align-items: center; font-weight: 800; font-size: 1.1rem; }
 .entry-digits .hit { color: var(--accent); }
 .entry-digits .miss { color: #cbd5e1; }
+.entry-unit { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
 
 .entry-item {
   display: flex; align-items: center; gap: 12px; padding: 12px 0;
@@ -384,12 +470,45 @@ td.num, th.num { text-align: right; }
 .event-date { color: var(--muted); font-size: 0.88rem; font-weight: 700; }
 .event-load-error { margin: -8px 0 12px; text-align: center; }
 .event-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.event-summary-item { min-width: 0; padding: 4px 0; }
-.event-summary-item + .event-summary-item { border-left: 1px solid var(--line); padding-left: 14px; }
+.event-info-card { padding: 6px 20px; }
+.event-summary-item { min-width: 0; padding: 14px 0; }
+.event-info-card .event-summary-item + .event-summary-item { border-top: 1px solid var(--line); }
 .event-summary-item span { display: block; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
 .event-summary-item strong { display: block; margin-top: 3px; font-size: 0.93rem; word-break: keep-all; }
-.event-directions { margin-top: 14px; }
-.event-parking { margin: 4px 0 12px; font-size: 0.88rem; word-break: keep-all; }
+.event-summary-directions .btn { margin-top: 10px; background: #e8f3ff; color: #075985; }
+.event-summary-directions .btn:hover { background: #dbeafe; }
+.event-map-placeholder {
+  min-height: 142px; margin-top: 12px; border: 1px dashed #93c5fd; border-radius: var(--r-md);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)),
+    repeating-linear-gradient(45deg, #dbeafe 0 12px, #eff6ff 12px 24px);
+  color: #075985; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.event-map-placeholder > span { font-size: 1.5rem; }
+.event-map-placeholder > strong { margin-top: 2px; font-size: 0.9rem; }
+.event-map-placeholder > small { margin-top: 2px; color: #64748b; font-size: 0.7rem; }
+.freerun-card {
+  border: 2px solid #fb923c; background: linear-gradient(155deg, #fff 40%, #fff7ed);
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.11);
+}
+.freerun-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.freerun-heading h2 { margin-top: 2px; font-size: 1.2rem; letter-spacing: -0.035em; }
+.freerun-heading h2 span { color: var(--muted); font-size: 0.85rem; }
+.freerun-distance {
+  flex: 0 0 auto; padding: 7px 10px; border-radius: 999px;
+  background: #ea580c; color: #fff; font-size: 0.85rem; font-weight: 900;
+}
+.freerun-intro {
+  margin: 13px 0; padding: 10px 11px; border-radius: var(--r-sm);
+  background: #fff7ed; color: #9a3412; font-size: 0.84rem; word-break: keep-all;
+}
+.freerun-details { display: grid; gap: 0; }
+.freerun-details > div {
+  display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 8px;
+  padding: 9px 0; border-top: 1px solid #fed7aa; font-size: 0.84rem;
+}
+.freerun-details dt { color: #c2410c; font-weight: 850; }
+.freerun-details dd { word-break: keep-all; }
 .event-schedule { margin-top: 20px; }
 .event-timeline { list-style: none; position: relative; display: grid; gap: 12px; }
 .event-timeline::before { content: ""; position: absolute; top: 18px; bottom: 18px; left: 106px; width: 1px; background: #fecdd3; }
@@ -400,6 +519,30 @@ td.num, th.num { text-align: right; }
 .event-timeline-content h3 { font-size: 0.94rem; }
 .event-activities { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin-top: 8px; }
 .event-activities li { padding: 3px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-deep); font-size: 0.73rem; font-weight: 700; }
+.freerun-timeline-item .event-timeline-time { color: #c2410c; }
+.freerun-timeline-item .event-timeline-time::after { border-color: #ea580c; }
+.freerun-timeline-item .event-timeline-content {
+  border: 2px solid #fb923c; background: linear-gradient(150deg, #fff 45%, #fff7ed);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.13);
+}
+.freerun-timeline-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.freerun-timeline-heading span {
+  display: inline-block; margin-bottom: 3px; padding: 2px 6px; border-radius: 999px;
+  background: #ea580c; color: #fff; font-size: 0.62rem; font-weight: 850;
+}
+.freerun-timeline-heading > b {
+  flex: 0 0 auto; padding: 4px 7px; border-radius: 999px;
+  background: #ffedd5; color: #c2410c; font-size: 0.72rem;
+}
+.freerun-timeline-intro {
+  margin: 7px 0; color: #9a3412; font-size: 0.75rem; font-weight: 750; word-break: keep-all;
+}
+.freerun-timeline-details > div {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 5px;
+  padding: 5px 0; border-top: 1px solid #fed7aa; font-size: 0.72rem;
+}
+.freerun-timeline-details dt { color: #c2410c; font-weight: 850; }
+.freerun-timeline-details dd { word-break: keep-all; }
 
 /* ---- 28일 챌린지 ---- */
 .challenge-section { margin-top: 22px; }
@@ -421,6 +564,13 @@ td.num, th.num { text-align: right; }
 .challenge-carrot-title span { color: var(--accent); }
 .challenge-carrot-list { margin: 0; padding-left: 18px; font-size: 0.86rem; }
 .challenge-carrot-list li { margin-top: 6px; word-break: keep-all; }
+.challenge-carrot-button {
+  width: 100%; margin-top: 15px; padding: 14px 18px;
+  background: #ff6f0f; color: #fff; font-size: 1rem; font-weight: 850;
+  box-shadow: 0 5px 14px rgba(255, 111, 15, 0.3); text-decoration: none;
+}
+.challenge-carrot-button:hover { background: #e85d04; }
+.challenge-carrot-button span { margin-left: auto; font-size: 1.15rem; }
 
 @media (min-width: 600px) {
   .cell .txt { font-size: 0.92rem; }
@@ -429,10 +579,17 @@ td.num, th.num { text-align: right; }
 
 @media (max-width: 360px) {
   .nav-links { gap: 5px; }
-  .nav-links a { min-height: 46px; padding-inline: 3px; font-size: 0.78rem; }
+  .nav-links a { min-height: 46px; padding-inline: 3px; font-size: 0.82rem; }
   .nav-deadline { padding-inline: 7px; font-size: 0.68rem; }
   .brand-logo { height: 22px; }
   .event-editor-fields { grid-template-columns: 1fr; }
+  .lotto-history-row { grid-template-columns: auto 1fr auto; }
+  .lotto-history-row .btn.danger { grid-column: 3; }
+  .digit-row.compact .digit-input { width: 40px; height: 48px; }
+  .lotto-ticket-actions { grid-template-columns: 1fr; }
+  .event-timeline::before { left: 70px; }
+  .event-timeline-item { grid-template-columns: 62px minmax(0, 1fr); gap: 16px; }
+  .event-timeline-time::after { right: -12px; }
 }
 
 /* 모션 최소화 설정 존중 */
