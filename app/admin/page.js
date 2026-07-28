@@ -33,6 +33,15 @@ export default function AdminPage() {
     }
   }
 
+  function logout() {
+    adminPw.clear();
+    setAuthed(false);
+    setOverview(null);
+    setDetail(null);
+    setPw("");
+    setError("");
+  }
+
   const openUser = useCallback(async (user) => {
     setBusy(true);
     try {
@@ -92,7 +101,12 @@ export default function AdminPage() {
 
   return (
     <main className="wrap">
-      <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "16px 0" }}>🛠 관리자</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0" }}>
+        <h2 style={{ fontSize: "1.2rem", fontWeight: 800 }}>🛠 관리자</h2>
+        <button className="btn ghost sm" onClick={logout} disabled={busy}>
+          로그아웃
+        </button>
+      </div>
 
       <SettingsCard settings={overview?.settings || {}} busy={busy} setBusy={setBusy} onChanged={loadOverview} />
 

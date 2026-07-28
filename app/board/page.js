@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
 import ItemsList from "@/components/ItemsList";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto } from "@/lib/hooks";
@@ -232,6 +233,8 @@ export default function BoardPage() {
       </div>
 
       <div className="rule-box">{CATEGORY_RULE}</div>
+
+      <Footer />
 
       {/* 인증 예시 모달 */}
       {showExamples && (

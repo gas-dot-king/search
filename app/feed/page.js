@@ -1,6 +1,7 @@
 "use client";
 
 import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
 import { useApiData } from "@/lib/hooks";
 
 function timeAgo(iso) {
@@ -80,6 +81,8 @@ export default function FeedPage() {
           </div>
         ))}
       </div>
+
+      <Footer />
     </main>
   );
 }

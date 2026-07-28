@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/client";
+import Footer from "@/components/Footer";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -91,6 +92,8 @@ export default function DrawPage() {
             빙고 만들기! 🎲
           </button>
         </div>
+
+        <Footer />
       </main>
     );
 
@@ -157,6 +160,8 @@ export default function DrawPage() {
           </button>
         )}
       </div>
+
+      <Footer />
     </main>
   );
 }

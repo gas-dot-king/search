@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
 import { normalizeEventGuide } from "@/lib/event";
 
 function formatEventDate(value) {
@@ -107,6 +108,8 @@ export default function EventPage() {
           ))}
         </ol>
       </section>
+
+      <Footer />
     </main>
   );
 }
