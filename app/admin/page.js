@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
 import SettingsCard from "@/components/admin/SettingsCard";
 import UserDetail from "@/components/admin/UserDetail";
@@ -8,6 +9,7 @@ import ItemsCard from "@/components/admin/ItemsCard";
 import EventGuideCard from "@/components/admin/EventGuideCard";
 
 export default function AdminPage() {
+  const router = useRouter();
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
   const [overview, setOverview] = useState(null);
@@ -40,6 +42,12 @@ export default function AdminPage() {
     setDetail(null);
     setPw("");
     setError("");
+  }
+
+  // 관리자 화면을 벗어나 일반 회원 화면으로 돌아간다. 회원 토큰은 그대로라 홈이 알아서 빙고/뽑기로 보낸다.
+  function leave() {
+    adminPw.clear();
+    router.replace("/");
   }
 
   async function deleteUser(user) {
@@ -94,8 +102,11 @@ export default function AdminPage() {
           <label>관리자 비밀번호</label>
           <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} required />
           {error && <p className="error-msg">{error}</p>}
-          <div style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
             <button className="btn primary">입장</button>
+            <button type="button" className="btn ghost" onClick={leave}>
+              나가기
+            </button>
           </div>
         </form>
       </main>

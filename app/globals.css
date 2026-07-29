@@ -19,6 +19,19 @@
   --shadow: 0 1px 2px rgba(30, 41, 59, 0.04), 0 4px 14px rgba(30, 41, 59, 0.06);
 }
 
+/* ---- 반응형 타이포 기준 ----
+   이 파일의 글자 크기는 전부 rem이라, 루트 하나만 조절하면 화면 전체가 같은 비율로 움직인다.
+   화면 320px에서 15.5px, 560px 이상에서 17px. 가운데 항에 rem을 섞어 둬야
+   사용자가 OS/브라우저에서 글자를 키웠을 때도 그만큼 같이 커진다(순수 vw면 무시된다).
+
+   text-size-adjust: 안드로이드 크롬은 문단 폭을 보고 제멋대로 글자를 키운다(font boosting).
+   같은 화면이 기기마다 다르게 보이는 주범이라 꺼 둔다. OS 글자 크기 설정은 그대로 적용된다. */
+html {
+  font-size: clamp(0.96875rem, 0.84375rem + 0.625vw, 1.0625rem);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: "Pretendard", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   background: var(--bg);
@@ -44,7 +57,7 @@ body {
 
 .landing-head { text-align: center; margin: 44px 0 24px; }
 .landing-logo { width: auto; height: 48px; max-width: 78%; }
-.landing-title { margin: 14px 0 2px; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -0.055em; }
+.landing-title { margin: 14px 0 2px; font-size: clamp(1.75rem, 1.2rem + 2.8vw, 2.2rem); line-height: 1.2; letter-spacing: -0.055em; }
 .landing-title span { color: var(--accent); }
 .landing-subtitle { margin-bottom: 10px; color: var(--muted); font-size: 0.95rem; font-weight: 700; }
 .landing-countdown { display: inline-flex; padding: 5px 10px; border-radius: 999px; background: #fff1f2; color: var(--accent-deep); font-size: 0.82rem; font-weight: 800; }
@@ -89,7 +102,8 @@ body {
   display: flex; align-items: center; gap: 8px;
 }
 .nav .notice-bar { margin: 1px 0 0; }
-.notice-bar .notice-text { flex: 1; }
+.notice-bar .notice-text { flex: 1; min-width: 0; animation: notice-in 0.3s ease; }
+@keyframes notice-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 .install-prompt {
   position: sticky; top: 8px; z-index: 100; max-width: 560px; margin: 8px auto -2px;
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
@@ -99,13 +113,24 @@ body {
 .install-prompt button { border: 0; border-radius: 8px; padding: 6px 9px; background: #fff; color: #1e293b; font-weight: 800; cursor: pointer; }
 .install-prompt .install-dismiss { background: transparent; color: #fff; font-size: 1.2rem; padding: 2px 6px; }
 .install-guide { font-size: 0.72rem; color: #cbd5e1; }
-.notice-ctrl { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.notice-ctrl button {
-  border: none; background: #fde68a; color: #92400e; border-radius: 8px;
-  width: 26px; height: 26px; cursor: pointer; font-weight: 800; font-size: 0.9rem;
-  display: flex; align-items: center; justify-content: center;
+/* 공지 넘김 표시 — 점 자체는 작게, 누르는 영역은 손가락에 맞게 넉넉히 */
+.notice-dots { display: flex; align-items: center; gap: 1px; flex-shrink: 0; margin-right: -4px; }
+.notice-dots button {
+  position: relative; width: 20px; height: 26px; padding: 0;
+  border: 0; background: none; cursor: pointer;
 }
-.notice-ctrl em { font-style: normal; font-size: 0.72rem; }
+.notice-dots button::before {
+  content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 6px; height: 6px; border-radius: 999px; background: #fcd34d;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.notice-dots button.active::before { width: 14px; background: #b45309; }
+.notice-dots button:hover::before { background: #d97706; }
+.notice-dots button:focus-visible { outline: 2px solid #b45309; outline-offset: -2px; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .notice-bar .notice-text { animation: none; }
+  .notice-dots button::before { transition: none; }
+}
 
 /* ---- 카드/버튼/폼 ---- */
 .card {
@@ -341,11 +366,12 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
 .digit-row { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 14px 0; }
 .digit-row.compact { justify-content: flex-start; gap: 5px; margin: 12px 0; }
 .digit-field { display: flex; align-items: center; gap: 5px; }
+/* 안에 든 글자와 함께 커지도록 rem으로 잡는다. px로 두면 글자 크기를 키운 기기에서 숫자가 잘린다. */
 .digit-input {
-  width: 54px; height: 62px; text-align: center; font-size: 1.6rem; font-weight: 800;
+  width: 3.375rem; height: 3.875rem; text-align: center; font-size: 1.6rem; font-weight: 800;
   border: 1.5px solid var(--line); border-radius: 12px; padding: 0;
 }
-.digit-row.compact .digit-input { width: 46px; height: 52px; font-size: 1.35rem; }
+.digit-row.compact .digit-input { width: 2.875rem; height: 3.25rem; font-size: 1.35rem; }
 .digit-dot { font-size: 1.6rem; font-weight: 800; color: var(--muted); }
 .digit-km { margin-left: 2px; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
 .lotto-slot-preview {
@@ -472,7 +498,7 @@ td.num, th.num { text-align: right; }
 /* ---- 행사 안내 ---- */
 .event-hero { margin: 30px 0 18px; text-align: center; }
 .event-kicker { color: var(--accent); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.11em; }
-.event-title { margin: 4px 0 6px; font-size: clamp(1.48rem, 6vw, 1.9rem); letter-spacing: -0.055em; line-height: 1.25; }
+.event-title { margin: 4px 0 6px; font-size: clamp(1.48rem, 1.05rem + 2.4vw, 1.9rem); letter-spacing: -0.055em; line-height: 1.25; }
 .event-date { color: var(--muted); font-size: 0.88rem; font-weight: 700; }
 .event-load-error { margin: -8px 0 12px; text-align: center; }
 .event-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -611,7 +637,7 @@ td.num, th.num { text-align: right; }
   .event-editor-fields { grid-template-columns: 1fr; }
   .lotto-history-row { grid-template-columns: auto 1fr auto; }
   .lotto-history-row .btn.danger { grid-column: 3; }
-  .digit-row.compact .digit-input { width: 40px; height: 48px; }
+  .digit-row.compact .digit-input { width: 2.5rem; height: 3rem; }
   .lotto-ticket-actions { grid-template-columns: 1fr; }
   .event-timeline::before { left: 70px; }
   .event-timeline-item { grid-template-columns: 62px minmax(0, 1fr); gap: 16px; }

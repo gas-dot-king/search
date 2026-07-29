@@ -40,16 +40,23 @@ function NoticeBar({ notices }) {
 
   if (notices.length === 0) return null;
   const current = index % notices.length;
-  const move = (direction) => setIndex((current + direction + notices.length) % notices.length);
 
   return (
     <div className="notice-bar">
-      <span className="notice-text">📢 {notices[current]}</span>
+      {/* key를 바꿔 다시 마운트시키면 공지가 넘어갈 때마다 페이드 인이 다시 재생된다 */}
+      <span className="notice-text" key={current}>📢 {notices[current]}</span>
       {notices.length > 1 && (
-        <span className="notice-ctrl">
-          <button type="button" onClick={() => move(-1)} aria-label="이전 공지">‹</button>
-          <em>{current + 1}/{notices.length}</em>
-          <button type="button" onClick={() => move(1)} aria-label="다음 공지">›</button>
+        <span className="notice-dots" role="group" aria-label="공지 넘기기">
+          {notices.map((notice, i) => (
+            <button
+              key={i}
+              type="button"
+              className={i === current ? "active" : ""}
+              onClick={() => setIndex(i)}
+              aria-label={`${i + 1}번째 공지 보기`}
+              aria-current={i === current}
+            />
+          ))}
         </span>
       )}
     </div>
