@@ -61,6 +61,12 @@ describe("event guide settings", () => {
     expect(guide.mapUrl).toBe("https://naver.me/example");
   });
 
+  it("replaces legacy event venue names with the published venue", () => {
+    for (const venue of ["양산 문화체육센터 1층 실내체육관", "양주 체육문화센터"]) {
+      expect(normalizeEventGuide({ venue }).venue).toBe("양주 문화체육센터");
+    }
+  });
+
   it("keeps map coordinates inside Korea and drops anything else", () => {
     const inside = normalizeEventGuide({ lat: "35.335", lng: 129.0356 });
     expect(inside.lat).toBe(35.335);

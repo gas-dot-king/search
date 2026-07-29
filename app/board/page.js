@@ -201,34 +201,37 @@ export default function BoardPage() {
                 <div className="overlay">{cell.content}</div>
               </>
             ) : (
-              <>
-                <span className={`catdot cat${cell.category}`} />
-                <span className="txt">{cell.content}</span>
-              </>
+              <span className="txt">{cell.content}</span>
             )}
           </div>
         ))}
       </div>
 
       <div className="legend">
-        <span><i className="cat1" />기록 달성</span>
-        <span><i className="cat2" />시간·장소 탐험</span>
-        <span><i className="cat3" />크루 소통·재미</span>
+        <span className="legend-cat1">① 기록 달성</span>
+        <span className="legend-cat2">② 시간·장소 탐험</span>
+        <span className="legend-cat3">③ 크루 소통·재미</span>
       </div>
 
-      <div className="stack" style={{ margin: "12px 0" }}>
-        <button className="btn ghost wide" onClick={saveBoardImage} disabled={shareBusy}>
-          {shareBusy ? "이미지 만드는 중..." : "내 빙고판 이미지 저장"}
-        </button>
-        <button className="btn primary xl" onClick={() => setShowExamples(true)}>
+      <div className="bingo-category-rule" role="note">
+        <strong>🏃 한 번의 러닝 인증 기준</strong>
+        <p>{CATEGORY_RULE}</p>
+      </div>
+
+      <div className="board-primary-actions">
+        <button className="btn wide board-action-btn" onClick={() => setShowExamples(true)}>
           📖 인증 예시 보기
         </button>
-        <button className="btn ghost wide" onClick={openItems}>
-          📋 빙고 항목 전체 보기
+        <button className="btn wide board-action-btn" onClick={saveBoardImage} disabled={shareBusy}>
+          {shareBusy ? "💾 이미지 만드는 중..." : "💾 내 빙고판 이미지 저장"}
         </button>
       </div>
 
-      <div className="rule-box">{CATEGORY_RULE}</div>
+      <div className="board-secondary-action">
+        <button className="btn wide board-action-btn" onClick={openItems}>
+          📋 빙고 전체 항목 보기
+        </button>
+      </div>
 
       {/* 인증 예시 모달 */}
       {showExamples && (
@@ -236,18 +239,18 @@ export default function BoardPage() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>📖 인증 예시</h3>
             <p className="hint" style={{ margin: "4px 0 8px" }}>
-              하루 러닝(운동) 한 번으로는 <b>각 카테고리에서 1칸씩만</b> 채울 수 있어요.
+              한 번의 러닝으로는 <b>각 카테고리에서 1칸씩만</b> 인증할 수 있어요.
             </p>
 
             <div className="diagram">
-              <span className="d-top">🏃 하루 러닝 1번</span>
+              <span className="d-top">🏃 러닝 1번</span>
               <div className="d-arrow">↓</div>
               <div className="d-row">
                 <div className="d-box b1">① 기록 달성<small>1칸만</small></div>
                 <div className="d-box b2">② 시간·장소<small>1칸만</small></div>
                 <div className="d-box b3">③ 소통·재미<small>1칸만</small></div>
               </div>
-              <div className="d-note">= 하루 최대 3칸까지 OK!</div>
+              <div className="d-note">= 최대 3칸까지 인증 가능!</div>
             </div>
 
             <div className="case">
@@ -262,7 +265,7 @@ export default function BoardPage() {
             <div className="case">
               <span className="case-no">사례 3)</span> 일요일 아침 7시에 5km를 달리고, 크루원과 사진도 찍었어요.
               <br />→ ① "5km 이상 달리기" + ② "아침 러닝" + ③ "크루원과 인증사진" ={" "}
-              <b>같은 날이어도 카테고리가 다르면 각각 인정, 하루 3칸 완성!</b>
+              <b>한 번의 러닝이어도 카테고리가 다르면 각각 인정, 최대 3칸 인증!</b>
               <br />다른 날 또 달리면 새 칸을 또 채울 수 있어요 🏃
             </div>
 
@@ -293,13 +296,7 @@ export default function BoardPage() {
       {selected && (
         <div className="modal-bg" onClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              <span
-                className={`catdot cat${selected.category}`}
-                style={{ position: "static", display: "inline-block", marginRight: 6 }}
-              />
-              {selected.content}
-            </h3>
+            <h3>{selected.content}</h3>
             {locked ? (
               <div className="period-lock" role="status">
                 🔒 {period.notice}

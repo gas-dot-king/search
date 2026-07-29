@@ -81,19 +81,19 @@ export default function EventPage() {
           <span>시간</span>
           <strong>{guide.hours}</strong>
         </div>
-        <div className="event-summary-item">
+        <div className="event-summary-item event-summary-venue">
           <span>장소</span>
           <strong>{guide.venue}</strong>
+          {guide.mapUrl && (
+            <a className="btn ghost sm" href={guide.mapUrl} target="_blank" rel="noopener noreferrer">
+              🗺️ 네이버 지도에서 보기
+            </a>
+          )}
         </div>
-        {(guide.parkingInfo || guide.mapUrl) && (
+        {(guide.parkingInfo || showMap) && (
           <div className="event-summary-item event-summary-directions">
             <span>오시는 길</span>
             {guide.parkingInfo && <strong>{guide.parkingInfo}</strong>}
-            {guide.mapUrl && (
-              <a className="btn ghost sm" href={guide.mapUrl} target="_blank" rel="noopener noreferrer">
-                🗺️ 네이버 지도에서 보기
-              </a>
-            )}
             {showMap ? (
               <NaverMap lat={guide.lat} lng={guide.lng} venue={guide.venue} />
             ) : (

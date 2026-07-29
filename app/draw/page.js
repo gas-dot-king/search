@@ -139,7 +139,6 @@ export default function DrawPage() {
               className={`cell cellcat${cell.category} reveal`}
               style={{ animationDelay: `${i * 0.06}s`, cursor: "default" }}
             >
-              <span className={`catdot cat${cell.category}`} />
               <span className="txt">{cell.content}</span>
             </div>
           ))}
