@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
 import SettingsCard from "@/components/admin/SettingsCard";
@@ -17,6 +17,14 @@ export default function AdminPage() {
   const [detail, setDetail] = useState(null); // { user, data }
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [clientIp, setClientIp] = useState("125.182.215.~");
+
+  useEffect(() => {
+    fetch("/api/client-ip")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => data?.ip && setClientIp(data.ip))
+      .catch(() => {});
+  }, []);
 
   const loadOverview = useCallback(async () => {
     const data = await adminApi("/api/admin?action=overview");
@@ -103,12 +111,16 @@ export default function AdminPage() {
           <label>관리자 비밀번호</label>
           <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} required />
           {error && <p className="error-msg">{error}</p>}
-          <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+          <div className="admin-login-actions">
             <button className="btn primary">입장</button>
             <button type="button" className="btn ghost" onClick={leave}>
               나가기
             </button>
           </div>
+          <p className="admin-session-note">
+            🔒 세션은 <b>10분</b> 유지되고, 작업할 때마다 갱신됩니다. 이 기기에서만 유효합니다.
+            <br />접속 IP {clientIp}
+          </p>
         </form>
       </main>
     );
