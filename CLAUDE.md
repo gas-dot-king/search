@@ -55,8 +55,8 @@ npm run build
 
 - **Supabase service role 키는 서버 전용**입니다. `lib/db.js`의 `sb()` 밖에서 쓰지 마세요.
 - 사진은 비공개 버킷 + 서명 URL로만 노출합니다. 공개 URL을 만들지 마세요.
-- 캐시 계층이 여러 개입니다: 설정 5초(`lib/settings.js`), 유저 토큰 30초(`lib/auth.js`),
-  서명 URL 55분(`lib/db.js`), 클라이언트 API 20초(`lib/hooks.js`).
+- 캐시 계층이 여러 개입니다: 설정 5초(`lib/settings.js`), 서명 URL 55분(`lib/db.js`),
+  클라이언트 API 20초(`lib/hooks.js`). 인증 토큰은 폐기가 즉시 반영되도록 캐시하지 않습니다.
   설정을 바꾸는 관리자 동작 뒤에는 `invalidateSettingsCache()`를 호출하세요.
 - API 라우트에는 테스트가 없습니다. 검증은 `DEMO_MODE=true`로 `next start` 후
   curl로 실제 호출해 확인하는 방식을 씁니다.

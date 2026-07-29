@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
 import { api, PRIVACY_WARNING } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 
@@ -307,8 +306,6 @@ export default function LottoPage() {
           </table>
         </section>
       )}
-
-      <Footer />
 
       {viewPhoto && (
         <div className="modal-bg" onClick={() => setViewPhoto(null)}>

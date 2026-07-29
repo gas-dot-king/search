@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/client";
 import { prefetchApiData } from "@/lib/hooks";
-import Footer from "@/components/Footer";
+import SettingsLink from "@/components/SettingsLink";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -68,6 +68,7 @@ export default function DrawPage() {
   if (phase === "intro")
     return (
       <main className="wrap">
+        <div className="draw-topbar"><SettingsLink /></div>
         <div className="page-head">
           <div className="emoji">🎲</div>
           <h1 className="page-title">내 빙고 만들기</h1>
@@ -98,7 +99,6 @@ export default function DrawPage() {
           </button>
         </div>
 
-        <Footer />
       </main>
     );
 
@@ -106,6 +106,7 @@ export default function DrawPage() {
   if (phase === "rolling")
     return (
       <main className="wrap">
+        <div className="draw-topbar"><SettingsLink /></div>
         <div className="page-head">
           <div className="emoji">🥁</div>
           <h1 className="page-title">두구두구두구...</h1>
@@ -124,6 +125,7 @@ export default function DrawPage() {
   /* ---------- 3단계: 결과 + 재도전/확정 ---------- */
   return (
     <main className="wrap">
+      <div className="draw-topbar"><SettingsLink /></div>
       <div className="page-head" style={{ margin: "28px 0 14px" }}>
         <h1 className="page-title">🎉 빙고판 완성!</h1>
         <p className="hint">{redrawUsed ? "다시 뽑기까지 마친 최종 빙고판이에요." : "이 빙고판으로 시작할까요?"}</p>
@@ -166,7 +168,6 @@ export default function DrawPage() {
         )}
       </div>
 
-      <Footer />
     </main>
   );
 }

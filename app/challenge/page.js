@@ -1,7 +1,6 @@
 "use client";
 
 import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
 
 const EVENT_RULES = [
   { sport: "러닝", min: "3km 이상", max: "8km" },
@@ -212,7 +211,6 @@ export default function ChallengePage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   );
 }

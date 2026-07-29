@@ -148,34 +148,36 @@ export default function AdminPage() {
       <div className="card">
         <p style={{ fontWeight: 700, marginBottom: 8 }}>회원 ({overview.users.length}명)</p>
         {error && <p className="error-msg">{error}</p>}
-        <table>
-          <thead>
-            <tr>
-              <th>닉네임</th>
-              <th className="num">빙고</th>
-              <th className="num">줄</th>
-              <th className="num">로또</th>
-              <th />
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {overview.users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.nickname}</td>
-                <td className="num">{u.filled}/16</td>
-                <td className="num">{u.lines}</td>
-                <td className="num">{u.lottoEntries}장</td>
-                <td className="num">
-                  <button className="btn ghost sm" onClick={() => openUser(u)} disabled={busy}>보기</button>
-                </td>
-                <td className="num">
-                  <button className="btn danger sm" onClick={() => deleteUser(u)} disabled={busy}>삭제</button>
-                </td>
+        <div className="table-scroll admin-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>닉네임</th>
+                <th className="num">빙고</th>
+                <th className="num">줄</th>
+                <th className="num">로또</th>
+                <th />
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {overview.users.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.nickname}</td>
+                  <td className="num">{u.filled}/16</td>
+                  <td className="num">{u.lines}</td>
+                  <td className="num">{u.lottoEntries}장</td>
+                  <td className="num">
+                    <button className="btn ghost sm" onClick={() => openUser(u)} disabled={busy}>보기</button>
+                  </td>
+                  <td className="num">
+                    <button className="btn danger sm" onClick={() => deleteUser(u)} disabled={busy}>삭제</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <ItemsCard items={overview.items} />

@@ -1,7 +1,6 @@
 "use client";
 
 import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
 import { useApiData } from "@/lib/hooks";
 
 function timeAgo(iso) {
@@ -46,28 +45,30 @@ export default function FeedPage() {
 
       <div className="card">
         <p className="card-title">진행률 랭킹</p>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>닉네임</th>
-              <th className="num">빙고 칸</th>
-              <th className="num">줄</th>
-              <th className="num">로또</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.rankings.map((rank, index) => (
-              <tr key={rank.nickname}>
-                <td>{index < 3 && rank.filled > 0 ? ["🥇", "🥈", "🥉"][index] : index + 1}</td>
-                <td>{rank.nickname}</td>
-                <td className="num">{rank.filled}/16</td>
-                <td className="num"><b style={{ color: rank.lines ? "var(--accent)" : undefined }}>{rank.lines}</b></td>
-                <td className="num">{rank.lottoEntries}장</td>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>닉네임</th>
+                <th className="num">빙고 칸</th>
+                <th className="num">줄</th>
+                <th className="num">로또</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.rankings.map((rank, index) => (
+                <tr key={rank.nickname}>
+                  <td>{index < 3 && rank.filled > 0 ? ["🥇", "🥈", "🥉"][index] : index + 1}</td>
+                  <td>{rank.nickname}</td>
+                  <td className="num">{rank.filled}/16</td>
+                  <td className="num"><b style={{ color: rank.lines ? "var(--accent)" : undefined }}>{rank.lines}</b></td>
+                  <td className="num">{rank.lottoEntries}장</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p className="hint" style={{ marginTop: 8 }}>사진은 본인과 운영진만 볼 수 있어요.</p>
       </div>
 
@@ -82,7 +83,6 @@ export default function FeedPage() {
         ))}
       </div>
 
-      <Footer />
     </main>
   );
 }

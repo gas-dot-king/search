@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken, TOKEN_KEY } from "@/lib/client";
 import { prefetchApiData } from "@/lib/hooks";
-import Footer from "@/components/Footer";
 
 function deadlineText(uploadEnd) {
   if (!uploadEnd) return "마감일을 확인하고 있어요";
@@ -109,7 +108,6 @@ export default function EntryPage() {
           </button>
         </div>
       </form>
-      <Footer />
     </main>
   );
 }

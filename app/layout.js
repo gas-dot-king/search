@@ -1,5 +1,7 @@
+import "@fontsource-variable/noto-sans-kr";
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
+import Footer from "@/components/Footer";
 
 export const metadata = {
   title: "YSRC SUMMER FEST 2026 — 온라인 위크 이벤트",
@@ -9,14 +11,44 @@ export const metadata = {
   icons: { apple: "/icon.png" },
 };
 
-export const viewport = { themeColor: "#e11d48" };
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#e11d48",
+};
+
+const themeScript = `
+  (() => {
+    try {
+      const theme = localStorage.getItem("ow_theme");
+      const isDark = theme === "dark";
+      document.documentElement.dataset.theme = isDark ? "dark" : "light";
+      const syncThemeColor = () => {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", isDark ? "#0f172a" : "#e11d48");
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", syncThemeColor, { once: true });
+      } else {
+        syncThemeColor();
+      }
+    } catch {
+      document.documentElement.dataset.theme = "light";
+    }
+  })();
+`;
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <InstallPrompt />
         {children}
+        <Footer />
       </body>
     </html>
   );

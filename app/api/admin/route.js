@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { sb, removePhoto, removePhotos, signedUrls } from "@/lib/db";
-import { clearUserCache } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
@@ -207,7 +206,6 @@ export const POST = route(async (req) => {
       // 다시 뽑기 플래그가 settings에 남지 않게 정리하고, 캐시된 토큰도 즉시 무효화한다.
       const { error: redrawFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
       requireDbSuccess(redrawFlagError, "다시 뽑기 상태 정리에 실패했습니다");
-      clearUserCache();
       return { ok: true };
     }
 

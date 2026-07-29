@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
 import NaverMap, { isNaverMapConfigured } from "@/components/NaverMap";
 import { normalizeEventGuide } from "@/lib/event";
 
@@ -150,7 +149,6 @@ export default function EventPage() {
         </ol>
       </section>}
 
-      <Footer />
     </main>
   );
 }
