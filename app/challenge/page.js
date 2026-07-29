@@ -49,9 +49,10 @@ export default function ChallengePage() {
           인증은 <span>당근 챌린지 기능</span>으로만 진행됩니다
         </h2>
         <ul className="challenge-carrot-list">
-          <li>매일의 운동 인증 사진은 <b>당근 챌린지 캘린더</b>에 업로드해주세요.</li>
-          <li>달성 일수와 등수는 <b>모두 캘린더 기록을 기준으로</b> 집계됩니다.</li>
-          <li>패스권도 캘린더에 글을 올려야 사용 처리되니, 시작 전에 꼭 가입해주세요.</li>
+          <li>운동 인증 사진은 당근 챌린지에 업로드 해주세요.</li>
+          <li>달성 일수와 등수는 모두 당근 챌린지 기준으로 집계됩니다.</li>
+          <li>패스권을 사용하실 땐, 인증 사진 없이 글로만 적어주시면 됩니다.</li>
+          <li>챌린지에 대해 더 궁금한 사항은 운영진에게 물어봐주세요!</li>
         </ul>
         <a
           className="btn challenge-carrot-button"
