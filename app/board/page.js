@@ -28,6 +28,7 @@ export default function BoardPage() {
   const [allItems, setAllItems] = useState(null);
   const [celebrate, setCelebrate] = useState(0);
   const [shareBusy, setShareBusy] = useState(false);
+  const [categoryFlash, setCategoryFlash] = useState({ category: 0, replay: 0 });
   const prevLines = useRef(null);
   const fileRef = useRef(null);
 
@@ -129,6 +130,13 @@ export default function BoardPage() {
     }
   }
 
+  function flashCategory(category) {
+    setCategoryFlash((current) => ({
+      category,
+      replay: current.replay + 1,
+    }));
+  }
+
   if (!board)
     return (
       <main className="wrap">
@@ -185,7 +193,11 @@ export default function BoardPage() {
         {board.cells.map((cell) => (
           <div
             key={cell.position}
-            className={`cell cellcat${cell.category} ${cell.hasPhoto ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""}`}
+            className={`cell cellcat${cell.category} ${
+              categoryFlash.category === cell.category
+                ? `category-flash-${categoryFlash.replay % 2}`
+                : ""
+            } ${cell.hasPhoto ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""}`}
             onClick={() => openCell(cell)}
           >
             {cell.photoUrl ? (
@@ -208,9 +220,30 @@ export default function BoardPage() {
       </div>
 
       <div className="legend">
-        <span className="legend-cat1">① 기록 달성</span>
-        <span className="legend-cat2">② 시간·장소 탐험</span>
-        <span className="legend-cat3">③ 크루 소통·재미</span>
+        <button
+          type="button"
+          className="legend-cat1"
+          onClick={() => flashCategory(1)}
+          aria-label="기록 달성 카테고리 칸 강조"
+        >
+          ① 기록 달성
+        </button>
+        <button
+          type="button"
+          className="legend-cat2"
+          onClick={() => flashCategory(2)}
+          aria-label="시간·장소 탐험 카테고리 칸 강조"
+        >
+          ② 시간·장소 탐험
+        </button>
+        <button
+          type="button"
+          className="legend-cat3"
+          onClick={() => flashCategory(3)}
+          aria-label="크루 소통·재미 카테고리 칸 강조"
+        >
+          ③ 크루 소통·재미
+        </button>
       </div>
 
       <div className="bingo-category-rule" role="note">

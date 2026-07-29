@@ -27,8 +27,8 @@ const FOUL_CASES = [
   "GPS 경로 이상, 차량·자전거 이용 정황",
 ];
 
-// 당근 모임 초대 링크. 링크가 바뀌면 아래 주소만 교체하면 됩니다.
-const CARROT_CHALLENGE_URL = "https://daangn.com/kr/share/community/ref/invite-group/8AYyjpELhF";
+// 당근 챌린지 링크. 링크가 바뀌면 아래 주소만 교체하면 됩니다.
+const CARROT_CHALLENGE_URL = "https://www.daangn.com/kr/group/challenge/ndZagaRP?utm_medium=copy_link";
 
 export default function ChallengePage() {
   return (
