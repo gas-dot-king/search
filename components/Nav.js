@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import LottoDeadlineReminder from "./LottoDeadlineReminder";
 import HallOfFameLink from "./HallOfFameLink";
 import SettingsLink from "./SettingsLink";
+import SocialLink from "./SocialLink";
 import { prefetchApiData } from "@/lib/hooks";
 
 function dDayText(config, now = new Date()) {
@@ -34,6 +35,11 @@ function NoticeBar({ notices }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    if (notices.length > 1) {
+      setIndex(Math.floor(Math.random() * notices.length));
+    } else {
+      setIndex(0);
+    }
     if (notices.length < 2) return;
     const timer = setInterval(() => setIndex((current) => (current + 1) % notices.length), 5000);
     return () => clearInterval(timer);
@@ -47,17 +53,14 @@ function NoticeBar({ notices }) {
       {/* key를 바꿔 다시 마운트시키면 공지가 넘어갈 때마다 페이드 인이 다시 재생된다 */}
       <span className="notice-text" key={current}>📢 {notices[current]}</span>
       {notices.length > 1 && (
-        <span className="notice-dots" role="group" aria-label="공지 넘기기">
-          {notices.map((notice, i) => (
-            <button
-              key={i}
-              type="button"
-              className={i === current ? "active" : ""}
-              onClick={() => setIndex(i)}
-              aria-label={`${i + 1}번째 공지 보기`}
-              aria-current={i === current}
-            />
-          ))}
+        <span className="notice-nav" role="group" aria-label="공지 넘기기">
+          <button type="button" onClick={() => setIndex((current - 1 + notices.length) % notices.length)} aria-label="이전 공지">
+            ‹
+          </button>
+          <span aria-live="polite">{current + 1}/{notices.length}</span>
+          <button type="button" onClick={() => setIndex((current + 1) % notices.length)} aria-label="다음 공지">
+            ›
+          </button>
         </span>
       )}
     </div>
@@ -118,6 +121,16 @@ export default function Nav({ config, configLoading = false }) {
             </span>
           </Link>
           <HallOfFameLink active={pathname === "/hall"} />
+          <SocialLink
+            href="https://daangn.com//kr/share/community/ref/invite-group/8AYyjpELhFh"
+            label="당근"
+            type="carrot"
+          />
+          <SocialLink
+            href="https://www.instagram.com/team_ysrc"
+            label="인스타그램"
+            type="instagram"
+          />
           <SettingsLink active={pathname === "/settings"} />
         </div>
         <NoticeBar notices={currentConfig?.notices || []} />
