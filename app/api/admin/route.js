@@ -134,6 +134,17 @@ export const POST = route(async (req) => {
         value = serializeEventGuide(guide);
       }
 
+      // 기간 값이 파싱 불가능한 문자열로 저장되면 uploadPeriodState가 CLOSED로 떨어져
+      // 전 회원의 업로드·응모가 조용히 막힌다. 저장 전에 막는다.
+      if (body.key === "upload_start" || body.key === "upload_end") {
+        if (Number.isNaN(new Date(value).getTime())) {
+          throw new ApiError("시각 형식이 올바르지 않습니다. 예: 2026-08-01T06:00:00+09:00");
+        }
+      }
+      if (body.key === "draw_date" && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        throw new ApiError("추첨일은 YYYY-MM-DD 형식으로 입력해주세요.");
+      }
+
       const { error } = await sb()
         .from("settings")
         .upsert({ key: body.key, value });

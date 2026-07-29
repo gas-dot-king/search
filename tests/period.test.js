@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   UPLOAD_PERIOD,
   formatKoreanDateTime,
+  fromKstInputValue,
   inUploadPeriod,
   periodSettingsFromConfig,
+  toKstInputValue,
   uploadPeriodNotice,
   uploadPeriodState,
 } from "../lib/period";
@@ -94,5 +96,45 @@ describe("공개 설정 변환", () => {
       UPLOAD_PERIOD.OPEN
     );
     expect(periodSettingsFromConfig(null)).toEqual({ upload_start: undefined, upload_end: undefined });
+  });
+});
+
+describe("관리자 기간 입력값 변환", () => {
+  it("저장된 ISO 시각을 한국 시간 벽시계로 보여준다", () => {
+    expect(toKstInputValue(SETTINGS.upload_start)).toBe("2026-08-01T06:00");
+    expect(toKstInputValue(SETTINGS.upload_end)).toBe("2026-08-14T18:00");
+  });
+
+  it("UTC로 저장돼 있어도 한국 시간으로 환산해 보여준다", () => {
+    expect(toKstInputValue("2026-07-31T21:00:00Z")).toBe("2026-08-01T06:00");
+  });
+
+  it("형식이 깨진 값은 빈 칸으로 둬서 관리자가 알아채게 한다", () => {
+    expect(toKstInputValue("어제")).toBe("");
+    expect(toKstInputValue("")).toBe("");
+  });
+
+  it("입력값에 +09:00을 붙여 저장한다 — 없으면 서버가 UTC로 9시간 어긋나게 읽는다", () => {
+    expect(fromKstInputValue("2026-08-01T06:00")).toBe("2026-08-01T06:00:00+09:00");
+  });
+
+  it("형식이 어긋난 입력은 저장값을 만들지 않는다", () => {
+    expect(fromKstInputValue("2026-08-01")).toBe("");
+    expect(fromKstInputValue("아무거나")).toBe("");
+    expect(fromKstInputValue(null)).toBe("");
+  });
+
+  it("보여주기 → 저장 왕복에도 시각이 그대로다", () => {
+    expect(fromKstInputValue(toKstInputValue(SETTINGS.upload_start))).toBe(SETTINGS.upload_start);
+  });
+
+  it("왕복한 값이 기간 판정에서도 같게 동작한다", () => {
+    const roundTripped = {
+      upload_start: fromKstInputValue(toKstInputValue(SETTINGS.upload_start)),
+      upload_end: fromKstInputValue(toKstInputValue(SETTINGS.upload_end)),
+    };
+    expect(uploadPeriodState(roundTripped, at("2026-08-07T12:00:00+09:00"))).toBe(UPLOAD_PERIOD.OPEN);
+    expect(uploadPeriodState(roundTripped, at("2026-07-31T12:00:00+09:00"))).toBe(UPLOAD_PERIOD.BEFORE);
+    expect(uploadPeriodState(roundTripped, at("2026-08-20T12:00:00+09:00"))).toBe(UPLOAD_PERIOD.CLOSED);
   });
 });

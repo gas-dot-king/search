@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { adminPost } from "@/lib/adminClient";
 import { parseNotices, MAX_NOTICES } from "@/lib/notices";
+import { formatKoreanDateTime, fromKstInputValue, toKstInputValue } from "@/lib/period";
 
 export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
   async function setSetting(key, value, confirmMsg) {
@@ -56,11 +57,103 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
           setSetting("winning_numbers", "", "추첨을 초기화할까요? 회원들에게 보이던 번호가 사라집니다.")
         }
       />
-      <p className="hint" style={{ marginTop: 6 }}>
-        업로드 기간: {settings.upload_start?.slice(0, 10)} ~ {settings.upload_end?.slice(0, 10)} · 추첨일{" "}
-        {settings.draw_date}
-      </p>
+
+      <PeriodEditor settings={settings} busy={busy} onSave={setSetting} />
     </div>
+  );
+}
+
+/**
+ * 업로드·응모 기간 편집.
+ * 이 값이 깨지면 전 회원 업로드가 막히는데 지금껏 고칠 화면이 없어 DB를 직접 만져야 했다.
+ * 입력·표시는 한국 시간 기준이고, 저장할 때 +09:00을 붙여 서버가 UTC로 오해하지 않게 한다.
+ */
+function PeriodEditor({ settings, busy, onSave }) {
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [drawDate, setDrawDate] = useState("");
+
+  useEffect(() => {
+    setStart(toKstInputValue(settings.upload_start));
+    setEnd(toKstInputValue(settings.upload_end));
+    setDrawDate(settings.draw_date || "");
+  }, [settings.upload_start, settings.upload_end, settings.draw_date]);
+
+  const invalidRange = start && end && start >= end;
+
+  function saveTime(key, input, label) {
+    const value = fromKstInputValue(input);
+    if (!value) return alert(`${label} 시각을 입력해주세요.`);
+    onSave(key, value, `${label}을(를) ${formatKoreanDateTime(value)}로 바꿀까요?`);
+  }
+
+  return (
+    <>
+      <label>업로드·응모 기간 (한국 시간)</label>
+      <p className="hint">이 기간 밖에서는 인증 사진 업로드와 로또 응모가 막힙니다.</p>
+
+      <div className="period-editor-row">
+        <input
+          type="datetime-local"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          aria-label="업로드 시작 시각"
+          disabled={busy}
+        />
+        <button
+          type="button"
+          className="btn ghost sm"
+          onClick={() => saveTime("upload_start", start, "시작 시각")}
+          disabled={busy || !start}
+        >
+          시작 저장
+        </button>
+      </div>
+
+      <div className="period-editor-row">
+        <input
+          type="datetime-local"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          aria-label="업로드 마감 시각"
+          disabled={busy}
+        />
+        <button
+          type="button"
+          className="btn ghost sm"
+          onClick={() => saveTime("upload_end", end, "마감 시각")}
+          disabled={busy || !end}
+        >
+          마감 저장
+        </button>
+      </div>
+
+      {invalidRange && <p className="error-msg">마감이 시작보다 빠릅니다. 이대로 저장하면 업로드가 계속 막힙니다.</p>}
+
+      <label htmlFor="draw-date">추첨일</label>
+      <div className="period-editor-row">
+        <input
+          id="draw-date"
+          type="date"
+          value={drawDate}
+          onChange={(e) => setDrawDate(e.target.value)}
+          disabled={busy}
+        />
+        <button
+          type="button"
+          className="btn ghost sm"
+          onClick={() => onSave("draw_date", drawDate, `추첨일을 ${drawDate}로 바꿀까요?`)}
+          disabled={busy || !drawDate}
+        >
+          추첨일 저장
+        </button>
+      </div>
+
+      <p className="hint">
+        현재 설정: {formatKoreanDateTime(settings.upload_start) || "형식 오류"} ~{" "}
+        {formatKoreanDateTime(settings.upload_end) || "형식 오류"} · 추첨일 {settings.draw_date || "미설정"}
+      </p>
+    </>
   );
 }
 
