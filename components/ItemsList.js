@@ -13,6 +13,9 @@ export default function ItemsList({ items }) {
 
   return (
     <>
+      <p className="hint items-time-rule" role="note">
+        ※ 시간으로 나뉜 운동 인증 항목은 운동을 시작한 시간을 기준으로 적용됩니다.
+      </p>
       {[1, 2, 3].map((cat) => (
         <div key={cat} className={`items-group g${cat}`}>
           <p className="g-title">
