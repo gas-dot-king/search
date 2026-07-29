@@ -135,14 +135,32 @@ function BingoCard({ bingo }) {
 function LottoCard({ lotto }) {
   const winning = lotto.winningNumbers || "";
   const drawn = winning.length === 3;
+  const pastRounds = lotto.pastRounds || [];
+  const round = lotto.round || 1;
 
   return (
     <section className="card" aria-labelledby="hall-lotto-title">
-      <p id="hall-lotto-title" className="card-title">🎰 달리기 로또 당첨 번호</p>
+      <p id="hall-lotto-title" className="card-title">
+        🎰 달리기 로또 {round > 1 ? `${round}차 ` : ""}당첨 번호
+      </p>
+
+      {pastRounds.length > 0 && (
+        <ul className="lotto-past-rounds" aria-label="지난 차수 결과">
+          {pastRounds.map((numbers, index) => (
+            <li key={`${index}-${numbers}`}>
+              <b>{index + 1}차</b> {numbers[0]}.{numbers.slice(1)}km · 1등 없음
+            </li>
+          ))}
+        </ul>
+      )}
 
       {winning.length === 0 ? (
         <p className="hint">
-          {lotto.drawDate ? `${lotto.drawDate} 오프라인 행사에서 추첨해요.` : "추첨이 시작되면 번호가 공개돼요."}
+          {pastRounds.length > 0
+            ? `1등이 없어 ${round}차 추첨을 다시 진행할 예정이에요.`
+            : lotto.drawDate
+              ? `${lotto.drawDate} 오프라인 행사에서 추첨해요.`
+              : "추첨이 시작되면 번호가 공개돼요."}
         </p>
       ) : (
         <>

@@ -25,7 +25,7 @@ const nextFrame = () =>
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-function DrawSlot({ label, slot, digit, state, onDraw }) {
+function DrawSlot({ label, slot, digit, state, onDraw, onSettled }) {
   const [index, setIndex] = useState(() => (digit === null ? null : restIndex(digit)));
   const [duration, setDuration] = useState(0);
   const [rolling, setRolling] = useState(false);
@@ -45,6 +45,8 @@ function DrawSlot({ label, slot, digit, state, onDraw }) {
       setDuration(ms);
       setIndex(restIndex(drawn));
       if (ms) await wait(ms);
+      // 릴이 멈춘 뒤에 1등 여부를 공개해야 김이 새지 않는다.
+      onSettled();
     } finally {
       setRolling(false);
     }
@@ -93,15 +95,18 @@ function DrawSlot({ label, slot, digit, state, onDraw }) {
 export default function AdminDrawPage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
-  const [digits, setDigits] = useState("");
-  const [round, setRound] = useState(0);
+  const [state, setState] = useState(null); // { digits, round, pastRounds, complete, winners, entryCount }
+  const [revealed, setRevealed] = useState(false);
+  const [reelKey, setReelKey] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const data = await adminApi("/api/admin?action=overview");
-    setDigits(data.settings?.winning_numbers || "");
+    const data = await adminApi("/api/admin?action=lotto_round");
+    setState(data);
+    // 새로고침으로 들어왔다면 이미 끝난 차수라 바로 결과를 보여준다.
+    setRevealed(data.complete);
     setAuthed(true);
   }, []);
 
@@ -135,7 +140,8 @@ export default function AdminDrawPage() {
     try {
       const result = await adminPost({ action: "draw_numbers" });
       const next = String(result.digits || "");
-      setDigits(next);
+      // 마지막 자리면 1등 여부까지 담겨 오지만, 공개는 릴이 멈춘 뒤에 한다.
+      setState((current) => ({ ...current, ...result, digits: next }));
       return next.length > slot ? Number(next[slot]) : null;
     } catch (err) {
       setError(err.message);
@@ -145,14 +151,31 @@ export default function AdminDrawPage() {
     }
   }
 
-  async function reset() {
-    if (!confirm("추첨을 처음부터 다시 할까요? 회원들에게 보이던 번호가 사라집니다.")) return;
+  /** 1등이 없을 때 다음 차수 시작 — 지난 번호는 기록으로 남는다 */
+  async function nextRound() {
     setError("");
     setBusy(true);
     try {
-      await adminPost({ action: "set_setting", key: "winning_numbers", value: "" });
-      setDigits("");
-      setRound((current) => current + 1); // 릴을 물음표 상태로 되돌린다
+      const result = await adminPost({ action: "next_lotto_round" });
+      setState((current) => ({ ...current, ...result }));
+      setRevealed(false);
+      setReelKey((current) => current + 1); // 릴을 물음표 상태로 되돌린다
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetDraw() {
+    if (!confirm("1차부터 전부 다시 할까요? 지난 차수 기록과 회원들에게 보이던 번호가 모두 사라집니다.")) return;
+    setError("");
+    setBusy(true);
+    try {
+      const result = await adminPost({ action: "reset_draw" });
+      setState((current) => ({ ...current, ...result }));
+      setRevealed(false);
+      setReelKey((current) => current + 1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -191,55 +214,102 @@ export default function AdminDrawPage() {
     );
   }
 
+  const digits = state?.digits || "";
+  const pastRounds = state?.pastRounds || [];
+  const round = state?.round || 1;
   const complete = digits.length === LOTTO_DRAW_DIGITS;
+  const winners = state?.winners || [];
+  // 릴이 멈춘 뒤에야 1등 여부를 공개한다.
+  const showResult = complete && revealed;
 
   return (
     <main className="wrap draw-stage">
       <div className="draw-stage-top">
         <Link className="btn ghost sm" href="/admin">← 관리자</Link>
-        {digits.length > 0 && (
-          <button type="button" className="btn danger sm" onClick={reset} disabled={busy}>
-            다시 추첨
+        {(digits.length > 0 || pastRounds.length > 0) && (
+          <button type="button" className="btn danger sm" onClick={resetDraw} disabled={busy}>
+            처음부터 다시
           </button>
         )}
       </div>
 
       <header className="draw-stage-head">
         <p className="draw-stage-kicker">YSRC SUMMER FEST 2026</p>
-        <h1 className="draw-stage-title">🎰 달리기 로또 추첨</h1>
+        <h1 className="draw-stage-title">🎰 달리기 로또 {round}차 추첨</h1>
         <p className="hint">
           왼쪽부터 한 자리씩 뽑아요. 뽑은 숫자는 저장되어 회원 화면에도 바로 공개됩니다.
+          {state?.entryCount === 0 && " (아직 응모가 없어 1등도 나올 수 없어요)"}
         </p>
       </header>
+
+      {pastRounds.length > 0 && (
+        <ul className="draw-past" aria-label="지난 차수 결과">
+          {pastRounds.map((numbers, index) => (
+            <li key={`${index}-${numbers}`}>
+              <b>{index + 1}차</b> {numbers[0]}.{numbers.slice(1)} · 1등 없음
+            </li>
+          ))}
+        </ul>
+      )}
 
       {error && <p className="error-msg draw-stage-error">{error}</p>}
 
       <div className="draw-slots">
         {SLOT_LABELS.map((label, slot) => (
           <DrawSlot
-            key={`${round}-${slot}`}
+            key={`${reelKey}-${slot}`}
             slot={slot}
             label={label}
             digit={slot < digits.length ? Number(digits[slot]) : null}
             state={slot < digits.length ? "done" : slot === digits.length ? "next" : "waiting"}
             onDraw={() => drawDigit(slot)}
+            onSettled={() => setRevealed(true)}
           />
         ))}
       </div>
 
-      <section className={`draw-result ${complete ? "complete" : ""}`} aria-live="polite">
-        {complete ? (
-          <>
-            <p>당첨 기록</p>
-            <strong>{digits[0]}.{digits.slice(1)} km</strong>
-            <span className="hint">세 자리가 모두 같은 응모가 1등이에요.</span>
-          </>
-        ) : (
+      <section className={`draw-result ${showResult ? "complete" : ""}`} aria-live="polite">
+        {!complete && (
           <p className="hint">
             {digits.length === 0
-              ? "아직 뽑은 숫자가 없어요."
+              ? `${round}차 추첨을 시작해주세요.`
               : `${digits.length}자리 공개 · ${LOTTO_DRAW_DIGITS - digits.length}자리 남음`}
           </p>
+        )}
+
+        {complete && !revealed && <p className="hint">릴이 멈추면 결과가 나와요...</p>}
+
+        {showResult && (
+          <>
+            <p>{round}차 당첨 기록</p>
+            <strong>{digits[0]}.{digits.slice(1)} km</strong>
+
+            {winners.length > 0 ? (
+              <div className="draw-winners">
+                <p className="draw-winners-title">🎉 1등 {winners.length}명</p>
+                <ul>
+                  {winners.map((winner) => (
+                    <li key={winner.nickname}>
+                      <b>{winner.nickname}</b>
+                      <span>{winner.digits.slice(0, 2)}.{winner.digits.slice(2)}km</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="hint">추첨이 끝났어요. 회원 화면에도 이 번호로 결과가 나갑니다.</p>
+              </div>
+            ) : (
+              <div className="draw-no-winner">
+                <p className="draw-no-winner-title">1등이 없어요</p>
+                <p className="hint">
+                  응모 {state?.entryCount || 0}장 중 세 자리를 모두 맞춘 사람이 없습니다.
+                  다음 차수로 넘어가면 이 번호는 기록으로 남고 처음부터 다시 뽑아요.
+                </p>
+                <button type="button" className="btn primary" onClick={nextRound} disabled={busy}>
+                  {round + 1}차 추첨 시작하기
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </main>

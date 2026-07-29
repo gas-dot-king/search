@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { adminPost } from "@/lib/adminClient";
 import { parseNotices, MAX_NOTICES } from "@/lib/notices";
+import { currentLottoRound, parseLottoRounds } from "@/lib/lotto";
 import { formatKoreanDateTime, fromKstInputValue, toKstInputValue } from "@/lib/period";
 
 export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
@@ -12,19 +13,6 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
     setBusy(true);
     try {
       await adminPost({ action: "set_setting", key, value });
-      await onChanged();
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // 버튼 누를 때마다 한 자리씩 뽑기
-  async function drawNextDigit() {
-    setBusy(true);
-    try {
-      await adminPost({ action: "draw_numbers" });
       await onChanged();
     } catch (err) {
       alert(err.message);
@@ -65,17 +53,9 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
       </div>
 
       <label>로또 추첨 (1의 자리·소수점 첫째·둘째, 총 3자리)</label>
-      <LottoDraw
-        digits={settings.winning_numbers || ""}
-        busy={busy}
-        onDraw={drawNextDigit}
-        onReset={() =>
-          setSetting("winning_numbers", "", "추첨을 초기화할까요? 회원들에게 보이던 번호가 사라집니다.")
-        }
-      />
-
-      {/* 행사장에서 띄워 놓고 돌리는 큰 화면. 뽑는 동작은 위 버튼과 같다. */}
-      <Link className="btn ghost draw-stage-link" href="/admin/draw">
+      {/* 뽑기·차수 진행은 모두 추첨 화면에서 한다. 여기서는 현재 상태만 보여준다. */}
+      <LottoStatus digits={settings.winning_numbers || ""} rounds={settings.lotto_rounds || ""} />
+      <Link className="btn primary draw-stage-link" href="/admin/draw">
         🎰 무작위 번호 추첨 (큰 화면)
       </Link>
 
@@ -171,8 +151,12 @@ function PeriodEditor({ settings, busy, onSavePeriod, onSaveSetting }) {
   );
 }
 
-function LottoDraw({ digits, busy, onDraw, onReset }) {
+/** 현재 추첨 상태만 보여 준다 — 실제 뽑기는 /admin/draw에서 한다 */
+function LottoStatus({ digits, rounds }) {
+  const pastRounds = parseLottoRounds(rounds);
+  const round = currentLottoRound(rounds);
   const complete = digits.length === 3;
+
   return (
     <div>
       <div className="winning-digits" style={{ justifyContent: "flex-start", margin: "8px 0" }}>
@@ -182,21 +166,12 @@ function LottoDraw({ digits, busy, onDraw, onReset }) {
           </span>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        {!complete && (
-          <button className="btn primary" style={{ width: "auto" }} onClick={onDraw} disabled={busy}>
-            🎰 {digits.length + 1}번째 자리 뽑기
-          </button>
-        )}
-        {complete && (
-          <span className="rule-box" style={{ margin: 0, flex: 1 }}>
-            🎉 추첨 완료: <b>{digits[0]}.{digits.slice(1)}</b> km
-          </span>
-        )}
-        {digits.length > 0 && (
-          <button className="btn danger sm" onClick={onReset} disabled={busy}>초기화</button>
-        )}
-      </div>
+      <p className="hint">
+        {complete
+          ? `${round}차 추첨 번호 ${digits[0]}.${digits.slice(1)}km`
+          : `${round}차 추첨 진행 중 · ${3 - digits.length}자리 남음`}
+        {pastRounds.length > 0 && ` · 1등 없이 넘어간 차수 ${pastRounds.length}회`}
+      </p>
     </div>
   );
 }

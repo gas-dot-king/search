@@ -192,6 +192,9 @@ export default function LottoPage() {
 
   const winning = data.winningNumbers || "";
   const drawn = winning.length === 3;
+  // 1등이 안 나오면 번호를 비우고 다음 차수를 뽑는다. 지난 차수를 함께 보여줘야 번호가 왜 바뀌었는지 알 수 있다.
+  const pastRounds = data.pastLottoRounds || [];
+  const round = data.lottoRound || 1;
   // 기간 밖에는 응모·취소를 막는다.
   const locked = !period.loading && !period.open;
 
@@ -257,9 +260,23 @@ export default function LottoPage() {
         {historyError && <p className="error-msg">{historyError}</p>}
       </section>
 
-      {winning.length > 0 && (
+      {(winning.length > 0 || pastRounds.length > 0) && (
         <section className="card lotto-draw-result">
-          <p className="card-title">{drawn ? "당첨 번호" : "추첨 진행 중... 🥁"}</p>
+          <p className="card-title">
+            {round > 1 && `${round}차 `}
+            {drawn ? "당첨 번호" : winning.length > 0 ? "추첨 진행 중... 🥁" : "재추첨 예정"}
+          </p>
+
+          {pastRounds.length > 0 && (
+            <ul className="lotto-past-rounds" aria-label="지난 차수 결과">
+              {pastRounds.map((numbers, index) => (
+                <li key={`${index}-${numbers}`}>
+                  <b>{index + 1}차</b> {numbers[0]}.{numbers.slice(1)}km · 1등 없음
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="winning-digits">
             {[0, 1, 2].map((index) => (
               <div className="winning-digit-group" key={index}>
@@ -271,7 +288,11 @@ export default function LottoPage() {
             ))}
           </div>
           <p className="hint">
-            {drawn ? `${winning[0]}.${winning.slice(1)}에 해당하는 세 자리를 비교해요.` : "다음 추첨 숫자를 기다려주세요."}
+            {drawn
+              ? `${winning[0]}.${winning.slice(1)}에 해당하는 세 자리를 비교해요.`
+              : winning.length > 0
+                ? "다음 추첨 숫자를 기다려주세요."
+                : `1등이 없어서 ${round}차 추첨을 다시 진행할 예정이에요.`}
           </p>
         </section>
       )}

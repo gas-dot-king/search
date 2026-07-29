@@ -7,6 +7,13 @@ import { getAllProgress, invalidateBingoHallCache } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
 import { fourLineAchievements } from "@/lib/hall";
 import {
+  computeWinners,
+  currentLottoRound,
+  parseLottoRounds,
+  serializeLottoRounds,
+  LOTTO_DRAW_DIGITS,
+} from "@/lib/lotto";
+import {
   demoAdminUser,
   demoDeleteCellPhoto,
   demoDeleteLottoEntry,
@@ -14,13 +21,38 @@ import {
   demoDrawNumbers,
   demoFourLineRanking,
   demoItems,
+  demoLottoRound,
+  demoNextLottoRound,
   demoProgress,
   demoResetBoard,
+  demoResetDraw,
   demoResetUserPin,
   demoSetSetting,
   demoSettings,
   isDemoMode,
 } from "@/lib/demo";
+
+/** 현재 차수의 추첨 상태 — 3자리가 다 나왔으면 1등까지 계산해서 돌려준다 */
+async function lottoRoundState(settings) {
+  const digits = settings.winning_numbers || "";
+  const pastRounds = parseLottoRounds(settings.lotto_rounds);
+  const complete = digits.length === LOTTO_DRAW_DIGITS;
+
+  const { data: entries, error } = await sb()
+    .from("lotto_entries")
+    .select("digits, users ( nickname )")
+    .not("slot", "is", null);
+  requireDbSuccess(error, "응모 내역을 불러오지 못했습니다");
+
+  return {
+    digits,
+    round: currentLottoRound(pastRounds),
+    pastRounds,
+    complete,
+    entryCount: (entries || []).length,
+    winners: complete ? computeWinners(entries, digits) : null,
+  };
+}
 
 export const GET = route(async (req) => {
   await requireAdmin(req);
@@ -38,7 +70,14 @@ export const GET = route(async (req) => {
       };
     }
     if (action === "user") return demoAdminUser(url.searchParams.get("id"));
+    if (action === "lotto_round") return demoLottoRound();
     throw new ApiError("알 수 없는 요청입니다.");
+  }
+
+  if (action === "lotto_round") {
+    return Response.json(await lottoRoundState(await getSettings()), {
+      headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" },
+    });
   }
 
   if (action === "overview") {
@@ -125,6 +164,13 @@ export const POST = route(async (req) => {
         if (result.error) throw new ApiError(result.error);
         return result;
       }
+      case "next_lotto_round": {
+        const result = demoNextLottoRound();
+        if (result.error) throw new ApiError(result.error);
+        return result;
+      }
+      case "reset_draw":
+        return demoResetDraw();
       case "reset_user_pin": {
         const result = demoResetUserPin(String(body.userId || ""));
         if (result.error) throw new ApiError(result.error, result.status);
@@ -207,7 +253,39 @@ export const POST = route(async (req) => {
         throw new ApiError("추첨 번호를 저장하지 못했습니다.", 500);
       }
       invalidateSettingsCache();
-      return { ok: true, digits };
+      // 마지막 자리를 뽑은 순간 1등이 있는지까지 알려줘야 다음 차수로 넘어갈지 판단할 수 있다.
+      if (String(digits).length !== LOTTO_DRAW_DIGITS) return { ok: true, digits, complete: false };
+      return { ok: true, ...(await lottoRoundState(await getSettings())) };
+    }
+
+    // 1등이 안 나온 차수를 기록에 남기고 번호를 비워 다음 차수를 시작한다.
+    case "next_lotto_round": {
+      const settings = await getSettings();
+      const state = await lottoRoundState(settings);
+      if (!state.complete) throw new ApiError("3자리를 모두 뽑은 뒤에 다음 차수로 넘어갈 수 있습니다.");
+      if (state.winners.length > 0) {
+        throw new ApiError("1등이 나온 차수입니다. 다음 차수로 넘어갈 수 없어요.");
+      }
+
+      const pastRounds = [...state.pastRounds, state.digits];
+      const { error } = await sb().from("settings").upsert([
+        { key: "lotto_rounds", value: serializeLottoRounds(pastRounds) },
+        { key: "winning_numbers", value: "" },
+      ]);
+      requireDbSuccess(error, "다음 차수를 시작하지 못했습니다");
+      invalidateSettingsCache();
+      return { ok: true, digits: "", round: currentLottoRound(pastRounds), pastRounds, complete: false, winners: null };
+    }
+
+    // 차수 기록까지 전부 지우고 1차부터 다시 시작한다.
+    case "reset_draw": {
+      const { error } = await sb().from("settings").upsert([
+        { key: "lotto_rounds", value: "[]" },
+        { key: "winning_numbers", value: "" },
+      ]);
+      requireDbSuccess(error, "추첨을 초기화하지 못했습니다");
+      invalidateSettingsCache();
+      return { ok: true, digits: "", round: 1, pastRounds: [], complete: false, winners: null };
     }
 
     case "set_upload_period": {

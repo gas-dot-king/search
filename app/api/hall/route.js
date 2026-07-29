@@ -2,7 +2,7 @@ import { sb } from "@/lib/db";
 import { route, requireUser, ApiError } from "@/lib/api";
 import { getSettings } from "@/lib/settings";
 import { getBingoHallOfFame } from "@/lib/progress";
-import { computeWinners, LOTTO_DRAW_DIGITS } from "@/lib/lotto";
+import { computeWinners, currentLottoRound, parseLottoRounds, LOTTO_DRAW_DIGITS } from "@/lib/lotto";
 import { demoHall, isDemoMode } from "@/lib/demo";
 
 /**
@@ -29,7 +29,13 @@ export const GET = route(async (req) => {
   }
 
   return {
-    lotto: { winningNumbers, drawDate: settings.draw_date || "", winners },
+    lotto: {
+      winningNumbers,
+      drawDate: settings.draw_date || "",
+      round: currentLottoRound(settings.lotto_rounds),
+      pastRounds: parseLottoRounds(settings.lotto_rounds),
+      winners,
+    },
     bingo,
   };
 });

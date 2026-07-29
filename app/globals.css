@@ -1040,7 +1040,29 @@ html[data-theme="dark"] .hall-fourline-item.prize .hall-fourline-rank { backgrou
 }
 .draw-result.complete { border-color: #f0c14b; background: var(--amber-bg); }
 .draw-result p { color: var(--amber-text); font-size: 0.8rem; font-weight: 800; }
+.draw-result .hint { color: var(--muted); font-weight: 600; }
 .draw-result strong { display: block; margin: 4px 0 6px; font-size: 2.4rem; letter-spacing: -0.04em; color: var(--accent); }
+
+/* 지난 차수 (1등 없이 넘어간 번호) */
+.draw-past, .lotto-past-rounds { list-style: none; display: grid; gap: 5px; margin-bottom: 12px; }
+.draw-past li, .lotto-past-rounds li {
+  padding: 7px 11px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm);
+  background: var(--surface-muted); color: var(--muted); font-size: 0.78rem; font-weight: 700;
+}
+.draw-past li b, .lotto-past-rounds li b { color: var(--text); margin-right: 6px; }
+
+.draw-winners { margin-top: 10px; }
+.draw-winners-title { font-size: 1.05rem; color: var(--accent-deep); }
+.draw-winners ul { list-style: none; display: grid; gap: 6px; margin: 10px 0; }
+.draw-winners li {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--r-md); background: var(--card);
+  border: 1px solid #f0c14b; font-size: 1rem; font-weight: 800;
+}
+.draw-winners li span { color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+.draw-no-winner { margin-top: 10px; display: grid; gap: 10px; justify-items: center; }
+.draw-no-winner-title { font-size: 1.05rem; color: var(--muted) !important; }
+.draw-no-winner .btn { width: auto; padding-inline: 22px; }
 
 @media (max-width: 420px) {
   .draw-slot { --cell: 74px; padding-inline: 6px; }

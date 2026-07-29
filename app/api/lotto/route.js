@@ -2,7 +2,14 @@ import crypto from "node:crypto";
 import { sb, uploadPhoto, processPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib/db";
 import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings } from "@/lib/settings";
-import { matchCount, computeWinners, LOTTO_DRAW_DIGITS, LOTTO_ENTRY_LIMIT } from "@/lib/lotto";
+import {
+  matchCount,
+  computeWinners,
+  currentLottoRound,
+  parseLottoRounds,
+  LOTTO_DRAW_DIGITS,
+  LOTTO_ENTRY_LIMIT,
+} from "@/lib/lotto";
 import { demoLotto, demoLottoAdd, demoLottoRemove, demoLottoSummary, isDemoMode } from "@/lib/demo";
 
 /** 내 응모 목록 + 추첨 진행 상황(자리별 공개) + 완료 시 전체 결과 */
@@ -77,6 +84,8 @@ export const GET = route(async (req) => {
     uploadEnd: settings.upload_end,
     drawDate: settings.draw_date,
     winningNumbers: winning,
+    lottoRound: currentLottoRound(settings.lotto_rounds),
+    pastLottoRounds: parseLottoRounds(settings.lotto_rounds),
     winners,
     photosLoaded: true,
   };

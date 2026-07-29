@@ -78,6 +78,8 @@ insert into settings (key, value) values
   ('upload_end',   '2026-08-14T18:00:00+09:00'),
   ('draw_date',    '2026-08-15'),
   ('winning_numbers', ''),
+  -- 1등이 없어 넘어간 지난 차수 번호들. 예: ["010","473"]
+  ('lotto_rounds', '[]'),
   ('notice', ''),
   ('event_guide', '{"date":"2026-08-15","hours":"오전 9시 ~ 오후 1시","venue":"양주 문화체육센터","parkingInfo":"건물 하부 공터에 주차 가능합니다. 자세한 위치는 사진으로 추후 안내할게요.","mapUrl":"https://naver.me/59vQDKHt","lat":null,"lng":null,"timeline":[{"id":"freerun","time":"05:00 ~ 06:00","title":"8.15 러닝 (프리런)","activities":["장소: 양주 문화체육센터","8.15km 인증 도전 · 자신이 뛸 수 있는 만큼 자유 참여"]},{"id":"kickoff","time":"08:30","title":"공식 일정 시작","activities":[]},{"id":"indoor","time":"09:00 ~ 12:30","title":"실내 레크레이션","activities":[]},{"id":"wrapup","time":"12:30 ~ 13:00","title":"마무리 정리","activities":[]}]}')
 on conflict (key) do nothing;
