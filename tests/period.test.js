@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   UPLOAD_PERIOD,
+  formatKoreanClock,
   formatKoreanDateTime,
   fromKstInputValue,
   inUploadPeriod,
@@ -86,6 +87,16 @@ describe("한국 시간 표기", () => {
   it("빈 값·잘못된 값은 빈 문자열", () => {
     expect(formatKoreanDateTime("")).toBe("");
     expect(formatKoreanDateTime("내일")).toBe("");
+  });
+
+  it("집계 기준 시각은 시:분만 한국 시간으로 표기한다", () => {
+    expect(formatKoreanClock("2026-08-07T14:07:00+09:00")).toBe("오후 2시 7분");
+    expect(formatKoreanClock("2026-08-07T09:00:00+09:00")).toBe("오전 9시");
+    // 자정·정오는 0시가 아니라 12시로 읽혀야 한다
+    expect(formatKoreanClock("2026-08-07T00:30:00+09:00")).toBe("오전 12시 30분");
+    expect(formatKoreanClock("2026-08-07T12:00:00+09:00")).toBe("오후 12시");
+    expect(formatKoreanClock("2026-08-07T05:00:00Z")).toBe("오후 2시");
+    expect(formatKoreanClock("어제")).toBe("");
   });
 });
 

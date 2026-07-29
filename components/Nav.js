@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import LottoDeadlineReminder from "./LottoDeadlineReminder";
+import HallOfFameLink from "./HallOfFameLink";
 import SettingsLink from "./SettingsLink";
 import { prefetchApiData } from "@/lib/hooks";
 
@@ -116,6 +117,7 @@ export default function Nav({ config, configLoading = false }) {
               {currentConfig && <span className="nav-deadline">{dDayText(currentConfig, now)}</span>}
             </span>
           </Link>
+          <HallOfFameLink active={pathname === "/hall"} />
           <SettingsLink active={pathname === "/settings"} />
         </div>
         <NoticeBar notices={currentConfig?.notices || []} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { adminPost } from "@/lib/adminClient";
 import { parseNotices, MAX_NOTICES } from "@/lib/notices";
 import { formatKoreanDateTime, fromKstInputValue, toKstInputValue } from "@/lib/period";
@@ -72,6 +73,11 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
           setSetting("winning_numbers", "", "추첨을 초기화할까요? 회원들에게 보이던 번호가 사라집니다.")
         }
       />
+
+      {/* 행사장에서 띄워 놓고 돌리는 큰 화면. 뽑는 동작은 위 버튼과 같다. */}
+      <Link className="btn ghost draw-stage-link" href="/admin/draw">
+        🎰 무작위 번호 추첨 (큰 화면)
+      </Link>
 
       <PeriodEditor settings={settings} busy={busy} onSavePeriod={setUploadPeriod} onSaveSetting={setSetting} />
     </div>

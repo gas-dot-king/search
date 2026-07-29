@@ -184,7 +184,7 @@ html[data-theme="dark"] .brand-logo { filter: brightness(0) invert(1); }
   background: var(--bg);
   box-shadow: 0 8px 12px -12px rgba(30, 41, 59, 0.45);
 }
-.nav-heading { display: flex; align-items: center; gap: 10px; }
+.nav-heading { display: flex; align-items: center; gap: 8px; }
 .nav .brand { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 10px; color: var(--text); text-decoration: none; min-width: 0; }
 .brand-logo { width: auto; height: 26px; flex: 0 0 auto; }
 .brand-copy { min-width: 0; }
@@ -217,8 +217,34 @@ html[data-theme="dark"] .brand-logo { filter: brightness(0) invert(1); }
 .settings-link:hover, .settings-link.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .settings-link:active { transform: scale(0.95); }
 .settings-link:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+/* 명예의 전당 — 톱니바퀴와 같은 높이, 살짝 넓은 금색 트로피 버튼 */
+.hall-link {
+  flex: 0 0 56px; width: 56px;
+  border-color: #f0c14b; color: #a16207;
+  background: linear-gradient(155deg, #fffaeb 0%, #fde9a9 100%);
+  box-shadow: 0 2px 9px rgba(202, 138, 4, 0.28);
+}
+.hall-link svg { width: 24px; height: 24px; }
+/* 트로피 잔만 금색으로 채워 다른 아이콘과 확실히 구분한다 */
+.hall-link svg path:first-child { fill: #fbbf24; }
+.hall-link:hover, .hall-link.active {
+  border-color: #ca8a04; color: #854d0e;
+  background: linear-gradient(155deg, #fef3c7 0%, #fcd34d 100%);
+}
+.hall-link:focus-visible { outline-color: #fde68a; }
+html[data-theme="dark"] .hall-link {
+  border-color: #a16207; color: #fde68a;
+  background: linear-gradient(155deg, #3f2f0d 0%, #5c440f 100%);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .hall-link svg path:first-child { fill: #eab308; }
+html[data-theme="dark"] .hall-link:hover,
+html[data-theme="dark"] .hall-link.active {
+  border-color: #facc15; color: #fef3c7;
+  background: linear-gradient(155deg, #5c440f 0%, #7c5c12 100%);
+}
 .draw-topbar { display: flex; justify-content: flex-end; min-height: 44px; }
-.nav-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.nav-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; padding-inline: 8px; }
 .nav-links a {
   display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 9px 5px;
   border: 2px solid var(--line-strong); border-radius: 12px; background: var(--card); color: var(--muted);
@@ -888,13 +914,147 @@ td.num, th.num { text-align: right; }
 .challenge-carrot-button:hover { background: #e85d04; }
 .challenge-carrot-button span { margin-left: auto; font-size: 1.15rem; }
 
+/* ---- 명예의 전당 ---- */
+.hall-head { margin-top: 8px; }
+/* 후원자 카드는 맨 위에서 가장 먼저 눈에 들어오도록 강조한다 */
+.hall-sponsors { border-color: var(--accent-soft); background: var(--rose-bg); }
+.hall-sponsor-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin-top: 4px; }
+.hall-sponsor {
+  padding: 6px 11px; border: 1px solid var(--accent-soft); border-radius: 999px;
+  background: var(--card); color: var(--accent-deep);
+  font-size: 0.82rem; font-weight: 800; word-break: keep-all;
+}
+.hall-sponsor-thanks { margin-top: 10px; }
+.hall-bingo-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hall-updated {
+  flex: 0 0 auto; padding: 2px 8px; border-radius: 999px;
+  background: var(--surface-muted); color: var(--muted);
+  font-size: 0.7rem; font-weight: 800; white-space: nowrap;
+}
+.hall-subtitle { margin: 16px 0 8px; font-weight: 800; font-size: 0.88rem; }
+.hall-award-list { display: grid; gap: 8px; list-style: none; }
+.hall-award {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center;
+  padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg);
+}
+.hall-award-title {
+  padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-deep);
+  font-size: 0.75rem; font-weight: 800; white-space: nowrap;
+}
+.hall-award-winner { font-size: 0.95rem; font-weight: 800; word-break: keep-all; }
+.hall-award-note { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; word-break: keep-all; }
+.hall-lotto-winners { margin-top: 4px; }
+.hall-badge {
+  display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px;
+  background: var(--green-bg); color: var(--green-text); font-size: 0.68rem; font-weight: 800;
+  white-space: nowrap;
+}
+/* 4줄 달성 — 선물 대상은 금색, 대기 순번은 차분하게 */
+.hall-badge.four-line { background: var(--amber-bg); color: var(--amber-text); border: 1px solid var(--amber-line); }
+.hall-badge.four-line.waiting { background: var(--surface-muted); color: var(--muted); border-color: var(--line-strong); }
+.hall-empty { padding: 6px 0; }
+
+.hall-fourline {
+  margin: 14px 0 18px; padding: 14px; border: 1px solid var(--amber-line);
+  border-radius: var(--r-md); background: var(--amber-bg);
+}
+.hall-fourline-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
+.hall-fourline .hall-subtitle { margin: 0; color: var(--amber-text); }
+.hall-fourline-count { color: var(--amber-text); font-size: 0.74rem; font-weight: 800; }
+.hall-fourline-list { list-style: none; margin-top: 10px; display: grid; gap: 5px; }
+.hall-fourline-item {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 9px;
+  padding: 8px 11px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card); font-size: 0.85rem;
+}
+.hall-fourline-item.prize { border-color: var(--amber-line); }
+.hall-fourline-rank {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px;
+  background: var(--surface-muted); color: var(--muted); font-size: 0.75rem; font-weight: 850;
+}
+.hall-fourline-item.prize .hall-fourline-rank { background: #fbbf24; color: #4a2c00; }
+.hall-fourline-name { min-width: 0; font-weight: 800; word-break: keep-all; }
+.hall-fourline-time { color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+.hall-fourline-note { margin-top: 10px; color: var(--amber-text); }
+html[data-theme="dark"] .hall-fourline-item.prize .hall-fourline-rank { background: #a16207; color: #fef3c7; }
+
+/* 관리자 4줄 검수 목록 */
+.fourline-empty { padding: 6px 0; }
+.fourline-table { min-width: 420px; }
+.fourline-table .fourline-prize td { background: var(--amber-bg); }
+.fourline-table .fourline-time { color: var(--muted); font-size: 0.78rem; }
+.fourline-waiting {
+  margin-left: 5px; padding: 1px 6px; border-radius: 999px;
+  background: var(--surface-muted); color: var(--muted); font-size: 0.65rem; font-weight: 800;
+}
+
+/* ---- 관리자 추첨 화면 (행사장에서 띄워 놓는 큰 화면) ---- */
+.draw-stage-link { width: 100%; margin-top: 4px; }
+.draw-stage { padding-bottom: 40px; }
+.draw-stage-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 4px; }
+.draw-stage-head { margin: 18px 0 20px; text-align: center; }
+.draw-stage-kicker { color: var(--accent); font-size: 0.72rem; font-weight: 850; letter-spacing: 0.12em; }
+.draw-stage-title { margin: 6px 0 8px; font-size: 1.55rem; letter-spacing: -0.04em; }
+.draw-stage-error { margin-bottom: 12px; text-align: center; }
+
+.draw-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.draw-slot {
+  --cell: 96px;
+  display: grid; gap: 9px; padding: 13px 9px;
+  border: 2px solid var(--line-strong); border-radius: var(--r-lg);
+  background: var(--card); box-shadow: var(--shadow); text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.draw-slot.next { border-color: var(--accent); box-shadow: 0 6px 18px rgba(225, 29, 72, 0.16); }
+.draw-slot.done { border-color: #f0c14b; }
+.draw-slot.rolling { border-color: #fbbf24; box-shadow: 0 8px 22px rgba(251, 191, 36, 0.35); }
+.draw-slot-label { color: var(--muted); font-size: 0.72rem; font-weight: 800; word-break: keep-all; }
+
+/* 숫자 한 칸만 보이는 창 — 릴이 이 안에서 위아래로 굴러간다 */
+.draw-slot-window {
+  position: relative; height: var(--cell); overflow: hidden;
+  border-radius: var(--r-md); background: var(--surface-muted);
+  box-shadow: inset 0 8px 12px -10px rgba(15, 23, 42, 0.5), inset 0 -8px 12px -10px rgba(15, 23, 42, 0.5);
+}
+.draw-slot-placeholder {
+  display: grid; place-items: center; height: 100%;
+  color: var(--muted); font-size: calc(var(--cell) * 0.5); font-weight: 850;
+}
+.draw-reel {
+  display: grid;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.12, 0.72, 0.16, 1);
+}
+.draw-reel span {
+  display: grid; place-items: center; height: var(--cell);
+  font-size: calc(var(--cell) * 0.58); font-weight: 850; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.draw-slot.done .draw-reel span { color: var(--accent-deep); }
+.draw-slot-button { width: 100%; padding-inline: 6px; font-size: 0.82rem; }
+.draw-slot-status { color: #a16207; font-size: 0.8rem; font-weight: 850; padding: 9px 0; }
+
+.draw-result {
+  margin-top: 20px; padding: 20px 16px; border-radius: var(--r-lg);
+  border: 1px solid var(--line); background: var(--card); text-align: center;
+}
+.draw-result.complete { border-color: #f0c14b; background: var(--amber-bg); }
+.draw-result p { color: var(--amber-text); font-size: 0.8rem; font-weight: 800; }
+.draw-result strong { display: block; margin: 4px 0 6px; font-size: 2.4rem; letter-spacing: -0.04em; color: var(--accent); }
+
 @media (max-width: 420px) {
+  .draw-slot { --cell: 74px; padding-inline: 6px; }
+  .draw-slots { gap: 6px; }
+  .draw-slot-button { font-size: 0.75rem; }
   .lotto-history-row { grid-template-columns: auto minmax(0, 1fr) auto; }
   .lotto-history-row .btn.danger { grid-column: 3; }
 }
 
 @media (max-width: 360px) {
+  /* 좁은 화면에서는 메뉴를 더 줄일 여유가 없어 원래 폭으로 되돌린다 */
+  .nav-links { gap: 5px; padding-inline: 0; }
   .nav-links a { padding-inline: 3px; }
+  .hall-link { flex-basis: 50px; width: 50px; }
   .nav-deadline { padding-inline: 7px; }
   .brand-logo { height: 22px; }
   .event-editor-fields { grid-template-columns: 1fr; }

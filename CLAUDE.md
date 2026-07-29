@@ -30,11 +30,14 @@ app/
   board/         내 빙고판 + 사진 인증
   lotto/         로또 응모 / 추첨 결과
   feed/          진행률 랭킹 + 최근 활동
+  hall/          명예의 전당 (후원자·빙고 달성·로또 당첨·챌린지 수상자)
+  admin/draw/    행사장용 추첨 화면 (한 자리씩 릴 애니메이션)
   challenge/     28일 챌린지 안내 (정적)
   event/         오프라인 행사 안내 + 네이버 지도
   admin/         관리자
   api/           서버 라우트 — Supabase는 여기서만 접근
-lib/             db·auth·bingo·lotto·settings·event·demo 유틸
+lib/             db·auth·bingo·lotto·settings·event·hall·demo 유틸
+                 (후원자·챌린지 수상자 명단은 lib/hall.js에 하드코딩)
 supabase/        schema.sql + migrations/
 tests/           vitest (lib 순수 함수만)
 ```

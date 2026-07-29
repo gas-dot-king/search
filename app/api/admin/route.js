@@ -3,14 +3,16 @@ import { sb, processPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib
 import { hashPin, hashToken, newToken, sessionExpiresAt } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
-import { getAllProgress } from "@/lib/progress";
+import { getAllProgress, invalidateBingoHallCache } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
+import { fourLineAchievements } from "@/lib/hall";
 import {
   demoAdminUser,
   demoDeleteCellPhoto,
   demoDeleteLottoEntry,
   demoDeleteUser,
   demoDrawNumbers,
+  demoFourLineRanking,
   demoItems,
   demoProgress,
   demoResetBoard,
@@ -28,21 +30,36 @@ export const GET = route(async (req) => {
   if (isDemoMode()) {
     if (action === "overview") {
       const progress = demoProgress();
-      return { settings: demoSettings(), users: progress.progress, items: demoItems() };
+      return {
+        settings: demoSettings(),
+        users: progress.progress,
+        items: demoItems(),
+        fourLine: demoFourLineRanking(),
+      };
     }
     if (action === "user") return demoAdminUser(url.searchParams.get("id"));
     throw new ApiError("알 수 없는 요청입니다.");
   }
 
   if (action === "overview") {
-    const [settings, { progress }, { data: items, error: itemsError }] = await Promise.all([
+    const [settings, { progress, cells }, { data: items, error: itemsError }] = await Promise.all([
       getSettings(),
       getAllProgress(),
       sb().from("bingo_items").select("id, category, content").order("category").order("id"),
     ]);
     requireDbSuccess(itemsError, "빙고 항목을 불러오지 못했습니다");
+
+    // 선물이 걸린 4줄 선착순은 운영진이 인증 사진을 직접 확인해야 하므로 회원 id까지 함께 준다.
+    const nicknameOf = new Map(progress.map((user) => [user.id, user.nickname]));
+    const fourLine = fourLineAchievements(cells).map(({ rank, userId, achievedAt }) => ({
+      rank,
+      id: userId,
+      nickname: nicknameOf.get(userId) || "?",
+      achievedAt,
+    }));
+
     return Response.json(
-      { settings: editableSettings(settings), users: progress, items: items || [] },
+      { settings: editableSettings(settings), users: progress, items: items || [], fourLine },
       { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
     );
   }
@@ -222,6 +239,7 @@ export const POST = route(async (req) => {
       requireDbSuccess(cellsError, "빙고 사진을 확인하지 못했습니다");
       const { error } = await sb().rpc("admin_reset_bingo_board", { p_user_id: userId });
       if (error) throw new ApiError("빙고판 초기화에 실패했습니다.", 500);
+      invalidateBingoHallCache();
       const cleanup = await schedulePhotoCleanup((cells || []).map((c) => c.photo_path));
       return { ok: true, cleanupPending: cleanup.pending };
     }
@@ -241,6 +259,7 @@ export const POST = route(async (req) => {
       const { data: deleted, error } = await sb().from("users").delete().eq("id", userId).select("id").maybeSingle();
       if (error) throw new ApiError(error.message, 500);
       if (!deleted) throw new ApiError("회원을 찾을 수 없습니다.", 404);
+      invalidateBingoHallCache();
 
       const cleanup = await schedulePhotoCleanup([
         ...(cells || []).map((c) => c.photo_path),
@@ -259,6 +278,7 @@ export const POST = route(async (req) => {
       if (!cell?.photo_path) throw new ApiError("사진이 없습니다.");
       const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null, uploaded_date: null }).eq("id", cell.id);
       requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
+      invalidateBingoHallCache();
       const cleanup = await schedulePhotoCleanup([cell.photo_path]);
       return { ok: true, cleanupPending: cleanup.pending };
     }

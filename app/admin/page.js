@@ -7,6 +7,7 @@ import SettingsCard from "@/components/admin/SettingsCard";
 import UserDetail from "@/components/admin/UserDetail";
 import ItemsCard from "@/components/admin/ItemsCard";
 import EventGuideCard from "@/components/admin/EventGuideCard";
+import FourLineCard from "@/components/admin/FourLineCard";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -144,6 +145,8 @@ export default function AdminPage() {
         busy={busy}
         onSave={saveEventGuide}
       />
+
+      <FourLineCard fourLine={overview.fourLine} busy={busy} onOpenUser={openUser} />
 
       <div className="card">
         <p style={{ fontWeight: 700, marginBottom: 8 }}>회원 ({overview.users.length}명)</p>
