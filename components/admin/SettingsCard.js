@@ -32,6 +32,21 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
     }
   }
 
+  async function setUploadPeriod(start, end) {
+    if (!start || !end) return alert("시작과 마감 시각을 모두 입력해주세요.");
+    if (new Date(start) >= new Date(end)) return alert("마감 시각은 시작 시각보다 뒤여야 합니다.");
+    if (!confirm(`업로드 기간을 ${formatKoreanDateTime(start)} ~ ${formatKoreanDateTime(end)}로 함께 저장할까요?`)) return;
+    setBusy(true);
+    try {
+      await adminPost({ action: "set_upload_period", start, end });
+      await onChanged();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="card">
       <p style={{ fontWeight: 700, marginBottom: 8 }}>이벤트 설정</p>
@@ -58,7 +73,7 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
         }
       />
 
-      <PeriodEditor settings={settings} busy={busy} onSave={setSetting} />
+      <PeriodEditor settings={settings} busy={busy} onSavePeriod={setUploadPeriod} onSaveSetting={setSetting} />
     </div>
   );
 }
@@ -68,7 +83,7 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
  * 이 값이 깨지면 전 회원 업로드가 막히는데 지금껏 고칠 화면이 없어 DB를 직접 만져야 했다.
  * 입력·표시는 한국 시간 기준이고, 저장할 때 +09:00을 붙여 서버가 UTC로 오해하지 않게 한다.
  */
-function PeriodEditor({ settings, busy, onSave }) {
+function PeriodEditor({ settings, busy, onSavePeriod, onSaveSetting }) {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [drawDate, setDrawDate] = useState("");
@@ -81,10 +96,11 @@ function PeriodEditor({ settings, busy, onSave }) {
 
   const invalidRange = start && end && start >= end;
 
-  function saveTime(key, input, label) {
-    const value = fromKstInputValue(input);
-    if (!value) return alert(`${label} 시각을 입력해주세요.`);
-    onSave(key, value, `${label}을(를) ${formatKoreanDateTime(value)}로 바꿀까요?`);
+  function savePeriod() {
+    const startValue = fromKstInputValue(start);
+    const endValue = fromKstInputValue(end);
+    if (!startValue || !endValue) return alert("시작과 마감 시각을 모두 입력해주세요.");
+    onSavePeriod(startValue, endValue);
   }
 
   return (
@@ -100,14 +116,6 @@ function PeriodEditor({ settings, busy, onSave }) {
           aria-label="업로드 시작 시각"
           disabled={busy}
         />
-        <button
-          type="button"
-          className="btn ghost sm"
-          onClick={() => saveTime("upload_start", start, "시작 시각")}
-          disabled={busy || !start}
-        >
-          시작 저장
-        </button>
       </div>
 
       <div className="period-editor-row">
@@ -118,17 +126,17 @@ function PeriodEditor({ settings, busy, onSave }) {
           aria-label="업로드 마감 시각"
           disabled={busy}
         />
-        <button
-          type="button"
-          className="btn ghost sm"
-          onClick={() => saveTime("upload_end", end, "마감 시각")}
-          disabled={busy || !end}
-        >
-          마감 저장
-        </button>
       </div>
 
       {invalidRange && <p className="error-msg">마감이 시작보다 빠릅니다. 이대로 저장하면 업로드가 계속 막힙니다.</p>}
+      <button
+        type="button"
+        className="btn ghost sm"
+        onClick={savePeriod}
+        disabled={busy || !start || !end || invalidRange}
+      >
+        기간 함께 저장
+      </button>
 
       <label htmlFor="draw-date">추첨일</label>
       <div className="period-editor-row">
@@ -142,7 +150,7 @@ function PeriodEditor({ settings, busy, onSave }) {
         <button
           type="button"
           className="btn ghost sm"
-          onClick={() => onSave("draw_date", drawDate, `추첨일을 ${drawDate}로 바꿀까요?`)}
+          onClick={() => onSaveSetting("draw_date", drawDate, `추첨일을 ${drawDate}로 바꿀까요?`)}
           disabled={busy || !drawDate}
         >
           추첨일 저장

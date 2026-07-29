@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import Nav from "@/components/Nav";
+import Modal from "@/components/Modal";
 import { api, PRIVACY_WARNING } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
+import { formatKoreanDateTime } from "@/lib/period";
 
 const fmtKm = (digits) => `${digits.slice(0, 2)}.${digits.slice(2)}`;
 
@@ -169,17 +171,20 @@ export default function LottoPage() {
     }
 
     setPhotoBusyId(entry.id);
-    const latest = await reload();
-    const refreshed = latest?.entries?.find((item) => item.id === entry.id);
-    setPhotoBusyId("");
-    if (refreshed?.photoUrl) setViewPhoto(refreshed);
-    else setHistoryError("인증 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+    try {
+      const latest = await reload();
+      const refreshed = latest?.entries?.find((item) => item.id === entry.id);
+      if (refreshed?.photoUrl) setViewPhoto(refreshed);
+      else setHistoryError("인증 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setPhotoBusyId("");
+    }
   }
 
   if (!data) {
     return (
       <main className="wrap">
-        <Nav />
+        <Nav config={period.config} configLoading={period.loading} />
         <p className="hint">{loadError || "불러오는 중..."}</p>
       </main>
     );
@@ -192,7 +197,7 @@ export default function LottoPage() {
 
   return (
     <main className="wrap">
-      <Nav />
+      <Nav config={period.config} configLoading={period.loading} />
       <h1 className="section-title lotto-page-title">🎰 달리기 로또</h1>
 
       <section className="card lotto-guide" aria-labelledby="lotto-guide-title">
@@ -200,7 +205,9 @@ export default function LottoPage() {
           <h2 id="lotto-guide-title">응모 방법</h2>
           <span>1인 최대 2장</span>
         </div>
-        <p className="lotto-period">8월 1일 오전 6시부터 8월 14일 오후 6시까지</p>
+        <p className="lotto-period">
+          {formatKoreanDateTime(data.uploadStart)}부터 {formatKoreanDateTime(data.uploadEnd)}까지
+        </p>
         <p>
           러닝 앱의 거리와 인증 사진으로 응모해요. 거리의 <b>1의 자리·소수점 첫째 자리·둘째 자리</b>,
           총 세 자리를 무작위 추첨 번호와 비교합니다.
@@ -212,7 +219,7 @@ export default function LottoPage() {
           <b>5</b><b>2</b><b>4</b>
         </div>
         <p className="lotto-prize">
-          8월 15일 오프라인 행사에서 추첨하며, 세 자리 모두 일치한 1등에게
+          {data.drawDate || "행사일"} 오프라인 행사에서 추첨하며, 세 자리 모두 일치한 1등에게
           <b> 5만원 상당의 선물</b>을 드려요. 1등이 없으면 나올 때까지 다시 추첨합니다.
         </p>
       </section>
@@ -220,7 +227,7 @@ export default function LottoPage() {
       <section className="card lotto-history compact" aria-labelledby="lotto-history-title">
         <div className="lotto-history-heading">
           <p id="lotto-history-title" className="card-title">내 응모 내역</p>
-          <strong>{data.entries.length}/2장</strong>
+          <strong>{data.entries.length}/{data.maxEntries}장</strong>
         </div>
         {data.entries.length === 0 ? (
           <p className="hint">아직 응모한 기록이 없어요.</p>
@@ -277,7 +284,7 @@ export default function LottoPage() {
           <div className="warn-box lotto-privacy">{PRIVACY_WARNING}</div>
         )}
         <div className="lotto-entry-tickets">
-          {[0, 1].map((index) => (
+          {Array.from({ length: data.maxEntries }, (_, index) => (
             <LottoEntrySlot
               key={`entry-slot-${index}`}
               slotNumber={index + 1}
@@ -308,8 +315,8 @@ export default function LottoPage() {
       )}
 
       {viewPhoto && (
-        <div className="modal-bg" onClick={() => setViewPhoto(null)}>
-          <div className="modal lotto-photo-modal" onClick={(event) => event.stopPropagation()}>
+        <Modal label="응모 인증사진" onClose={() => setViewPhoto(null)}>
+          <div className="lotto-photo-modal">
             <h3>응모 인증사진</h3>
             <p className="hint">{fmtKm(viewPhoto.digits)}km 응모 기록</p>
             <img className="preview" src={viewPhoto.photoUrl} alt={`${fmtKm(viewPhoto.digits)}km 인증사진`} />
@@ -317,7 +324,7 @@ export default function LottoPage() {
               <button type="button" className="btn ghost" onClick={() => setViewPhoto(null)}>닫기</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </main>
   );

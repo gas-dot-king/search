@@ -33,10 +33,23 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
     }
   }
 
+  async function resetPin() {
+    if (!confirm(`${user.nickname}님의 PIN을 0000으로 초기화할까요?\n현재 로그인 세션은 즉시 해제됩니다.`)) return;
+    try {
+      await adminPost({ action: "reset_user_pin", userId: user.id });
+      alert("PIN을 0000으로 초기화했습니다.");
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   return (
     <main className="wrap">
       <button className="btn ghost sm" onClick={onBack}>← 목록으로</button>
-      <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: "12px 0" }}>{user.nickname} 님의 인증</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
+        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: 0, flex: 1 }}>{user.nickname} 님의 인증</h2>
+        <button className="btn ghost sm" onClick={resetPin}>PIN 0000 초기화</button>
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 6px" }}>
         <p style={{ fontWeight: 700, flex: 1 }}>빙고판</p>

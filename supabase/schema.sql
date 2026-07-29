@@ -8,7 +8,11 @@ create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   nickname text unique not null,
   pin_hash text not null,
-  token text unique not null,
+  token_hash text unique not null,
+  token_expires_at timestamptz not null default (now() + interval '30 days'),
+  failed_pin_attempts integer not null default 0,
+  pin_locked_at timestamptz,
+  redraw_used boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -26,6 +30,7 @@ create table if not exists cells (
   item_id int not null references bingo_items(id),
   photo_path text,
   uploaded_at timestamptz,
+  uploaded_date date,
   unique (user_id, position)
 );
 
@@ -44,6 +49,13 @@ create table if not exists settings (
   value text not null default ''
 );
 
+create table if not exists storage_cleanup_tasks (
+  path text primary key,
+  created_at timestamptz not null default now(),
+  last_error text,
+  attempts integer not null default 0
+);
+
 -- 사용자별 로또 목록 조회·개수 확인·생성일 정렬을 위한 복합 인덱스
 create index if not exists lotto_entries_user_created_at_idx
   on lotto_entries (user_id, created_at);
@@ -54,6 +66,7 @@ alter table bingo_items enable row level security;
 alter table cells enable row level security;
 alter table lotto_entries enable row level security;
 alter table settings enable row level security;
+alter table storage_cleanup_tasks enable row level security;
 
 -- =====================================================
 -- 기본 설정
@@ -64,10 +77,9 @@ insert into settings (key, value) values
   ('upload_start', '2026-08-01T06:00:00+09:00'),
   ('upload_end',   '2026-08-14T18:00:00+09:00'),
   ('draw_date',    '2026-08-15'),
-  ('max_lotto_entries', '2'),
   ('winning_numbers', ''),
   ('notice', ''),
-  ('event_guide', '{"hours":"오전 7시 ~ 오후 1시","venue":"양주 문화체육센터","timeline":[{"id":"running","time":"07:00 ~ 08:00","title":"간단한 러닝","activities":[]},{"id":"breakfast","time":"08:00 ~ 09:00","title":"아침 식사","activities":[]},{"id":"indoor","time":"09:00 ~ 13:00","title":"실내 레크레이션","activities":[]}]}')
+  ('event_guide', '{"date":"2026-08-15","hours":"오전 9시 ~ 오후 1시","venue":"양주 문화체육센터","parkingInfo":"건물 하부 공터에 주차 가능합니다. 자세한 위치는 사진으로 추후 안내할게요.","mapUrl":"https://naver.me/59vQDKHt","lat":null,"lng":null,"timeline":[{"id":"freerun","time":"05:00 ~ 06:00","title":"8.15 러닝 (프리런)","activities":["장소: 양주 문화체육센터","8.15km 인증 도전 · 자신이 뛸 수 있는 만큼 자유 참여"]},{"id":"kickoff","time":"08:30","title":"공식 일정 시작","activities":[]},{"id":"indoor","time":"09:00 ~ 12:30","title":"실내 레크레이션","activities":[]},{"id":"wrapup","time":"12:30 ~ 13:00","title":"마무리 정리","activities":[]}]}')
 on conflict (key) do nothing;
 
 -- =====================================================

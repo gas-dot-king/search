@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
-import { sb, removePhoto, removePhotos, signedUrls } from "@/lib/db";
+import { sb, processPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib/db";
+import { hashPin, hashToken, newToken, sessionExpiresAt } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { getAllProgress } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
-import { LOTTO_DRAW_DIGITS } from "@/lib/lotto";
 import {
   demoAdminUser,
   demoDeleteCellPhoto,
@@ -14,13 +14,14 @@ import {
   demoItems,
   demoProgress,
   demoResetBoard,
+  demoResetUserPin,
   demoSetSetting,
   demoSettings,
   isDemoMode,
 } from "@/lib/demo";
 
 export const GET = route(async (req) => {
-  requireAdmin(req);
+  await requireAdmin(req);
   const url = new URL(req.url);
   const action = url.searchParams.get("action") || "overview";
 
@@ -34,17 +35,21 @@ export const GET = route(async (req) => {
   }
 
   if (action === "overview") {
-    const [settings, { progress }, { data: items }] = await Promise.all([
+    const [settings, { progress }, { data: items, error: itemsError }] = await Promise.all([
       getSettings(),
       getAllProgress(),
       sb().from("bingo_items").select("id, category, content").order("category").order("id"),
     ]);
-    return { settings: editableSettings(settings), users: progress, items: items || [] };
+    requireDbSuccess(itemsError, "빙고 항목을 불러오지 못했습니다");
+    return Response.json(
+      { settings: editableSettings(settings), users: progress, items: items || [] },
+      { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
+    );
   }
 
   if (action === "user") {
     const userId = url.searchParams.get("id");
-    const [{ data: cells }, { data: entries }] = await Promise.all([
+    const [{ data: cells, error: cellsError }, { data: entries, error: entriesError }] = await Promise.all([
       sb()
         .from("cells")
         .select("id, position, photo_path, uploaded_at, bingo_items ( content, category )")
@@ -54,8 +59,10 @@ export const GET = route(async (req) => {
         .from("lotto_entries")
         .select("id, digits, photo_path, created_at")
         .eq("user_id", userId)
+        .not("slot", "is", null)
         .order("created_at"),
     ]);
+    requireDbSuccess(cellsError || entriesError, "회원 인증 정보를 불러오지 못했습니다");
 
     const urlMap = await signedUrls([
       ...(cells || []).map((c) => c.photo_path),
@@ -84,17 +91,36 @@ export const GET = route(async (req) => {
 });
 
 export const POST = route(async (req) => {
-  requireAdmin(req);
+  await requireAdmin(req);
   const body = await readJson(req);
+  if (!isDemoMode()) await processPhotoCleanup();
 
   if (isDemoMode()) {
     switch (body.action) {
-      case "set_setting":
+      case "set_setting": {
+        if (!EDITABLE_KEYS.includes(body.key) || body.key === "upload_start" || body.key === "upload_end") {
+          throw new ApiError("수정할 수 없는 설정입니다.");
+        }
         return demoSetSetting(body.key, body.key === "event_guide" ? serializeEventGuide(body.value) : body.value);
+      }
       case "draw_numbers": {
         const result = demoDrawNumbers();
         if (result.error) throw new ApiError(result.error);
         return result;
+      }
+      case "reset_user_pin": {
+        const result = demoResetUserPin(String(body.userId || ""));
+        if (result.error) throw new ApiError(result.error, result.status);
+        return result;
+      }
+      case "set_upload_period": {
+        const start = String(body.start || "");
+        const end = String(body.end || "");
+        if (Number.isNaN(new Date(start).getTime()) || Number.isNaN(new Date(end).getTime()) || new Date(start) >= new Date(end)) {
+          throw new ApiError("업로드 시작과 마감 시각을 올바르게 입력해주세요.");
+        }
+        demoSetSetting("upload_start", start);
+        return demoSetSetting("upload_end", end);
       }
       case "reset_board":
         return demoResetBoard(String(body.userId || ""));
@@ -118,6 +144,9 @@ export const POST = route(async (req) => {
   switch (body.action) {
     case "set_setting": {
       if (!EDITABLE_KEYS.includes(body.key)) throw new ApiError("수정할 수 없는 설정입니다.");
+      if (body.key === "upload_start" || body.key === "upload_end") {
+        throw new ApiError("업로드 기간은 시작과 마감 시각을 함께 저장해주세요.");
+      }
       let value = String(body.value ?? "");
 
       if (body.key === "event_guide") {
@@ -153,36 +182,48 @@ export const POST = route(async (req) => {
     }
 
     case "draw_numbers": {
-      // 버튼 누를 때마다 한 자리씩 뽑기 (0~9 균등, crypto 기반)
-      // 캐시된 설정을 쓰면 다른 서버 인스턴스에서 방금 뽑은 자리를 덮어쓸 수 있어 DB에서 직접 읽는다.
-      const { data: row } = await sb().from("settings").select("value").eq("key", "winning_numbers").maybeSingle();
-      const cur = row?.value || "";
-      if (cur.length >= LOTTO_DRAW_DIGITS) {
-        throw new ApiError("이미 3자리 모두 추첨되었습니다. 다시 하려면 초기화하세요.");
+      const { data: digits, error } = await sb().rpc("append_winning_number", { p_digit: String(crypto.randomInt(10)) });
+      if (error) {
+        if (String(error.message).includes("DRAW_COMPLETE")) {
+          throw new ApiError("이미 3자리 모두 추첨되었습니다. 다시 하려면 초기화하세요.", 409);
+        }
+        throw new ApiError("추첨 번호를 저장하지 못했습니다.", 500);
       }
-      const digits = cur + crypto.randomInt(10);
-      const { error } = await sb().from("settings").upsert({ key: "winning_numbers", value: digits });
-      if (error) throw new ApiError(error.message, 500);
       invalidateSettingsCache();
       return { ok: true, digits };
+    }
+
+    case "set_upload_period": {
+      const start = String(body.start || "");
+      const end = String(body.end || "");
+      if (Number.isNaN(new Date(start).getTime()) || Number.isNaN(new Date(end).getTime())) {
+        throw new ApiError("시각 형식이 올바르지 않습니다.");
+      }
+      const { error } = await sb().rpc("set_upload_period", { p_start: start, p_end: end });
+      if (error) {
+        if (String(error.message).includes("INVALID_UPLOAD_PERIOD")) {
+          throw new ApiError("마감 시각은 시작 시각보다 뒤여야 합니다.");
+        }
+        throw new ApiError("업로드 기간을 저장하지 못했습니다.", 500);
+      }
+      invalidateSettingsCache();
+      return { ok: true };
     }
 
     case "reset_board": {
       // 회원 빙고판 리셋: 칸 + 업로드 사진 전부 삭제 → 다시 뽑기 가능
       const userId = String(body.userId || "");
       if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
-      const { data: cells } = await sb()
+      const { data: cells, error: cellsError } = await sb()
         .from("cells")
         .select("photo_path")
         .eq("user_id", userId)
         .not("photo_path", "is", null);
-      const { error } = await sb().from("cells").delete().eq("user_id", userId);
-      if (error) throw new ApiError(error.message, 500);
-      await removePhotos((cells || []).map((c) => c.photo_path));
-      // 다시 뽑기 기회도 초기화 → 처음 흐름부터 다시
-      const { error: resetFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
-      requireDbSuccess(resetFlagError, "다시 뽑기 상태 초기화에 실패했습니다");
-      return { ok: true };
+      requireDbSuccess(cellsError, "빙고 사진을 확인하지 못했습니다");
+      const { error } = await sb().rpc("admin_reset_bingo_board", { p_user_id: userId });
+      if (error) throw new ApiError("빙고판 초기화에 실패했습니다.", 500);
+      const cleanup = await schedulePhotoCleanup((cells || []).map((c) => c.photo_path));
+      return { ok: true, cleanupPending: cleanup.pending };
     }
 
     case "delete_user": {
@@ -191,48 +232,70 @@ export const POST = route(async (req) => {
       const userId = String(body.userId || "");
       if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
 
-      const [{ data: cells }, { data: entries }] = await Promise.all([
+      const [{ data: cells, error: cellsError }, { data: entries, error: entriesError }] = await Promise.all([
         sb().from("cells").select("photo_path").eq("user_id", userId).not("photo_path", "is", null),
         sb().from("lotto_entries").select("photo_path").eq("user_id", userId),
       ]);
+      requireDbSuccess(cellsError || entriesError, "회원 사진을 확인하지 못했습니다");
 
-      const { error } = await sb().from("users").delete().eq("id", userId);
+      const { data: deleted, error } = await sb().from("users").delete().eq("id", userId).select("id").maybeSingle();
       if (error) throw new ApiError(error.message, 500);
+      if (!deleted) throw new ApiError("회원을 찾을 수 없습니다.", 404);
 
-      await removePhotos([
+      const cleanup = await schedulePhotoCleanup([
         ...(cells || []).map((c) => c.photo_path),
         ...(entries || []).map((e) => e.photo_path),
       ]);
-      // 다시 뽑기 플래그가 settings에 남지 않게 정리하고, 캐시된 토큰도 즉시 무효화한다.
-      const { error: redrawFlagError } = await sb().from("settings").delete().eq("key", `redraw:${userId}`);
-      requireDbSuccess(redrawFlagError, "다시 뽑기 상태 정리에 실패했습니다");
-      return { ok: true };
+      return { ok: true, cleanupPending: cleanup.pending };
     }
 
     case "delete_cell_photo": {
-      const { data: cell } = await sb()
+      const { data: cell, error: lookupError } = await sb()
         .from("cells")
         .select("id, photo_path")
         .eq("id", body.cellId)
-        .single();
+        .maybeSingle();
+      requireDbSuccess(lookupError, "사진을 확인하지 못했습니다");
       if (!cell?.photo_path) throw new ApiError("사진이 없습니다.");
-      const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null }).eq("id", cell.id);
+      const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null, uploaded_date: null }).eq("id", cell.id);
       requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
-      await removePhoto(cell.photo_path);
-      return { ok: true };
+      const cleanup = await schedulePhotoCleanup([cell.photo_path]);
+      return { ok: true, cleanupPending: cleanup.pending };
     }
 
     case "delete_lotto_entry": {
-      const { data: entry } = await sb()
+      const { data: entry, error: lookupError } = await sb()
         .from("lotto_entries")
         .select("id, photo_path")
         .eq("id", body.entryId)
-        .single();
+        .maybeSingle();
+      requireDbSuccess(lookupError, "응모를 확인하지 못했습니다");
       if (!entry) throw new ApiError("응모를 찾을 수 없습니다.", 404);
       const { error } = await sb().from("lotto_entries").delete().eq("id", entry.id);
       requireDbSuccess(error, "응모 삭제에 실패했습니다");
-      await removePhoto(entry.photo_path);
-      return { ok: true };
+      const cleanup = await schedulePhotoCleanup([entry.photo_path]);
+      return { ok: true, cleanupPending: cleanup.pending };
+    }
+
+    case "reset_user_pin": {
+      const userId = String(body.userId || "");
+      if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
+      const token = newToken();
+      const { data: reset, error } = await sb()
+        .from("users")
+        .update({
+          pin_hash: await hashPin("0000"),
+          token_hash: hashToken(token),
+          token_expires_at: sessionExpiresAt(),
+          failed_pin_attempts: 0,
+          pin_locked_at: null,
+        })
+        .eq("id", userId)
+        .select("id")
+        .maybeSingle();
+      requireDbSuccess(error, "PIN 초기화에 실패했습니다");
+      if (!reset) throw new ApiError("회원을 찾을 수 없습니다.", 404);
+      return { ok: true, pin: "0000" };
     }
 
     default:

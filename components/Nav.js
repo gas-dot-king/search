@@ -7,9 +7,8 @@ import LottoDeadlineReminder from "./LottoDeadlineReminder";
 import SettingsLink from "./SettingsLink";
 import { prefetchApiData } from "@/lib/hooks";
 
-function dDayText(config) {
+function dDayText(config, now = new Date()) {
   if (!config) return "";
-  const now = new Date();
   const start = new Date(config.uploadStart);
   const end = new Date(config.uploadEnd);
   const daysUntil = (date) => Math.ceil((date - now) / 86400000);
@@ -64,25 +63,34 @@ function NoticeBar({ notices }) {
   );
 }
 
-export default function Nav({ config }) {
+export default function Nav({ config, configLoading = false }) {
   const pathname = usePathname();
   const [currentConfig, setCurrentConfig] = useState(config || null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (config) setCurrentConfig(config);
   }, [config]);
 
   useEffect(() => {
-    if (currentConfig) return;
+    if (currentConfig || configLoading) return;
     let active = true;
     fetch("/api/config")
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error("설정을 불러오지 못했습니다.");
+        return response.json();
+      })
       .then((data) => active && setCurrentConfig(data))
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, [currentConfig]);
+  }, [configLoading, currentConfig]);
 
   const links = [
     ["/board", "빙고"],
@@ -105,7 +113,7 @@ export default function Nav({ config }) {
             <span className="brand-copy">
               <strong>SUMMER FEST <em>2026</em></strong>
               <span className="brand-sub">온라인 위크 이벤트</span>
-              {currentConfig && <span className="nav-deadline">{dDayText(currentConfig)}</span>}
+              {currentConfig && <span className="nav-deadline">{dDayText(currentConfig, now)}</span>}
             </span>
           </Link>
           <SettingsLink active={pathname === "/settings"} />

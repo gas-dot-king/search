@@ -345,6 +345,7 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   display: flex; align-items: center; justify-content: center;
   padding: 5px; text-align: center;
   transition: transform 0.1s, box-shadow 0.15s;
+  appearance: none; width: 100%; color: inherit; font: inherit;
 }
 .cell:active { transform: scale(0.96); }
 .cell .txt {
@@ -385,6 +386,15 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
 .cell.done {
   border: 3px solid var(--accent);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.86) inset, 0 3px 10px rgba(225, 29, 72, 0.3);
+  align-items: flex-end;
+  padding: 0;
+}
+.cell.done .overlay {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 1.25em;
 }
 /* 완성된 빙고 줄에 속한 칸: 금색 강조 */
 .cell.line-done {

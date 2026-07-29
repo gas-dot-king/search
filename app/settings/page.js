@@ -100,6 +100,24 @@ export default function SettingsPage() {
     }
   }
 
+  async function signOut() {
+    if (!confirm("이 기기에서 로그아웃할까요?")) return;
+    setBusy(true);
+    try {
+      await api("/api/account/session", { method: "DELETE" });
+    } catch {
+      // 서버 연결이 끊겨도 이 기기에 남은 토큰은 반드시 제거한다.
+    } finally {
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+      } catch {
+        // 저장소가 차단된 환경에서는 로그인 화면으로 이동해 보호 페이지 접근을 막는다.
+      }
+      setBusy(false);
+      router.replace("/");
+    }
+  }
+
   return (
     <main className="wrap">
       <Nav />
@@ -132,7 +150,7 @@ export default function SettingsPage() {
 
       <section className="card settings-card" aria-labelledby="pin-title">
         <h2 id="pin-title" className="card-title">PIN 변경</h2>
-        <p className="hint">본인 확인을 위해 현재 PIN을 먼저 입력해주세요.</p>
+        <p className="hint">본인 확인을 위해 현재 PIN을 먼저 입력해주세요. PIN을 10회 틀리면 관리자 초기화가 필요해요.</p>
         <form onSubmit={changePin}>
           <label htmlFor="current-pin">현재 PIN</label>
           <input
@@ -192,6 +210,14 @@ export default function SettingsPage() {
             {busy ? "변경 중..." : "PIN 변경하기"}
           </button>
         </form>
+      </section>
+
+      <section className="card settings-card" aria-labelledby="session-title">
+        <h2 id="session-title" className="card-title">로그인 기기</h2>
+        <p className="hint">공용 기기에서는 사용 후 로그아웃해주세요.</p>
+        <button type="button" className="btn ghost settings-save" onClick={signOut} disabled={busy}>
+          로그아웃
+        </button>
       </section>
 
       <section className="card settings-card contact-card" aria-labelledby="help-title">

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import ItemsList from "@/components/ItemsList";
+import Modal from "@/components/Modal";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 import { getNearCompleteLines, LINES } from "@/lib/bingo";
@@ -26,6 +27,7 @@ export default function BoardPage() {
   const [showItems, setShowItems] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
   const [allItems, setAllItems] = useState(null);
+  const [allItemsError, setAllItemsError] = useState("");
   const [celebrate, setCelebrate] = useState(0);
   const [shareBusy, setShareBusy] = useState(false);
   const [categoryFlash, setCategoryFlash] = useState({ category: 0, replay: 0 });
@@ -70,27 +72,30 @@ export default function BoardPage() {
 
   async function openItems() {
     setShowItems(true);
+    setAllItemsError("");
     if (!allItems) {
       try {
         const d = await api("/api/items");
         setAllItems(d.items);
-      } catch {
-        /* 목록 로드 실패 시 모달에 안내 표시 */
+      } catch (error) {
+        setAllItemsError(error.message || "빙고 항목을 불러오지 못했습니다.");
       }
     }
   }
 
   async function upload() {
     if (!photo.file || !selected) return;
+    const selectedPosition = selected.position;
     if (!period.loading && !period.open) return photo.setError(period.notice);
     photo.setBusy(true);
     photo.setError("");
     try {
       const form = new FormData();
-      form.append("position", String(selected.position));
+      form.append("position", String(selectedPosition));
       form.append("file", photo.file, "photo.jpg");
       await api("/api/upload", { method: "POST", body: form });
-      closeModal();
+      setSelected((current) => current?.position === selectedPosition ? null : current);
+      photo.clear();
       await reload();
     } catch (err) {
       photo.setError(err.message);
@@ -101,15 +106,17 @@ export default function BoardPage() {
 
   async function removePhoto() {
     if (!selected) return;
+    const selectedPosition = selected.position;
     if (!period.loading && !period.open) return photo.setError(period.notice);
     if (!confirm("이 칸의 사진을 삭제할까요?")) return;
     photo.setBusy(true);
     try {
       await api("/api/upload", {
         method: "DELETE",
-        body: JSON.stringify({ position: selected.position }),
+        body: JSON.stringify({ position: selectedPosition }),
       });
-      closeModal();
+      setSelected((current) => current?.position === selectedPosition ? null : current);
+      photo.clear();
       await reload();
     } catch (err) {
       photo.setError(err.message);
@@ -124,7 +131,7 @@ export default function BoardPage() {
     try {
       await downloadBoardImage(board);
     } catch (err) {
-      alert(err.message);
+      if (err?.name !== "AbortError") alert(err.message);
     } finally {
       setShareBusy(false);
     }
@@ -140,7 +147,7 @@ export default function BoardPage() {
   if (!board)
     return (
       <main className="wrap">
-        <Nav />
+        <Nav config={period.config} configLoading={period.loading} />
         <p className="hint">{loadError || "불러오는 중..."}</p>
       </main>
     );
@@ -155,7 +162,7 @@ export default function BoardPage() {
 
   return (
     <main className="wrap">
-      <Nav />
+      <Nav config={period.config} configLoading={period.loading} />
 
       <p className="board-greeting">
         반가워요, {board.nickname}님! <span className="hint">{todayGreetingMessage()}</span>
@@ -191,7 +198,8 @@ export default function BoardPage() {
 
       <div className="bingo-grid">
         {board.cells.map((cell) => (
-          <div
+          <button
+            type="button"
             key={cell.position}
             className={`cell cellcat${cell.category} ${
               categoryFlash.category === cell.category
@@ -199,6 +207,7 @@ export default function BoardPage() {
                 : ""
             } ${cell.hasPhoto ? "done" : ""} ${lineCells.has(cell.position) ? "line-done" : ""}`}
             onClick={() => openCell(cell)}
+            aria-label={`${cell.content}${cell.hasPhoto ? ", 인증 완료 사진 보기" : ", 인증 사진 올리기"}`}
           >
             {cell.photoUrl ? (
               <>
@@ -215,7 +224,7 @@ export default function BoardPage() {
             ) : (
               <span className="txt">{cell.content}</span>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -247,7 +256,7 @@ export default function BoardPage() {
       </div>
 
       <div className="bingo-category-rule" role="note">
-        <strong>🏃 한 번의 러닝 인증 기준</strong>
+        <strong>🏃 하루 인증 기준</strong>
         <p>{CATEGORY_RULE}</p>
       </div>
 
@@ -268,22 +277,21 @@ export default function BoardPage() {
 
       {/* 인증 예시 모달 */}
       {showExamples && (
-        <div className="modal-bg" onClick={() => setShowExamples(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal label="인증 예시" onClose={() => setShowExamples(false)}>
             <h3>📖 인증 예시</h3>
             <p className="hint" style={{ margin: "4px 0 8px" }}>
-              한 번의 러닝으로는 <b>각 카테고리에서 1칸씩만</b> 인증할 수 있어요.
+              하루에는 <b>각 카테고리에서 1칸씩만</b> 인증할 수 있어요.
             </p>
 
             <div className="diagram">
-              <span className="d-top">🏃 러닝 1번</span>
+              <span className="d-top">📅 오늘</span>
               <div className="d-arrow">↓</div>
               <div className="d-row">
                 <div className="d-box b1">① 기록 달성<small>1칸만</small></div>
                 <div className="d-box b2">② 시간·장소<small>1칸만</small></div>
                 <div className="d-box b3">③ 소통·재미<small>1칸만</small></div>
               </div>
-              <div className="d-note">= 최대 3칸까지 인증 가능!</div>
+              <div className="d-note">= 하루 최대 3칸까지 인증 가능!</div>
             </div>
 
             <div className="case">
@@ -298,37 +306,33 @@ export default function BoardPage() {
             <div className="case">
               <span className="case-no">사례 3)</span> 일요일 아침 7시에 5km를 달리고, 크루원과 사진도 찍었어요.
               <br />→ ① "5km 이상 달리기" + ② "아침 러닝" + ③ "크루원과 인증사진" ={" "}
-              <b>한 번의 러닝이어도 카테고리가 다르면 각각 인정, 최대 3칸 인증!</b>
-              <br />다른 날 또 달리면 새 칸을 또 채울 수 있어요 🏃
+              <b>오늘 카테고리가 다르면 각각 인정, 하루 최대 3칸 인증!</b>
+              <br />다음 날에는 다시 새 칸을 채울 수 있어요 🏃
             </div>
 
             <div className="modal-actions">
               <button className="btn ghost" onClick={() => setShowExamples(false)}>닫기</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* 전체 항목 모달 */}
       {showItems && (
-        <div className="modal-bg" onClick={() => setShowItems(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal label="빙고 항목 전체 보기" onClose={() => setShowItems(false)}>
             <h3>📋 빙고 항목 전체 보기 (24개)</h3>
             <p className="hint" style={{ margin: "4px 0 10px" }}>
               이 중에서 ① 4개 · ② 6개 · ③ 6개, 총 16개가 내 빙고판에 랜덤으로 뽑혔어요.
             </p>
-            {allItems ? <ItemsList items={allItems} /> : <p className="hint">불러오는 중...</p>}
+            {allItems ? <ItemsList items={allItems} /> : allItemsError ? <p className="error-msg">{allItemsError}</p> : <p className="hint">불러오는 중...</p>}
             <div className="modal-actions">
               <button className="btn ghost" onClick={() => setShowItems(false)}>닫기</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* 업로드 모달 */}
       {selected && (
-        <div className="modal-bg" onClick={closeModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal label={selected.content} onClose={closeModal} closeDisabled={photo.busy}>
             <h3>{selected.content}</h3>
             {locked ? (
               <div className="period-lock" role="status">
@@ -368,7 +372,7 @@ export default function BoardPage() {
               </div>
             )}
             <div className="modal-actions">
-              {!locked && selected.photoUrl && !photo.file && (
+              {!locked && selected.hasPhoto && !photo.file && (
                 <button className="btn danger" onClick={removePhoto} disabled={photo.busy}>
                   사진 삭제
                 </button>
@@ -377,8 +381,7 @@ export default function BoardPage() {
                 닫기
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* 빙고 완성 축하 */}
