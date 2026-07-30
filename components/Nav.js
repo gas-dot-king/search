@@ -7,7 +7,11 @@ import LottoDeadlineReminder from "./LottoDeadlineReminder";
 import HallOfFameLink from "./HallOfFameLink";
 import SettingsLink from "./SettingsLink";
 import SocialLink from "./SocialLink";
+import Modal from "./Modal";
 import { prefetchApiData } from "@/lib/hooks";
+
+const NOTICE_HIDDEN_UNTIL_KEY = "ysrc-notice-hidden-until";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function dDayText(config, now = new Date()) {
   if (!config) return "";
@@ -33,6 +37,21 @@ function dDayText(config, now = new Date()) {
 
 function NoticeBar({ notices }) {
   const [index, setIndex] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const hiddenUntil = Number(localStorage.getItem(NOTICE_HIDDEN_UNTIL_KEY) || 0);
+      if (hiddenUntil > Date.now()) {
+        setDismissed(true);
+      } else {
+        localStorage.removeItem(NOTICE_HIDDEN_UNTIL_KEY);
+      }
+    } catch {
+      // 저장소가 막힌 환경에서는 현재 페이지에서만 닫기 기능을 사용한다.
+    }
+  }, []);
 
   useEffect(() => {
     if (notices.length > 1) {
@@ -45,26 +64,72 @@ function NoticeBar({ notices }) {
     return () => clearInterval(timer);
   }, [notices.length]);
 
-  if (notices.length === 0) return null;
+  if (notices.length === 0 || dismissed) return null;
   const current = index % notices.length;
 
+  function dismissNotice() {
+    setConfirmOpen(false);
+    setDismissed(true);
+  }
+
+  function dismissForDay() {
+    try {
+      localStorage.setItem(NOTICE_HIDDEN_UNTIL_KEY, String(Date.now() + ONE_DAY_MS));
+    } catch {
+      // 저장소가 막혀도 현재 화면에서는 공지를 닫는다.
+    }
+    dismissNotice();
+  }
+
   return (
-    <div className="notice-bar">
-      {/* key를 바꿔 다시 마운트시키면 공지가 넘어갈 때마다 페이드 인이 다시 재생된다 */}
-      <span className="notice-text" key={current}>📢 {notices[current]}</span>
-      {notices.length > 1 && (
-        <span className="notice-nav" role="group" aria-label="공지 넘기기">
-          <span className="notice-dots" aria-label={`${current + 1}번째 공지`}>
-            {notices.map((_, dotIndex) => (
-              <span key={dotIndex} className={dotIndex === current ? "active" : ""} />
-            ))}
+    <>
+      <div
+        className="notice-bar top-notice-bar"
+        role="button"
+        tabIndex={0}
+        aria-label="공지 닫기 메뉴 열기"
+        onClick={() => setConfirmOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setConfirmOpen(true);
+          }
+        }}
+      >
+        {/* key를 바꿔 다시 마운트시키면 공지가 넘어갈 때마다 페이드 인이 다시 재생된다 */}
+        <span className="notice-text" key={current}>📢 {notices[current]}</span>
+        {notices.length > 1 && (
+          <span className="notice-nav" role="group" aria-label="공지 넘기기">
+            <span className="notice-dots" aria-label={`${current + 1}번째 공지`}>
+              {notices.map((_, dotIndex) => (
+                <span key={dotIndex} className={dotIndex === current ? "active" : ""} />
+              ))}
+            </span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIndex((current + 1) % notices.length);
+              }}
+              aria-label="다음 공지"
+            >
+              &gt;
+            </button>
           </span>
-          <button type="button" onClick={() => setIndex((current + 1) % notices.length)} aria-label="다음 공지">
-            &gt;
-          </button>
-        </span>
+        )}
+      </div>
+      {confirmOpen && (
+        <Modal label="공지 닫기" onClose={() => setConfirmOpen(false)}>
+          <h3>공지를 닫으시겠습니까?</h3>
+          <p className="hint notice-dismiss-hint">하루 동안 닫으면 24시간 동안 모든 페이지에서 공지가 보이지 않아요.</p>
+          <div className="notice-dismiss-actions">
+            <button type="button" className="btn primary" onClick={dismissNotice}>예</button>
+            <button type="button" className="btn ghost" onClick={() => setConfirmOpen(false)}>아니오</button>
+            <button type="button" className="btn ghost notice-dismiss-day" onClick={dismissForDay}>하루 동안 닫기</button>
+          </div>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }
 
@@ -136,7 +201,6 @@ export default function Nav({ config, configLoading = false }) {
           </Link>
           {currentConfig && <span className="nav-deadline">{dDayText(currentConfig, now)}</span>}
         </div>
-        <NoticeBar notices={currentConfig?.notices || []} />
         <div className="nav-links">
           {links.map(([href, label]) => (
             <Link
@@ -152,6 +216,9 @@ export default function Nav({ config, configLoading = false }) {
           ))}
         </div>
       </nav>
+      <div className="top-notice-slot">
+        <NoticeBar notices={currentConfig?.notices || []} />
+      </div>
       <LottoDeadlineReminder config={currentConfig} />
     </>
   );
