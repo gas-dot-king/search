@@ -9,9 +9,11 @@ import SettingsLink from "./SettingsLink";
 import SocialLink from "./SocialLink";
 import Modal from "./Modal";
 import { prefetchApiData } from "@/lib/hooks";
-
-const NOTICE_HIDDEN_UNTIL_KEY = "ysrc-notice-hidden-until";
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+import {
+  NOTICE_HIDDEN_UNTIL_KEY,
+  NOTICE_VISIBILITY_EVENT,
+  NOTICE_ONE_DAY_MS,
+} from "@/lib/notice";
 
 function dDayText(config, now = new Date()) {
   if (!config) return "";
@@ -54,6 +56,18 @@ function NoticeBar({ notices }) {
   }, []);
 
   useEffect(() => {
+    function syncDismissed() {
+      try {
+        setDismissed(Number(localStorage.getItem(NOTICE_HIDDEN_UNTIL_KEY) || 0) > Date.now());
+      } catch {
+        setDismissed(true);
+      }
+    }
+    window.addEventListener(NOTICE_VISIBILITY_EVENT, syncDismissed);
+    return () => window.removeEventListener(NOTICE_VISIBILITY_EVENT, syncDismissed);
+  }, []);
+
+  useEffect(() => {
     if (notices.length > 1) {
       setIndex(Math.floor(Math.random() * notices.length));
     } else {
@@ -74,7 +88,7 @@ function NoticeBar({ notices }) {
 
   function dismissForDay() {
     try {
-      localStorage.setItem(NOTICE_HIDDEN_UNTIL_KEY, String(Date.now() + ONE_DAY_MS));
+      localStorage.setItem(NOTICE_HIDDEN_UNTIL_KEY, String(Date.now() + NOTICE_ONE_DAY_MS));
     } catch {
       // 저장소가 막혀도 현재 화면에서는 공지를 닫는다.
     }

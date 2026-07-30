@@ -705,6 +705,7 @@ td.num, th.num { text-align: right; }
 .event-editor-activities .hint { margin-bottom: 5px; }
 .event-editor-activity { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
 .event-editor-activity input { min-width: 0; }
+.event-editor-locked-note { margin-top: 14px; padding: 9px 11px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface-muted); color: var(--muted); font-size: 0.78rem; line-height: 1.5; word-break: keep-all; }
 .event-editor-save { margin-top: 14px; }
 
 /* ---- 행사 안내 ---- */
@@ -808,6 +809,24 @@ td.num, th.num { text-align: right; }
 }
 .freerun-timeline-details dt { color: var(--cat3); font-weight: 850; }
 .freerun-timeline-details dd { word-break: keep-all; }
+.timeline-kickoff .event-timeline-time { color: var(--blue-text); }
+.timeline-kickoff .event-timeline-time::after { border-color: var(--blue-text); }
+.timeline-kickoff .event-timeline-content {
+  border: 2px solid var(--blue-line); background: linear-gradient(150deg, var(--card) 45%, var(--blue-bg));
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.1);
+}
+.timeline-indoor .event-timeline-time { color: var(--green-text); }
+.timeline-indoor .event-timeline-time::after { border-color: var(--green-text); }
+.timeline-indoor .event-timeline-content {
+  border: 2px solid var(--green-line); background: linear-gradient(150deg, var(--card) 45%, var(--green-bg));
+  box-shadow: 0 4px 14px rgba(22, 101, 52, 0.1);
+}
+.timeline-wrapup .event-timeline-time { color: var(--accent-deep); }
+.timeline-wrapup .event-timeline-time::after { border-color: var(--accent); }
+.timeline-wrapup .event-timeline-content {
+  border: 2px solid var(--accent-soft); background: linear-gradient(150deg, var(--card) 45%, var(--rose-bg));
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.1);
+}
 
 /* ---- 개인 설정 ---- */
 .settings-heading { margin: 8px 0 18px; }
@@ -851,6 +870,17 @@ td.num, th.num { text-align: right; }
 .home-install-button:disabled { border-color: var(--line-strong); background: var(--surface-muted); color: var(--muted); cursor: default; }
 .home-install-button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
 .home-install-message { margin-top: 10px; color: var(--muted); font-size: 0.75rem; line-height: 1.5; word-break: keep-all; }
+.settings-notice-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.settings-notice-row > span { min-width: 0; }
+.settings-notice-row strong { display: block; font-size: 0.92rem; }
+.settings-notice-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 0.76rem; }
+.settings-notice-button { flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--amber-line); border-radius: 9px; background: var(--amber-bg); color: var(--amber-text); font-size: 0.78rem; font-weight: 800; cursor: pointer; }
+.settings-notice-button:hover { filter: brightness(0.97); }
+.settings-notice-button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.settings-pin-toggle { width: 100%; margin-top: 12px; }
+.settings-session-action { display: flex; justify-content: flex-end; }
+.settings-ip { margin-top: 10px; color: var(--muted); font-size: 0.78rem; }
+.settings-ip b { color: var(--text); font-weight: 800; }
 .settings-save { margin-top: 16px; }
 .contact-card { text-align: center; }
 .contact-card-icon { display: block; font-size: 2rem; line-height: 1.2; margin-bottom: 7px; }

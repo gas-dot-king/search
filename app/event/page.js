@@ -102,7 +102,7 @@ export default function EventPage() {
         <h2 id="event-timeline-title" className="section-title">행사 타임라인</h2>
         <ol className="event-timeline">
           {workshopTimeline.map((item) => (
-            <li className={`event-timeline-item ${item.id === "freerun" ? "freerun-timeline-item" : ""}`} key={item.id}>
+            <li className={`event-timeline-item timeline-${item.id} ${item.id === "freerun" ? "freerun-timeline-item" : ""}`} key={item.id}>
               <p className="event-timeline-time">{item.time}</p>
               <div className="event-timeline-content">
                 <h3>{item.title}</h3>
