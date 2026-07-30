@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import { INSTALL_PROMPT_EVENT } from "@/components/InstallPrompt";
+import Modal from "@/components/Modal";
 import { api, getToken, TOKEN_KEY } from "@/lib/client";
 import { KAKAO_CONTACT_URL } from "@/lib/contact";
+import { hideNoticeForDay } from "@/lib/notice";
 
 const THEME_KEY = "ow_theme";
 const digitsOnly = (value) => value.replace(/\D/g, "").slice(0, 4);
@@ -24,6 +26,9 @@ export default function SettingsPage() {
   const [installReady, setInstallReady] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [installMessage, setInstallMessage] = useState("");
+  const [noticeMessage, setNoticeMessage] = useState("");
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [clientIp, setClientIp] = useState("125.182.215.~");
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [newPinConfirm, setNewPinConfirm] = useState("");
@@ -50,6 +55,13 @@ export default function SettingsPage() {
   useEffect(() => () => clearTimeout(redirectTimer.current), []);
 
   useEffect(() => {
+    fetch("/api/client-ip")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => data?.ip && setClientIp(data.ip))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const syncInstallState = () => {
       setInstallReady(Boolean(window.__ysrcInstallPrompt));
       setInstalled(
@@ -72,6 +84,11 @@ export default function SettingsPage() {
     } catch {
       // 저장 공간이 막힌 브라우저에서도 현재 화면에는 테마를 적용합니다.
     }
+  }
+
+  function closeNoticeForDay() {
+    hideNoticeForDay();
+    setNoticeMessage("공지사항을 하루 동안 닫았어요.");
   }
 
   async function addToHomeScreen() {
@@ -212,12 +229,29 @@ export default function SettingsPage() {
           </button>
         </div>
         {installMessage && <p className="home-install-message" role="status">{installMessage}</p>}
+        <div className="settings-notice-row">
+          <span>
+            <strong>공지사항 하루 동안 닫기</strong>
+            <small>24시간 동안 공지사항을 표시하지 않아요.</small>
+          </span>
+          <button type="button" className="settings-notice-button" onClick={closeNoticeForDay}>
+            닫기
+          </button>
+        </div>
+        {noticeMessage && <p className="home-install-message" role="status">{noticeMessage}</p>}
       </section>
 
       <section className="card settings-card" aria-labelledby="pin-title">
         <h2 id="pin-title" className="card-title">PIN 변경</h2>
         <p className="hint">본인 확인을 위해 현재 PIN을 먼저 입력해주세요. PIN을 10회 틀리면 관리자 초기화가 필요해요.</p>
-        <form onSubmit={changePin}>
+        <button type="button" className="btn ghost settings-pin-toggle" onClick={() => setShowPinModal(true)} disabled={busy}>
+          PIN 변경하기
+        </button>
+        {showPinModal && (
+          <Modal label="PIN 변경" onClose={() => setShowPinModal(false)}>
+            <h3>PIN 변경</h3>
+            <p className="hint">현재 PIN과 새 PIN을 입력해주세요.</p>
+            <form onSubmit={changePin}>
           <label htmlFor="current-pin">현재 PIN</label>
           <input
             id="current-pin"
@@ -275,15 +309,20 @@ export default function SettingsPage() {
           >
             {busy ? "변경 중..." : "PIN 변경하기"}
           </button>
-        </form>
+            </form>
+          </Modal>
+        )}
       </section>
 
       <section className="card settings-card" aria-labelledby="session-title">
         <h2 id="session-title" className="card-title">로그인 기기</h2>
         <p className="hint">공용 기기에서는 사용 후 로그아웃해주세요.</p>
-        <button type="button" className="btn ghost settings-save" onClick={signOut} disabled={busy}>
-          로그아웃
-        </button>
+        <p className="settings-ip">현재 접속 기기 IP <b>{clientIp}</b></p>
+        <div className="settings-session-action">
+          <button type="button" className="btn ghost settings-save" onClick={signOut} disabled={busy}>
+            로그아웃
+          </button>
+        </div>
       </section>
 
       <section className="card settings-card contact-card" aria-labelledby="help-title">
