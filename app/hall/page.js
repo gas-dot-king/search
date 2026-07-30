@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Nav from "@/components/Nav";
 import { useApiData } from "@/lib/hooks";
 import {
@@ -224,7 +225,14 @@ function ChallengeAwardsCard() {
 }
 
 export default function HallPage() {
-  const { data, error } = useApiData("/api/hall");
+  const { data, error, reload } = useApiData("/api/hall");
+
+  useEffect(() => {
+    if (!data?.lotto?.drawDate || data.lotto.winningNumbers?.length >= 3) return undefined;
+    if (Date.now() < new Date(`${data.lotto.drawDate}T00:00:00+09:00`).getTime()) return undefined;
+    const timer = setInterval(() => reload(), 5000);
+    return () => clearInterval(timer);
+  }, [data?.lotto?.drawDate, data?.lotto?.winningNumbers, reload]);
 
   if (!data) {
     return (

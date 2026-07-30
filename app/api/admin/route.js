@@ -27,6 +27,7 @@ import {
   demoResetBoard,
   demoResetDraw,
   demoResetUserPin,
+  demoRenameUser,
   demoSetSetting,
   demoSettings,
   isDemoMode,
@@ -173,6 +174,13 @@ export const POST = route(async (req) => {
         return demoResetDraw();
       case "reset_user_pin": {
         const result = demoResetUserPin(String(body.userId || ""));
+        if (result.error) throw new ApiError(result.error, result.status);
+        return result;
+      }
+      case "rename_user": {
+        const nickname = String(body.nickname || "").trim();
+        if (nickname.length < 1 || nickname.length > 12) throw new ApiError("닉네임은 1~12자로 입력해주세요.");
+        const result = demoRenameUser(String(body.userId || ""), nickname);
         if (result.error) throw new ApiError(result.error, result.status);
         return result;
       }
@@ -394,6 +402,19 @@ export const POST = route(async (req) => {
       requireDbSuccess(error, "PIN 초기화에 실패했습니다");
       if (!reset) throw new ApiError("회원을 찾을 수 없습니다.", 404);
       return { ok: true, pin: "0000" };
+    }
+
+    case "rename_user": {
+      const userId = String(body.userId || "");
+      const nickname = String(body.nickname || "").trim();
+      if (!userId) throw new ApiError("회원을 지정해주세요.");
+      if (nickname.length < 1 || nickname.length > 12) throw new ApiError("닉네임은 1~12자로 입력해주세요.");
+      const { data, error } = await sb().from("users").update({ nickname }).eq("id", userId).select("id, nickname").maybeSingle();
+      if (error?.code === "23505") throw new ApiError("이미 사용 중인 닉네임입니다.", 409);
+      requireDbSuccess(error, "닉네임 변경에 실패했습니다.");
+      if (!data) throw new ApiError("회원을 찾을 수 없습니다.", 404);
+      invalidateSettingsCache();
+      return { ok: true, nickname: data.nickname };
     }
 
     default:

@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [detail, setDetail] = useState(null); // { user, data }
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [clientIp, setClientIp] = useState("125.182.215.~");
+  const [clientIp, setClientIp] = useState("");
 
   useEffect(() => {
     fetch("/api/client-ip")
@@ -69,6 +69,20 @@ export default function AdminPage() {
     setBusy(true);
     try {
       await adminPost({ action: "delete_user", userId: user.id });
+      await loadOverview();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function renameUser(user) {
+    const nickname = prompt("새 닉네임을 입력하세요.", user.nickname);
+    if (nickname === null || nickname.trim() === user.nickname) return;
+    setBusy(true);
+    try {
+      await adminPost({ action: "rename_user", userId: user.id, nickname: nickname.trim() });
       await loadOverview();
     } catch (err) {
       alert(err.message);
@@ -179,6 +193,7 @@ export default function AdminPage() {
               {overview.users.map((u) => (
                 <tr key={u.id}>
                   <td>{u.nickname}</td>
+                  <td><small>{u.createdAt ? new Date(u.createdAt).toLocaleDateString("ko-KR") : "-"}<br />{u.lastLoginIp || "-"}</small><br /><button className="btn ghost sm" onClick={() => renameUser(u)} disabled={busy}>닉네임</button></td>
                   <td className="num">{u.filled}/16</td>
                   <td className="num">{u.lines}</td>
                   <td className="num">{u.lottoEntries}장</td>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import Modal from "@/components/Modal";
 import { api, PRIVACY_WARNING } from "@/lib/client";
@@ -143,6 +143,14 @@ export default function LottoPage() {
   const [viewPhoto, setViewPhoto] = useState(null);
   const [historyError, setHistoryError] = useState("");
   const [photoBusyId, setPhotoBusyId] = useState("");
+
+  useEffect(() => {
+    if (!data?.drawDate || data.winningNumbers?.length >= 3) return undefined;
+    const drawStarted = Date.now() >= new Date(`${data.drawDate}T00:00:00+09:00`).getTime();
+    if (!drawStarted) return undefined;
+    const timer = setInterval(() => reload(), 5000);
+    return () => clearInterval(timer);
+  }, [data?.drawDate, data?.winningNumbers, reload]);
 
   function addEntry(entry) {
     setData((current) => current

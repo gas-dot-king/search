@@ -29,7 +29,15 @@ export default function DrawPage() {
     // 이미 확정된 빙고판이 있으면 빙고판으로
     api("/api/me")
       .then((me) => {
-        if (me.hasBoard) router.replace("/board");
+        if (!me.hasBoard) return;
+        if (!me.redrawAvailable) {
+          router.replace("/board");
+          return;
+        }
+        return api("/api/board").then((existing) => {
+          setBoard(existing);
+          setPhase("result");
+        });
       })
       .catch(() => router.replace("/"));
   }, [router]);
