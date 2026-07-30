@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
+import { INSTALL_PROMPT_EVENT } from "@/components/InstallPrompt";
 import { api, getToken, TOKEN_KEY } from "@/lib/client";
 import { KAKAO_CONTACT_URL } from "@/lib/contact";
 
@@ -20,6 +21,9 @@ export default function SettingsPage() {
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(true);
   const [dark, setDark] = useState(false);
+  const [installReady, setInstallReady] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [installMessage, setInstallMessage] = useState("");
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [newPinConfirm, setNewPinConfirm] = useState("");
@@ -45,6 +49,19 @@ export default function SettingsPage() {
 
   useEffect(() => () => clearTimeout(redirectTimer.current), []);
 
+  useEffect(() => {
+    const syncInstallState = () => {
+      setInstallReady(Boolean(window.__ysrcInstallPrompt));
+      setInstalled(
+        window.matchMedia("(display-mode: standalone)").matches ||
+        Boolean(window.navigator.standalone)
+      );
+    };
+    syncInstallState();
+    window.addEventListener(INSTALL_PROMPT_EVENT, syncInstallState);
+    return () => window.removeEventListener(INSTALL_PROMPT_EVENT, syncInstallState);
+  }, []);
+
   function changeTheme(nextDark) {
     const theme = nextDark ? "dark" : "light";
     setDark(nextDark);
@@ -55,6 +72,37 @@ export default function SettingsPage() {
     } catch {
       // 저장 공간이 막힌 브라우저에서도 현재 화면에는 테마를 적용합니다.
     }
+  }
+
+  async function addToHomeScreen() {
+    setInstallMessage("");
+    if (installed) {
+      setInstallMessage("이미 홈 화면에서 실행 중이에요.");
+      return;
+    }
+
+    const prompt = window.__ysrcInstallPrompt;
+    if (prompt) {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      window.__ysrcInstallPrompt = null;
+      setInstallReady(false);
+      setInstallMessage(
+        choice.outcome === "accepted"
+          ? "홈 화면 추가를 진행했어요."
+          : "홈 화면 추가를 취소했어요."
+      );
+      return;
+    }
+
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    setInstallMessage(
+      ios
+        ? "Safari 공유 버튼을 누른 뒤 ‘홈 화면에 추가’를 선택해주세요."
+        : "브라우저 메뉴에서 ‘홈 화면에 추가’ 또는 ‘앱 설치’를 선택해주세요."
+    );
   }
 
   async function changePin(event) {
@@ -146,6 +194,24 @@ export default function SettingsPage() {
             <span />
           </span>
         </button>
+        <div className="home-install-row">
+          <span>
+            <strong id="install-title">홈 화면에 추가하기</strong>
+            <small>
+              {installReady ? "지금 바로 홈 화면에 추가할 수 있어요." : "앱처럼 빠르게 접속할 수 있어요."}
+            </small>
+          </span>
+          <button
+            type="button"
+            className="home-install-button"
+            onClick={addToHomeScreen}
+            aria-label="홈 화면에 추가하기"
+            disabled={installed}
+          >
+            {installed ? "✓" : "+"}
+          </button>
+        </div>
+        {installMessage && <p className="home-install-message" role="status">{installMessage}</p>}
       </section>
 
       <section className="card settings-card" aria-labelledby="pin-title">
