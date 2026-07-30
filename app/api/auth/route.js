@@ -3,7 +3,6 @@ import { hashPin, hashToken, newToken, sessionExpiresAt, verifyPin } from "@/lib
 import { route, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { demoAuth, demoHasBoard, isDemoMode } from "@/lib/demo";
 import { takeRateLimit } from "@/lib/rateLimit";
-import { maskedClientIp } from "@/lib/ip";
 
 const LOCKED_PIN_MESSAGE = "PIN을 10회 잘못 입력해 잠겼습니다. 관리자에게 PIN 초기화를 문의해주세요.";
 
@@ -19,7 +18,6 @@ export const POST = route(async (req) => {
   const allowed = await takeRateLimit(req, "login", name, { limit: 30, windowSeconds: 10 * 60 });
   if (!allowed) throw new ApiError("로그인 요청이 너무 많아요. 10분 뒤 다시 시도해주세요.", 429);
   const ipAllowed = await takeRateLimit(req, "login-ip", "all", { limit: 100, windowSeconds: 10 * 60 });
-  const loginIp = maskedClientIp(req);
   if (!ipAllowed) throw new ApiError("로그인 요청이 너무 많아요. 10분 뒤 다시 시도해주세요.", 429);
 
   if (isDemoMode()) {
@@ -62,8 +60,7 @@ export const POST = route(async (req) => {
       .update({
         token_hash: hashToken(token),
         token_expires_at: sessionExpiresAt(),
-      failed_pin_attempts: 0,
-      last_login_ip: loginIp,
+        failed_pin_attempts: 0,
         pin_locked_at: null,
       })
       .eq("id", existing.id)
@@ -89,7 +86,6 @@ export const POST = route(async (req) => {
       pin_hash: await hashPin(pinValue),
       token_hash: hashToken(token),
       token_expires_at: sessionExpiresAt(),
-      last_login_ip: loginIp,
     })
     .select("id, nickname")
     .single();

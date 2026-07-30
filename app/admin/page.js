@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
 import SettingsCard from "@/components/admin/SettingsCard";
 import UserDetail from "@/components/admin/UserDetail";
+import UsersCard from "@/components/admin/UsersCard";
 import ItemsCard from "@/components/admin/ItemsCard";
 import EventGuideCard from "@/components/admin/EventGuideCard";
 import FourLineCard from "@/components/admin/FourLineCard";
@@ -17,14 +18,6 @@ export default function AdminPage() {
   const [detail, setDetail] = useState(null); // { user, data }
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [clientIp, setClientIp] = useState("");
-
-  useEffect(() => {
-    fetch("/api/client-ip")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => data?.ip && setClientIp(data.ip))
-      .catch(() => {});
-  }, []);
 
   const loadOverview = useCallback(async () => {
     const data = await adminApi("/api/admin?action=overview");
@@ -57,38 +50,6 @@ export default function AdminPage() {
   function leave() {
     adminPw.clear();
     router.replace("/");
-  }
-
-  async function deleteUser(user) {
-    if (
-      !confirm(
-        `정말 ${user.nickname} 님 계정을 삭제할까요?\n빙고판·로또 응모·업로드한 사진이 모두 삭제되고 되돌릴 수 없습니다.`
-      )
-    )
-      return;
-    setBusy(true);
-    try {
-      await adminPost({ action: "delete_user", userId: user.id });
-      await loadOverview();
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function renameUser(user) {
-    const nickname = prompt("새 닉네임을 입력하세요.", user.nickname);
-    if (nickname === null || nickname.trim() === user.nickname) return;
-    setBusy(true);
-    try {
-      await adminPost({ action: "rename_user", userId: user.id, nickname: nickname.trim() });
-      await loadOverview();
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setBusy(false);
-    }
   }
 
   const openUser = useCallback(async (user) => {
@@ -133,7 +94,6 @@ export default function AdminPage() {
           </div>
           <p className="admin-session-note">
             🔒 세션은 <b>10분</b> 유지되고, 작업할 때마다 갱신됩니다. 이 기기에서만 유효합니다.
-            <br />접속 IP {clientIp}
           </p>
         </form>
       </main>
@@ -156,7 +116,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="wrap">
+    <main className="wrap admin-wrap">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0" }}>
         <h2 style={{ fontSize: "1.2rem", fontWeight: 800 }}>🛠 관리자</h2>
         <button className="btn ghost sm" onClick={logout} disabled={busy}>
@@ -174,41 +134,13 @@ export default function AdminPage() {
 
       <FourLineCard fourLine={overview.fourLine} busy={busy} onOpenUser={openUser} />
 
-      <div className="card">
-        <p style={{ fontWeight: 700, marginBottom: 8 }}>회원 ({overview.users.length}명)</p>
-        {error && <p className="error-msg">{error}</p>}
-        <div className="table-scroll admin-table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>닉네임</th>
-                <th className="num">빙고</th>
-                <th className="num">줄</th>
-                <th className="num">로또</th>
-                <th />
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {overview.users.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.nickname}</td>
-                  <td><small>{u.createdAt ? new Date(u.createdAt).toLocaleDateString("ko-KR") : "-"}<br />{u.lastLoginIp || "-"}</small><br /><button className="btn ghost sm" onClick={() => renameUser(u)} disabled={busy}>닉네임</button></td>
-                  <td className="num">{u.filled}/16</td>
-                  <td className="num">{u.lines}</td>
-                  <td className="num">{u.lottoEntries}장</td>
-                  <td className="num">
-                    <button className="btn ghost sm" onClick={() => openUser(u)} disabled={busy}>보기</button>
-                  </td>
-                  <td className="num">
-                    <button className="btn danger sm" onClick={() => deleteUser(u)} disabled={busy}>삭제</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <UsersCard
+        users={overview.users}
+        busy={busy}
+        error={error}
+        onOpenUser={openUser}
+        onChanged={loadOverview}
+      />
 
       <ItemsCard items={overview.items} />
     </main>

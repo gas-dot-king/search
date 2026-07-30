@@ -13,8 +13,7 @@ create table if not exists users (
   failed_pin_attempts integer not null default 0,
   pin_locked_at timestamptz,
   redraw_used boolean not null default false,
-  created_at timestamptz not null default now(),
-  last_login_ip text
+  created_at timestamptz not null default now()
 );
 
 create table if not exists bingo_items (

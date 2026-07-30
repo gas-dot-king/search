@@ -44,7 +44,7 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
   }
 
   return (
-    <main className="wrap">
+    <main className="wrap admin-wrap">
       <button className="btn ghost sm" onClick={onBack}>← 목록으로</button>
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
         <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: 0, flex: 1 }}>{user.nickname} 님의 인증</h2>

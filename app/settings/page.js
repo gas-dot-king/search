@@ -22,7 +22,6 @@ export default function SettingsPage() {
   const redirectTimer = useRef(null);
   const [nickname, setNickname] = useState("");
   const [joinedAt, setJoinedAt] = useState("");
-  const [lastLoginIp, setLastLoginIp] = useState("");
   const [loading, setLoading] = useState(true);
   const [dark, setDark] = useState(false);
   const [installReady, setInstallReady] = useState(false);
@@ -30,7 +29,6 @@ export default function SettingsPage() {
   const [installMessage, setInstallMessage] = useState("");
   const [noticeMessage, setNoticeMessage] = useState("");
   const [showPinModal, setShowPinModal] = useState(false);
-  const [clientIp, setClientIp] = useState("");
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [newPinConfirm, setNewPinConfirm] = useState("");
@@ -50,8 +48,6 @@ export default function SettingsPage() {
       .then((me) => {
         setNickname(me.nickname);
         setJoinedAt(me.createdAt || "");
-        setLastLoginIp(me.lastLoginIp || "");
-        setClientIp(me.currentIp || "확인 불가");
         setLoading(false);
       })
       .catch(() => router.replace("/"));
@@ -315,9 +311,7 @@ export default function SettingsPage() {
       <section className="card settings-card" aria-labelledby="session-title">
         <h2 id="session-title" className="card-title">로그인 기기</h2>
         <p className="hint">공용 기기에서는 사용 후 로그아웃해주세요.</p>
-        <p className="settings-ip">가입일 <b>{joinedAt ? new Date(joinedAt).toLocaleString("ko-KR") : "확인 중"}</b></p>
-        <p className="settings-ip">최근 로그인 IP <b>{lastLoginIp || "기록 없음"}</b></p>
-        <p className="settings-ip">현재 접속 기기 IP <b>{clientIp}</b></p>
+        <p className="settings-meta">가입일 <b>{joinedAt ? new Date(joinedAt).toLocaleString("ko-KR") : "확인 중"}</b></p>
         <div className="settings-session-action">
           <button type="button" className="btn ghost settings-save" onClick={signOut} disabled={busy}>
             로그아웃

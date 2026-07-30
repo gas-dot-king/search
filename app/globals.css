@@ -688,6 +688,18 @@ td.num, th.num { text-align: right; }
 }
 
 /* ---- 관리자 ---- */
+/* 회원 표와 인증 사진을 한눈에 보려면 회원 화면보다 넓어야 한다. */
+.wrap.admin-wrap { max-width: 900px; }
+.admin-users-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.admin-gear { padding: 6px 10px; font-size: 0.95rem; line-height: 1.2; }
+.admin-collapse-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 2px 0; border: none; background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.admin-collapse-caret { color: var(--muted); font-size: 0.78rem; }
+.admin-user-form { display: grid; gap: 6px; margin-top: 10px; }
+.admin-user-form .btn { justify-self: start; }
+.admin-user-actions { display: grid; gap: 8px; margin-top: 14px; }
 .admin-login-actions { display: flex; gap: 8px; margin-top: 14px; }
 .admin-login-actions .btn { width: 86px; padding: 9px 14px; font-size: 0.86rem; }
 .admin-session-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.76rem; line-height: 1.65; word-break: keep-all; }
@@ -879,8 +891,8 @@ td.num, th.num { text-align: right; }
 .settings-notice-button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
 .settings-pin-toggle { width: 100%; margin-top: 12px; }
 .settings-session-action { display: flex; justify-content: flex-end; }
-.settings-ip { margin-top: 10px; color: var(--muted); font-size: 0.78rem; }
-.settings-ip b { color: var(--text); font-weight: 800; }
+.settings-meta { margin-top: 10px; color: var(--muted); font-size: 0.78rem; }
+.settings-meta b { color: var(--text); font-weight: 800; }
 .settings-save { margin-top: 16px; }
 .contact-card { text-align: center; }
 .contact-card-icon { display: block; font-size: 2rem; line-height: 1.2; margin-bottom: 7px; }
