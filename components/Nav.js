@@ -111,18 +111,19 @@ export default function Nav({ config, configLoading = false }) {
   return (
     <>
       <nav className="nav">
-        <div className="nav-heading">
+        <div className="nav-brand-row">
           <Link href="/" className="brand" aria-label="YSRC SUMMER FEST 2026 온라인 위크 이벤트 홈">
-            <img className="brand-logo" src="/YSRC_logo_black.png" alt="" width="592" height="174" />
+            <img className="brand-logo" src="/YSRC_logo_black.png" alt="YSRC" width="592" height="174" />
             <span className="brand-copy">
-              <strong>SUMMER FEST <em>2026</em></strong>
-              <span className="brand-sub">온라인 위크 이벤트</span>
+              <strong>SUMMER FEST <em>2026</em> <span>온라인 위크 이벤트</span></strong>
               {currentConfig && <span className="nav-deadline">{dDayText(currentConfig, now)}</span>}
             </span>
           </Link>
+        </div>
+        <div className="nav-heading">
           <HallOfFameLink active={pathname === "/hall"} />
           <SocialLink
-            href="https://daangn.com//kr/share/community/ref/invite-group/8AYyjpELhFh"
+            href="https://daangn.com/kr/share/community/ref/invite-group/8AYyjpELhF"
             label="당근"
             type="carrot"
           />
