@@ -54,12 +54,13 @@ function NoticeBar({ notices }) {
       <span className="notice-text" key={current}>📢 {notices[current]}</span>
       {notices.length > 1 && (
         <span className="notice-nav" role="group" aria-label="공지 넘기기">
-          <button type="button" onClick={() => setIndex((current - 1 + notices.length) % notices.length)} aria-label="이전 공지">
-            ‹
-          </button>
-          <span aria-live="polite">{current + 1}/{notices.length}</span>
+          <span className="notice-dots" aria-label={`${current + 1}번째 공지`}>
+            {notices.map((_, dotIndex) => (
+              <span key={dotIndex} className={dotIndex === current ? "active" : ""} />
+            ))}
+          </span>
           <button type="button" onClick={() => setIndex((current + 1) % notices.length)} aria-label="다음 공지">
-            ›
+            &gt;
           </button>
         </span>
       )}
@@ -111,16 +112,10 @@ export default function Nav({ config, configLoading = false }) {
   return (
     <>
       <nav className="nav">
-        <div className="nav-brand-row">
-          <Link href="/" className="brand" aria-label="YSRC SUMMER FEST 2026 온라인 위크 이벤트 홈">
-            <img className="brand-logo" src="/YSRC_logo_black.png" alt="YSRC" width="592" height="174" />
-            <span className="brand-copy">
-              <strong>SUMMER FEST <em>2026</em> <span>온라인 위크 이벤트</span></strong>
-              {currentConfig && <span className="nav-deadline">{dDayText(currentConfig, now)}</span>}
-            </span>
-          </Link>
-        </div>
         <div className="nav-heading">
+          <Link href="/" className="brand brand-logo-link" aria-label="YSRC 홈">
+            <img className="brand-logo" src="/YSRC_logo_black.png" alt="YSRC" width="592" height="174" />
+          </Link>
           <HallOfFameLink active={pathname === "/hall"} />
           <SocialLink
             href="https://daangn.com/kr/share/community/ref/invite-group/8AYyjpELhF"
@@ -133,6 +128,13 @@ export default function Nav({ config, configLoading = false }) {
             type="instagram"
           />
           <SettingsLink active={pathname === "/settings"} />
+        </div>
+        <div className="nav-title-row">
+          <Link href="/" className="nav-event-title" aria-label="양산 슬로우러닝 썸머 페스티벌 2026 홈">
+            <strong>양산 슬로우러닝 썸머 페스티벌 2026</strong>
+            <span>YANGSAN SLOWRUNNING SUMMER FEST 2026</span>
+          </Link>
+          {currentConfig && <span className="nav-deadline">{dDayText(currentConfig, now)}</span>}
         </div>
         <NoticeBar notices={currentConfig?.notices || []} />
         <div className="nav-links">
