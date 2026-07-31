@@ -1,9 +1,11 @@
 "use client";
 
+import Modal from "@/components/Modal";
 import { adminPost } from "@/lib/adminClient";
 
 const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
+/** 회원 한 명의 인증 현황. 목록의 스크롤 위치를 잃지 않도록 페이지 이동 대신 팝업으로 띄운다. */
 export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset }) {
   async function deletePhoto(kind, id) {
     if (!confirm("이 사진을 삭제할까요?")) return;
@@ -44,10 +46,12 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
   }
 
   return (
-    <main className="wrap admin-wrap">
-      <button className="btn ghost sm" onClick={onBack}>← 목록으로</button>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
-        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: 0, flex: 1 }}>{user.nickname} 님의 인증</h2>
+    <Modal label={`${user.nickname} 님의 인증`} onClose={onBack} className="admin-detail-modal">
+      <div className="admin-detail-head">
+        <h3>{user.nickname} 님의 인증</h3>
+        <button className="btn ghost sm" onClick={onBack} aria-label="닫기">✕</button>
+      </div>
+      <div className="admin-detail-toolbar">
         <button className="btn ghost sm" onClick={resetPin}>PIN 0000 초기화</button>
       </div>
 
@@ -86,7 +90,7 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
       </p>
 
       <p style={{ fontWeight: 700, margin: "10px 0 6px" }}>로또 응모</p>
-      <div className="card">
+      <div className="admin-detail-lotto">
         {data.lotto.length === 0 && <p className="hint">응모 없음</p>}
         {data.lotto.map((e) => (
           <div className="entry-item" key={e.id}>
@@ -100,6 +104,10 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
           </div>
         ))}
       </div>
-    </main>
+
+      <div className="modal-actions">
+        <button type="button" className="btn ghost" onClick={onBack}>목록으로</button>
+      </div>
+    </Modal>
   );
 }

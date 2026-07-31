@@ -100,21 +100,6 @@ export default function AdminPage() {
     );
   }
 
-  if (detail) {
-    return (
-      <UserDetail
-        user={detail.user}
-        data={detail.data}
-        onBack={() => setDetail(null)}
-        onRefresh={() => openUser(detail.user)}
-        onBoardReset={async () => {
-          setDetail(null);
-          await loadOverview();
-        }}
-      />
-    );
-  }
-
   return (
     <main className="wrap admin-wrap">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0" }}>
@@ -143,6 +128,20 @@ export default function AdminPage() {
       />
 
       <ItemsCard items={overview.items} />
+
+      {/* 목록을 그대로 둔 채 위에 띄워야 닫았을 때 스크롤 위치가 유지된다. */}
+      {detail && (
+        <UserDetail
+          user={detail.user}
+          data={detail.data}
+          onBack={() => setDetail(null)}
+          onRefresh={() => openUser(detail.user)}
+          onBoardReset={async () => {
+            setDetail(null);
+            await loadOverview();
+          }}
+        />
+      )}
     </main>
   );
 }

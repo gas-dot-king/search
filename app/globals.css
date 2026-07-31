@@ -626,7 +626,8 @@ th { color: var(--muted); font-size: 0.73rem; font-weight: 700; }
 td.num, th.num { text-align: right; }
 .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table-scroll table { min-width: 390px; }
-.admin-table-scroll table { min-width: 460px; }
+/* 회원 표는 숫자 칸을 현황 팝업으로 뺐으니 모바일 폭에 그대로 들어간다. */
+.admin-table-scroll table { min-width: 0; }
 .feed-item { padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 0.85rem; }
 .feed-item:last-child { border-bottom: none; }
 .feed-item time { color: var(--muted); font-size: 0.72rem; margin-left: 6px; }
@@ -692,6 +693,26 @@ td.num, th.num { text-align: right; }
 .wrap.admin-wrap { max-width: 900px; }
 .admin-users-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .admin-gear { padding: 6px 10px; font-size: 0.95rem; line-height: 1.2; }
+.admin-users-table th, .admin-users-table td { padding-inline: 5px; }
+.admin-users-table th:first-child, .admin-users-table td:first-child { padding-left: 0; }
+.admin-users-table th:last-child, .admin-users-table td:last-child { padding-right: 0; }
+.admin-users-table .btn.sm { padding-inline: 10px; }
+/* 버튼 칸은 버튼 크기만큼만 쓰고 남는 폭은 닉네임이 가져간다. 긴 닉네임은 줄바꿈. */
+.admin-users-table td.num, .admin-users-table th.num { width: 1%; white-space: nowrap; }
+.admin-user-name { word-break: keep-all; overflow-wrap: anywhere; }
+.admin-stats { display: grid; gap: 8px; margin-top: 14px; }
+.admin-stats > div {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 13px; border-radius: var(--r-sm); background: var(--surface-muted);
+}
+.admin-stats dt { color: var(--muted); font-size: 0.83rem; font-weight: 700; }
+.admin-stats dd { font-size: 0.95rem; font-weight: 850; }
+.admin-detail-modal { max-width: 520px; }
+.admin-detail-head { display: flex; align-items: flex-start; gap: 8px; }
+.admin-detail-head h3 { flex: 1; margin: 0; }
+.admin-detail-toolbar { display: flex; justify-content: flex-end; margin-top: 8px; }
+.admin-detail-lotto { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); padding: 2px 12px; }
+.admin-detail-lotto .hint { padding: 10px 0; }
 .admin-collapse-toggle {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   width: 100%; padding: 2px 0; border: none; background: none; font: inherit; text-align: left; cursor: pointer;

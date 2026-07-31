@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Shared accessible modal: focus trap, Escape, focus restoration and scroll lock. */
-export default function Modal({ children, label, onClose, closeDisabled = false }) {
+export default function Modal({ children, label, onClose, closeDisabled = false, className = "" }) {
   const dialogRef = useRef(null);
   const onCloseRef = useRef(onClose);
   const closeDisabledRef = useRef(closeDisabled);
@@ -51,7 +51,13 @@ export default function Modal({ children, label, onClose, closeDisabled = false 
 
   return (
     <div className="modal-bg" onMouseDown={(event) => !closeDisabled && event.target === event.currentTarget && onClose()}>
-      <section ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-label={label}>
+      <section
+        ref={dialogRef}
+        className={className ? `modal ${className}` : "modal"}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+      >
         {children}
       </section>
     </div>
