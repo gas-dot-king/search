@@ -19,7 +19,8 @@ Next.js 15 (App Router) + Supabase + Vercel.
 **이런 작업 요청을 받으면 코드를 수정하지 말고, 먼저 레포를 잘못 찾은 것이 아닌지
 사용자에게 확인하세요.** 사용자가 "이 레포가 맞다"고 명시적으로 확인한 경우에만 진행합니다.
 
-이 레포가 다루는 것: 빙고 인증, 달리기 로또, 28일 챌린지 **안내**, 8/15 오프라인 행사 안내, 관리자 운영 화면.
+이 레포가 다루는 것: 빙고 인증, 달리기 로또, 28일 챌린지 **안내**, 8/15 오프라인 행사 안내와 방명록,
+관리자 운영 화면.
 
 ## 구조
 
@@ -33,10 +34,10 @@ app/
   hall/          명예의 전당 (후원자·빙고 달성·로또 당첨·챌린지 수상자)
   admin/draw/    행사장용 추첨 화면 (릴 애니메이션, 1등 없으면 다음 차수)
   challenge/     28일 챌린지 안내 (정적)
-  event/         오프라인 행사 안내 + 네이버 지도
+  event/         오프라인 행사 안내 + 네이버 지도 + 방명록
   admin/         관리자
   api/           서버 라우트 — Supabase는 여기서만 접근
-lib/             db·auth·bingo·lotto·settings·event·hall·demo 유틸
+lib/             db·auth·bingo·lotto·settings·event·hall·guestbook·demo 유틸
                  (후원자·챌린지 수상자 명단은 lib/hall.js에 하드코딩)
 supabase/        schema.sql + migrations/
 tests/           vitest (lib 순수 함수만)

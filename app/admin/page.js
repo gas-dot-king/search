@@ -9,6 +9,7 @@ import UsersCard from "@/components/admin/UsersCard";
 import ItemsCard from "@/components/admin/ItemsCard";
 import EventGuideCard from "@/components/admin/EventGuideCard";
 import FourLineCard from "@/components/admin/FourLineCard";
+import GuestbookCard from "@/components/admin/GuestbookCard";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -126,6 +127,8 @@ export default function AdminPage() {
         onOpenUser={openUser}
         onChanged={loadOverview}
       />
+
+      <GuestbookCard />
 
       <ItemsCard items={overview.items} />
 

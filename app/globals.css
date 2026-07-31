@@ -704,6 +704,39 @@ td.num, th.num { text-align: right; }
   to { transform: translateY(115vh) rotate(380deg); opacity: 0.7; }
 }
 
+/* ---- 방명록 ---- */
+.guestbook { margin-top: 30px; }
+.guestbook-lead { margin: -6px 0 12px; word-break: keep-all; line-height: 1.6; }
+.guestbook-signin {
+  margin-bottom: 12px; padding: 11px 13px; border: 1px dashed var(--line-strong); border-radius: var(--r-md);
+  background: var(--surface-muted); color: var(--muted); font-size: 0.82rem; word-break: keep-all;
+}
+.guestbook-signin a { color: var(--accent); font-weight: 800; }
+.guestbook-form { padding: 16px 18px; }
+.guestbook-form label { margin-top: 0; }
+.guestbook-textarea { min-height: 96px; resize: vertical; line-height: 1.6; }
+.guestbook-form-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.guestbook-count { flex: 1; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
+.guestbook-count.low { color: var(--accent); }
+.guestbook-form-actions { display: flex; gap: 6px; }
+.guestbook-empty, .guestbook-error { padding: 18px 0; text-align: center; }
+.guestbook-list { list-style: none; display: grid; gap: 10px; }
+.guestbook-item { margin-bottom: 0; padding: 15px 17px; }
+.guestbook-item.mine { border-color: var(--accent-soft); background: var(--rose-bg); }
+.guestbook-item-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.guestbook-item-head strong { font-size: 0.92rem; font-weight: 850; }
+.guestbook-item-head time { margin-left: auto; color: var(--muted); font-size: 0.73rem; }
+.guestbook-badge {
+  padding: 2px 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+  font-size: 0.68rem; font-weight: 850;
+}
+/* 여러 줄 인사를 그대로 보여주되, 긴 단어가 카드를 밀어내지 않게 한다. */
+.guestbook-message {
+  margin-top: 8px; font-size: 0.88rem; line-height: 1.65;
+  white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere;
+}
+.guestbook-item-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px; }
+
 /* ---- 관리자 ---- */
 /* 회원 표와 인증 사진을 한눈에 보려면 회원 화면보다 넓어야 한다. */
 .wrap.admin-wrap { max-width: 900px; }
@@ -740,6 +773,12 @@ td.num, th.num { text-align: right; }
 .admin-login-actions { display: flex; gap: 8px; margin-top: 14px; }
 .admin-login-actions .btn { width: 86px; padding: 9px 14px; font-size: 0.86rem; }
 .admin-session-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.76rem; line-height: 1.65; word-break: keep-all; }
+.admin-guestbook-list { list-style: none; display: grid; gap: 10px; }
+.admin-guestbook-list li { padding: 12px 13px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); }
+.admin-guestbook-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.admin-guestbook-head strong { font-size: 0.88rem; font-weight: 850; }
+.admin-guestbook-head time { color: var(--muted); font-size: 0.73rem; }
+.admin-guestbook-head .btn { margin-left: auto; }
 .admin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .admin-grid .cell { cursor: default; }
 .tabbar { display: flex; gap: 6px; margin-bottom: 12px; }

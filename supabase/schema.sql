@@ -44,6 +44,16 @@ create table if not exists lotto_entries (
   unique (user_id, slot)
 );
 
+-- 오프라인 행사 방명록: 한 사람이 글 하나를 남기고 고쳐 쓴다
+create table if not exists guestbook_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  message text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id)
+);
+
 create table if not exists settings (
   key text primary key,
   value text not null default ''
@@ -60,11 +70,16 @@ create table if not exists storage_cleanup_tasks (
 create index if not exists lotto_entries_user_created_at_idx
   on lotto_entries (user_id, created_at);
 
+-- 방명록은 항상 최신순으로 통째로 읽는다
+create index if not exists guestbook_entries_created_at_idx
+  on guestbook_entries (created_at desc);
+
 -- 모든 접근이 서버(service role)를 통해서만 이루어지므로 RLS로 외부 접근 차단
 alter table users enable row level security;
 alter table bingo_items enable row level security;
 alter table cells enable row level security;
 alter table lotto_entries enable row level security;
+alter table guestbook_entries enable row level security;
 alter table settings enable row level security;
 alter table storage_cleanup_tasks enable row level security;
 

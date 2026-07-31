@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Guestbook from "@/components/Guestbook";
 import Nav from "@/components/Nav";
 import NaverMap, { isNaverMapConfigured } from "@/components/NaverMap";
 import { normalizeEventGuide } from "@/lib/event";
@@ -119,6 +120,7 @@ export default function EventPage() {
         </ol>
       </section>}
 
+      <Guestbook />
     </main>
   );
 }
