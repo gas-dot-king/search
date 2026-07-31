@@ -328,6 +328,13 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   background: var(--green-bg); color: var(--green-text); font-size: 0.84rem; font-weight: 700;
 }
 .hint { color: var(--muted); font-size: 0.8rem; }
+/* 다른 기기 로그인으로 밀려났을 때 입장 화면에 뜨는 안내 */
+.session-lost-notice {
+  margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--amber-line); border-radius: var(--r-md);
+  background: var(--amber-bg); color: var(--amber-text); font-size: 0.86rem; font-weight: 800;
+  word-break: keep-all; line-height: 1.55;
+}
+.session-lost-notice small { display: block; margin-top: 4px; font-size: 0.79rem; font-weight: 600; opacity: 0.9; }
 .warn-box {
   background: var(--danger-soft); border: 1px solid var(--danger-line); color: var(--danger-text);
   border-radius: var(--r-md); padding: 11px 13px; font-size: 0.82rem; margin: 10px 0;

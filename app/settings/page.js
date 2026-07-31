@@ -160,7 +160,8 @@ export default function SettingsPage() {
   }
 
   async function signOut() {
-    if (!confirm("이 기기에서 로그아웃할까요?")) return;
+    // 서버 토큰이 계정당 하나뿐이라 로그아웃은 이 기기만이 아니라 모든 기기에 적용된다.
+    if (!confirm("로그아웃할까요?\n로그인해 둔 다른 기기가 있다면 그 기기도 함께 로그아웃됩니다.")) return;
     setBusy(true);
     try {
       await api("/api/account/session", { method: "DELETE" });
@@ -310,7 +311,10 @@ export default function SettingsPage() {
 
       <section className="card settings-card" aria-labelledby="session-title">
         <h2 id="session-title" className="card-title">로그인 기기</h2>
-        <p className="hint">공용 기기에서는 사용 후 로그아웃해주세요.</p>
+        <p className="hint">
+          한 계정은 기기 한 곳에서만 로그인할 수 있어요. 다른 기기에서 입장하면 이 기기는 자동으로 로그아웃됩니다.
+          공용 기기에서는 사용 후 로그아웃해주세요.
+        </p>
         <p className="settings-meta">가입일 <b>{joinedAt ? new Date(joinedAt).toLocaleString("ko-KR") : "확인 중"}</b></p>
         <div className="settings-session-action">
           <button type="button" className="btn ghost settings-save" onClick={signOut} disabled={busy}>

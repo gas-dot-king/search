@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, getToken, TOKEN_KEY } from "@/lib/client";
+import { api, clearToken, getToken, takeSessionLost, TOKEN_KEY } from "@/lib/client";
 import { prefetchApiData } from "@/lib/hooks";
 
 function deadlineText(uploadEnd) {
@@ -21,6 +21,12 @@ export default function EntryPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [uploadEnd, setUploadEnd] = useState("");
+  const [sessionLost, setSessionLost] = useState(false);
+
+  // 다른 화면에서 401로 밀려났다면 그 사실을 넘겨받아 이유를 알려준다.
+  useEffect(() => {
+    if (takeSessionLost()) setSessionLost(true);
+  }, []);
 
   // 같은 기기 재방문 → 자동 입장
   useEffect(() => {
@@ -34,8 +40,10 @@ export default function EntryPage() {
         if (me.hasBoard) prefetchApiData("/api/board").catch(() => {});
         router.replace(me.hasBoard ? "/board" : "/draw");
       })
-      .catch(() => {
-        localStorage.removeItem(TOKEN_KEY);
+      .catch((err) => {
+        clearToken();
+        // 통신 실패와 달리 401은 세션이 실제로 끊긴 경우라 이유를 안내한다.
+        if (err?.status === 401) setSessionLost(true);
         setChecking(false);
       });
   }, [router]);
@@ -76,6 +84,13 @@ export default function EntryPage() {
         <p className="landing-countdown">{deadlineText(uploadEnd)}</p>
         <p className="hint">빙고 인증과 달리기 로또를 함께 즐겨요.</p>
       </div>
+
+      {sessionLost && (
+        <p className="session-lost-notice" role="status">
+          🔓 다른 기기에서 로그인해 이 기기는 로그아웃되었어요.
+          <small>한 계정은 기기 한 곳에서만 로그인할 수 있어요. 다시 입장해주세요.</small>
+        </p>
+      )}
 
       <form className="card" onSubmit={submit}>
         <label htmlFor="nickname">닉네임</label>

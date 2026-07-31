@@ -61,7 +61,7 @@ export default function Footer() {
         >
           문의하기
         </button>
-        <p className="app-version">v2.0</p>
+        <p className="app-version">v2.1</p>
         <p className="app-copyright">
           Copyright by <Link href="/admin">gas_king</Link>
         </p>
