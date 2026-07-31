@@ -7,7 +7,7 @@ import ItemsList from "@/components/ItemsList";
 import Modal from "@/components/Modal";
 import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
-import { getNearCompleteLines, LINES } from "@/lib/bingo";
+import { countLines, getNearCompleteLines, LINES } from "@/lib/bingo";
 import { downloadBoardImage } from "@/lib/boardImage";
 import { todayGreetingMessage } from "@/lib/greeting";
 
@@ -20,7 +20,7 @@ const PHOTO_EXAMPLES = {
 
 export default function BoardPage() {
   const router = useRouter();
-  const { data: board, error: loadError, reload } = useApiData("/api/board");
+  const { data: board, error: loadError, reload, setData } = useApiData("/api/board");
   const period = useUploadPeriod();
   const photo = usePhoto();
   const [selected, setSelected] = useState(null); // 선택된 칸
@@ -83,6 +83,22 @@ export default function BoardPage() {
     }
   }
 
+  /**
+   * 바뀐 칸만 그 자리에서 갱신한다.
+   * 빙고판을 통째로 다시 부르면 나머지 칸의 서명 주소까지 새로 발급돼,
+   * 브라우저가 이미 갖고 있던 사진 열몇 장을 전부 다시 내려받는다.
+   */
+  function patchCell(position, changes) {
+    setData((current) => {
+      if (!current) return current;
+      const cells = current.cells.map((cell) =>
+        cell.position === position ? { ...cell, ...changes } : cell
+      );
+      const filledPositions = cells.filter((cell) => cell.hasPhoto).map((cell) => cell.position);
+      return { ...current, cells, filled: filledPositions.length, lines: countLines(filledPositions) };
+    });
+  }
+
   async function upload() {
     if (!photo.file || !selected) return;
     const selectedPosition = selected.position;
@@ -93,10 +109,17 @@ export default function BoardPage() {
       const form = new FormData();
       form.append("position", String(selectedPosition));
       form.append("file", photo.file, "photo.jpg");
-      await api("/api/upload", { method: "POST", body: form });
+      if (photo.thumb) form.append("thumb", photo.thumb, "thumb.jpg");
+      const result = await api("/api/upload", { method: "POST", body: form });
       setSelected((current) => current?.position === selectedPosition ? null : current);
       photo.clear();
-      await reload();
+      patchCell(selectedPosition, {
+        hasPhoto: true,
+        photoUrl: result.photoUrl || null,
+        thumbUrl: result.thumbUrl || null,
+      });
+      // 서버가 주소를 못 준 경우에만 전체를 다시 부른다.
+      if (!result.photoUrl) await reload();
     } catch (err) {
       photo.setError(err.message);
     } finally {
@@ -117,7 +140,7 @@ export default function BoardPage() {
       });
       setSelected((current) => current?.position === selectedPosition ? null : current);
       photo.clear();
-      await reload();
+      patchCell(selectedPosition, { hasPhoto: false, photoUrl: null, thumbUrl: null });
     } catch (err) {
       photo.setError(err.message);
     } finally {
@@ -209,9 +232,9 @@ export default function BoardPage() {
             onClick={() => openCell(cell)}
             aria-label={`${cell.content}${cell.hasPhoto ? ", 인증 완료 사진 보기" : ", 인증 사진 올리기"}`}
           >
-            {cell.photoUrl ? (
+            {cell.thumbUrl || cell.photoUrl ? (
               <>
-                <img src={cell.photoUrl} alt={cell.content} loading="lazy" decoding="async" />
+                <img src={cell.thumbUrl || cell.photoUrl} alt={cell.content} loading="lazy" decoding="async" />
                 <span className="check">✓</span>
                 <div className="overlay">{cell.content}</div>
               </>

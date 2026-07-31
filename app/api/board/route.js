@@ -1,4 +1,4 @@
-import { sb, signedUrls } from "@/lib/db";
+import { sb, signedUrls, thumbPathFor } from "@/lib/db";
 import { route, requireUser, ApiError } from "@/lib/api";
 import { countLines } from "@/lib/bingo";
 import { demoBoard, isDemoMode } from "@/lib/demo";
@@ -16,7 +16,13 @@ export const GET = route(async (req) => {
   if (error) throw new ApiError(error.message, 500);
   if (!cells?.length) return { nickname: user.nickname, cells: [], filled: 0, lines: 0, photosLoaded: true };
 
-  const urlMap = await signedUrls(cells.map((c) => c.photo_path));
+  const photoPaths = cells.map((c) => c.photo_path).filter(Boolean);
+  // 축소본은 이 기능이 생기기 전 사진에는 없다. 없으면 원본으로 그리면 되므로
+  // 재시도 없이 한 번만 서명하고, 원본 서명과 나란히 진행한다.
+  const [urlMap, thumbMap] = await Promise.all([
+    signedUrls(photoPaths),
+    signedUrls(photoPaths.map(thumbPathFor), { retryMissing: false }),
+  ]);
   const filled = cells.filter((c) => c.photo_path).map((c) => c.position);
 
   return {
@@ -27,6 +33,7 @@ export const GET = route(async (req) => {
       category: c.bingo_items?.category || 0,
       hasPhoto: Boolean(c.photo_path),
       photoUrl: c.photo_path ? urlMap[c.photo_path] || null : null,
+      thumbUrl: c.photo_path ? thumbMap[thumbPathFor(c.photo_path)] || null : null,
     })),
     filled: filled.length,
     lines: countLines(filled),

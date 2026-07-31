@@ -1,6 +1,22 @@
 import crypto from "node:crypto";
-import { claimBingoPhoto, deferPhotoCleanup, schedulePhotoCleanup, sb, uploadPhoto } from "@/lib/db";
-import { route, requireUserInUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
+import {
+  claimBingoPhoto,
+  deferPhotoCleanup,
+  schedulePhotoCleanup,
+  sb,
+  signedUrls,
+  thumbPathFor,
+  uploadPhoto,
+} from "@/lib/db";
+import {
+  route,
+  requireUserInUploadPeriod,
+  readPhoto,
+  readOptionalPhoto,
+  readJson,
+  ApiError,
+  requireDbSuccess,
+} from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 
 function bingoClaimError(error) {
@@ -38,18 +54,43 @@ export const POST = route(async (req) => {
   }
 
   const buffer = await readPhoto(form);
+  // 그리드용 축소본. 브라우저가 만들지 못했으면 없는 대로 두고 원본을 쓴다.
+  const thumbBuffer = await readOptionalPhoto(form, "thumb");
   const path = `bingo/${user.id}/${position}-${crypto.randomUUID()}.jpg`;
-  await uploadPhoto(path, buffer);
+  const thumbPath = thumbPathFor(path);
+
+  // 원본과 축소본을 동시에 올린다. 축소본이 실패해도 인증 자체는 살린다.
+  const [, thumbStored] = await Promise.all([
+    uploadPhoto(path, buffer),
+    thumbBuffer
+      ? uploadPhoto(thumbPath, thumbBuffer).then(() => true).catch((uploadError) => {
+          console.error("[upload] thumbnail failed", uploadError);
+          return false;
+        })
+      : Promise.resolve(false),
+  ]);
 
   const { oldPath, error } = await claimBingoPhoto(user.id, position, path);
   if (error) {
     // The new file has no DB reference, so retrying its deletion is always safe.
-    await schedulePhotoCleanup([path]);
+    await schedulePhotoCleanup(thumbStored ? [path, thumbPath] : [path]);
     throw bingoClaimError(error);
   }
 
-  const cleanup = oldPath && oldPath !== path ? await schedulePhotoCleanup([oldPath]) : { pending: false };
-  return { ok: true, cleanupPending: cleanup.pending };
+  // 화면이 이 응답만으로 칸을 갱신할 수 있게 주소를 함께 준다.
+  // 빙고판 전체를 다시 불러오면 나머지 15칸의 서명 주소까지 새로 발급돼
+  // 브라우저가 이미 받아 둔 사진을 전부 다시 내려받는다.
+  const urlMap = await signedUrls(thumbStored ? [path, thumbPath] : [path], { retryMissing: false });
+
+  const cleanup = oldPath && oldPath !== path
+    ? await schedulePhotoCleanup([oldPath, thumbPathFor(oldPath)])
+    : { pending: false };
+  return {
+    ok: true,
+    cleanupPending: cleanup.pending,
+    photoUrl: urlMap[path] || null,
+    thumbUrl: (thumbStored && urlMap[thumbPath]) || null,
+  };
 });
 
 /** Remove a bingo photo. DB state changes first; Storage failures stay queued. */
@@ -75,6 +116,6 @@ export const DELETE = route(async (req) => {
     .eq("id", cell.id)
     .eq("photo_path", cell.photo_path);
   requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
-  const cleanup = await schedulePhotoCleanup([cell.photo_path]);
+  const cleanup = await schedulePhotoCleanup([cell.photo_path, thumbPathFor(cell.photo_path)]);
   return { ok: true, cleanupPending: cleanup.pending };
 });
