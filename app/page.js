@@ -22,6 +22,8 @@ export default function EntryPage() {
   const [error, setError] = useState("");
   const [uploadEnd, setUploadEnd] = useState("");
   const [sessionLost, setSessionLost] = useState(false);
+  const [unreachable, setUnreachable] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   // 다른 화면에서 401로 밀려났다면 그 사실을 넘겨받아 이유를 알려준다.
   useEffect(() => {
@@ -34,19 +36,32 @@ export default function EntryPage() {
       setChecking(false);
       return;
     }
+    let cancelled = false;
+    setChecking(true);
+    setUnreachable(false);
     api("/api/me")
       .then((me) => {
+        if (cancelled) return;
         // 이동할 페이지의 데이터를 미리 받아 두면 도착 즉시 화면이 뜬다.
         if (me.hasBoard) prefetchApiData("/api/board").catch(() => {});
         router.replace(me.hasBoard ? "/board" : "/draw");
       })
       .catch((err) => {
-        clearToken();
-        // 통신 실패와 달리 401은 세션이 실제로 끊긴 경우라 이유를 안내한다.
-        if (err?.status === 401) setSessionLost(true);
+        if (cancelled) return;
+        // 서버가 토큰을 거부한 401일 때만 지운다. 통신이 잠깐 끊긴 것만으로
+        // 토큰을 버리면 지하철에서 앱을 여는 것만으로 로그아웃된다.
+        if (err?.status === 401) {
+          clearToken();
+          setSessionLost(true);
+        } else {
+          setUnreachable(true);
+        }
         setChecking(false);
       });
-  }, [router]);
+    return () => {
+      cancelled = true;
+    };
+  }, [router, retry]);
 
   useEffect(() => {
     fetch("/api/config")
@@ -90,6 +105,18 @@ export default function EntryPage() {
           🔓 다른 기기에서 로그인해 이 기기는 로그아웃되었어요.
           <small>한 계정은 기기 한 곳에서만 로그인할 수 있어요. 다시 입장해주세요.</small>
         </p>
+      )}
+
+      {unreachable && (
+        <div className="entry-retry-notice" role="status">
+          <p>
+            📡 연결이 불안정해 자동 입장에 실패했어요.
+            <small>로그인은 그대로 남아 있어요. 신호가 잡히면 다시 시도해주세요.</small>
+          </p>
+          <button type="button" className="btn ghost sm" onClick={() => setRetry((n) => n + 1)}>
+            다시 시도
+          </button>
+        </div>
       )}
 
       <form className="card" onSubmit={submit}>

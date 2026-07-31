@@ -335,6 +335,15 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   word-break: keep-all; line-height: 1.55;
 }
 .session-lost-notice small { display: block; margin-top: 4px; font-size: 0.79rem; font-weight: 600; opacity: 0.9; }
+/* 통신 실패로 자동 입장만 실패했을 때. 토큰은 그대로라 다시 시도하면 된다. */
+.entry-retry-notice {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--blue-line); border-radius: var(--r-md);
+  background: var(--blue-bg); color: var(--blue-text);
+}
+.entry-retry-notice p { flex: 1; font-size: 0.86rem; font-weight: 800; word-break: keep-all; line-height: 1.55; }
+.entry-retry-notice small { display: block; margin-top: 4px; font-size: 0.79rem; font-weight: 600; opacity: 0.9; }
+.entry-retry-notice .btn { flex: 0 0 auto; }
 .warn-box {
   background: var(--danger-soft); border: 1px solid var(--danger-line); color: var(--danger-text);
   border-radius: var(--r-md); padding: 11px 13px; font-size: 0.82rem; margin: 10px 0;
