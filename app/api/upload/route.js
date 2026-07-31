@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { claimBingoPhoto, processPhotoCleanup, schedulePhotoCleanup, sb, uploadPhoto } from "@/lib/db";
-import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
+import { claimBingoPhoto, deferPhotoCleanup, schedulePhotoCleanup, sb, uploadPhoto } from "@/lib/db";
+import { route, requireUserInUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 
 function bingoClaimError(error) {
@@ -24,9 +24,8 @@ async function findCell(userId, position) {
 
 /** Bingo photo upload/replacement. Daily rules are enforced by a DB transaction. */
 export const POST = route(async (req) => {
-  const user = await requireUser(req);
-  await requireUploadPeriod();
-  if (!isDemoMode()) await processPhotoCleanup();
+  const user = await requireUserInUploadPeriod(req);
+  if (!isDemoMode()) deferPhotoCleanup();
   const form = await req.formData().catch(() => null);
   const position = Number(form?.get("position"));
   if (!Number.isInteger(position) || position < 0 || position > 15) throw new ApiError("잘못된 칸입니다.");
@@ -55,9 +54,8 @@ export const POST = route(async (req) => {
 
 /** Remove a bingo photo. DB state changes first; Storage failures stay queued. */
 export const DELETE = route(async (req) => {
-  const user = await requireUser(req);
-  await requireUploadPeriod();
-  if (!isDemoMode()) await processPhotoCleanup();
+  const user = await requireUserInUploadPeriod(req);
+  if (!isDemoMode()) deferPhotoCleanup();
   const { position } = await readJson(req);
   if (!Number.isInteger(Number(position)) || Number(position) < 0 || Number(position) > 15) {
     throw new ApiError("잘못된 칸입니다.");

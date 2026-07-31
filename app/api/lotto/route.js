@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { sb, uploadPhoto, processPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib/db";
-import { route, requireUser, requireUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
+import { sb, uploadPhoto, deferPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib/db";
+import { route, requireUser, requireUserInUploadPeriod, readPhoto, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings } from "@/lib/settings";
 import {
   matchCount,
@@ -93,9 +93,8 @@ export const GET = route(async (req) => {
 
 /** 로또 응모: digits("0524") + 사진 (기간 내라면 추첨 진행과 무관하게 가능) */
 export const POST = route(async (req) => {
-  const user = await requireUser(req);
-  await requireUploadPeriod();
-  if (!isDemoMode()) await processPhotoCleanup();
+  const user = await requireUserInUploadPeriod(req);
+  if (!isDemoMode()) deferPhotoCleanup();
 
   const form = await req.formData().catch(() => null);
   const digits = String(form?.get("digits") || "");
@@ -150,9 +149,8 @@ export const POST = route(async (req) => {
 
 /** 내 응모 취소 (기간 내) */
 export const DELETE = route(async (req) => {
-  const user = await requireUser(req);
-  await requireUploadPeriod();
-  if (!isDemoMode()) await processPhotoCleanup();
+  const user = await requireUserInUploadPeriod(req);
+  if (!isDemoMode()) deferPhotoCleanup();
 
   const { id } = await readJson(req);
   if (isDemoMode()) {
