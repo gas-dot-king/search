@@ -715,10 +715,11 @@ td.num, th.num { text-align: right; }
 .guestbook-form { padding: 16px 18px; }
 .guestbook-form label { margin-top: 0; }
 .guestbook-textarea { min-height: 96px; resize: vertical; line-height: 1.6; }
-.guestbook-form-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.guestbook-count { flex: 1; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
+.guestbook-form-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.guestbook-form-foot .hint { margin-right: auto; }
+.guestbook-count { display: block; margin-top: 6px; color: var(--muted); font-size: 0.76rem; font-weight: 700; text-align: right; }
 .guestbook-count.low { color: var(--accent); }
-.guestbook-form-actions { display: flex; gap: 6px; }
+.guestbook-edit { margin-top: 10px; }
 .guestbook-empty, .guestbook-error { padding: 18px 0; text-align: center; }
 .guestbook-list { list-style: none; display: grid; gap: 10px; }
 .guestbook-item { margin-bottom: 0; padding: 15px 17px; }

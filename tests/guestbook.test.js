@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   GUESTBOOK_MAX_LENGTH,
+  GUESTBOOK_MAX_PER_USER,
+  guestbookCountError,
   guestbookMessageError,
   normalizeGuestbookMessage,
   readGuestbookMessage,
@@ -58,6 +60,24 @@ describe("방명록 메시지 검증", () => {
 
   it("공백만 보내면 빈 글로 걸러진다", () => {
     expect(readGuestbookMessage("   ").error).toBe("방명록에 남길 내용을 입력해주세요.");
+  });
+});
+
+describe("한 사람당 글 수 상한", () => {
+  it("아직 한 개도 안 썼으면 통과한다", () => {
+    expect(guestbookCountError(0)).toBe("");
+  });
+
+  it("상한 직전까지는 더 쓸 수 있다", () => {
+    expect(guestbookCountError(GUESTBOOK_MAX_PER_USER - 1)).toBe("");
+  });
+
+  it("상한에 닿으면 막고 개수를 알려준다", () => {
+    expect(guestbookCountError(GUESTBOOK_MAX_PER_USER)).toContain(String(GUESTBOOK_MAX_PER_USER));
+  });
+
+  it("어쩌다 상한을 넘겼어도 계속 막는다", () => {
+    expect(guestbookCountError(GUESTBOOK_MAX_PER_USER + 5)).not.toBe("");
   });
 });
 
