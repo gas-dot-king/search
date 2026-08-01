@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { adminPost } from "@/lib/adminClient";
-import { parseNotices, MAX_NOTICES } from "@/lib/notices";
-import { currentLottoRound, parseLottoRounds } from "@/lib/lotto";
 import { formatKoreanDateTime, fromKstInputValue, toKstInputValue } from "@/lib/period";
 
 export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
@@ -36,32 +33,7 @@ export default function SettingsCard({ settings, busy, setBusy, onChanged }) {
     }
   }
 
-  return (
-    <div className="card">
-      <p style={{ fontWeight: 700, marginBottom: 8 }}>이벤트 설정</p>
-
-      <label>공지 (모든 페이지 상단, 5초마다 자동 전환, 최대 {MAX_NOTICES}개)</label>
-      <NoticesEditor
-        raw={settings.notice || ""}
-        onSave={(list) => setSetting("notice", JSON.stringify(list))}
-        busy={busy}
-      />
-
-      <label>로또 최대 응모 장수</label>
-      <div className="rule-box" style={{ marginTop: 0 }}>
-        🎟️ 1인당 <b>2장</b>으로 고정되어 있습니다.
-      </div>
-
-      <label>로또 추첨 (1의 자리·소수점 첫째·둘째, 총 3자리)</label>
-      {/* 뽑기·차수 진행은 모두 추첨 화면에서 한다. 여기서는 현재 상태만 보여준다. */}
-      <LottoStatus digits={settings.winning_numbers || ""} rounds={settings.lotto_rounds || ""} />
-      <Link className="btn primary draw-stage-link" href="/admin/draw">
-        🎰 무작위 번호 추첨 (큰 화면)
-      </Link>
-
-      <PeriodEditor settings={settings} busy={busy} onSavePeriod={setUploadPeriod} onSaveSetting={setSetting} />
-    </div>
-  );
+  return <PeriodEditor settings={settings} busy={busy} onSavePeriod={setUploadPeriod} onSaveSetting={setSetting} />;
 }
 
 /**
@@ -152,74 +124,3 @@ function PeriodEditor({ settings, busy, onSavePeriod, onSaveSetting }) {
 }
 
 /** 현재 추첨 상태만 보여 준다 — 실제 뽑기는 /admin/draw에서 한다 */
-function LottoStatus({ digits, rounds }) {
-  const pastRounds = parseLottoRounds(rounds);
-  const round = currentLottoRound(rounds);
-  const complete = digits.length === 3;
-
-  return (
-    <div>
-      <div className="winning-digits" style={{ justifyContent: "flex-start", margin: "8px 0" }}>
-        {[0, 1, 2].map((i) => (
-          <span key={i} className={`winning-digit ${i < digits.length ? "" : "pending"}`}>
-            {i < digits.length ? digits[i] : "?"}
-          </span>
-        ))}
-      </div>
-      <p className="hint">
-        {complete
-          ? `${round}차 추첨 번호 ${digits[0]}.${digits.slice(1)}km`
-          : `${round}차 추첨 진행 중 · ${3 - digits.length}자리 남음`}
-        {pastRounds.length > 0 && ` · 1등 없이 넘어간 차수 ${pastRounds.length}회`}
-      </p>
-    </div>
-  );
-}
-
-function NoticesEditor({ raw, onSave, busy }) {
-  const notices = parseNotices(raw);
-  const [text, setText] = useState("");
-
-  function add() {
-    const t = text.trim();
-    if (!t) return;
-    if (notices.length >= MAX_NOTICES) return alert(`공지는 최대 ${MAX_NOTICES}개까지 가능합니다.`);
-    onSave([...notices, t]);
-    setText("");
-  }
-
-  return (
-    <div>
-      {notices.map((n, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
-            borderBottom: "1px dashed var(--line)", fontSize: "0.85rem",
-          }}
-        >
-          <span style={{ flex: 1 }}>📢 {n}</span>
-          <button
-            className="btn danger sm"
-            disabled={busy}
-            onClick={() => confirm("이 공지를 삭제할까요?") && onSave(notices.filter((_, j) => j !== i))}
-          >
-            삭제
-          </button>
-        </div>
-      ))}
-      {notices.length === 0 && <p className="hint" style={{ padding: "4px 0" }}>등록된 공지가 없습니다.</p>}
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
-          placeholder="예: 추첨은 8/15 저녁 8시!"
-        />
-        <button className="btn ghost" onClick={add} disabled={busy || notices.length >= MAX_NOTICES}>
-          추가
-        </button>
-      </div>
-    </div>
-  );
-}

@@ -3,7 +3,12 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
+import { parseNotices } from "@/lib/notices";
 import SettingsCard from "@/components/admin/SettingsCard";
+import CollapsibleCard from "@/components/admin/CollapsibleCard";
+import StatsCard from "@/components/admin/StatsCard";
+import NoticesCard from "@/components/admin/NoticesCard";
+import LottoCard from "@/components/admin/LottoCard";
 import UserDetail from "@/components/admin/UserDetail";
 import UsersCard from "@/components/admin/UsersCard";
 import ItemsCard from "@/components/admin/ItemsCard";
@@ -101,6 +106,8 @@ export default function AdminPage() {
     );
   }
 
+  const noticeCount = parseNotices(overview?.settings?.notice || "").length;
+
   return (
     <main className="wrap admin-wrap">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0" }}>
@@ -110,23 +117,49 @@ export default function AdminPage() {
         </button>
       </div>
 
+      <StatsCard stats={overview.stats} />
+
       <SettingsCard settings={overview?.settings || {}} busy={busy} setBusy={setBusy} onChanged={loadOverview} />
 
-      <EventGuideCard
-        raw={overview?.settings?.event_guide || ""}
-        busy={busy}
-        onSave={saveEventGuide}
-      />
+      <CollapsibleCard
+        title="📢 공지"
+        hint="모든 페이지 상단에 뜨고 5초마다 자동 전환됩니다."
+        badge={`${noticeCount}개`}
+      >
+        <NoticesCard
+          raw={overview?.settings?.notice || ""}
+          busy={busy}
+          setBusy={setBusy}
+          onChanged={loadOverview}
+        />
+      </CollapsibleCard>
+
+      <CollapsibleCard title="🎰 로또" hint="응모 장수와 추첨 현황입니다.">
+        <LottoCard settings={overview?.settings || {}} />
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        title="📍 오프라인 행사 안내"
+        hint="행사 시간, 장소, 주차와 지도 정보를 수정할 수 있습니다."
+      >
+        <EventGuideCard
+          raw={overview?.settings?.event_guide || ""}
+          busy={busy}
+          onSave={saveEventGuide}
+        />
+      </CollapsibleCard>
 
       <FourLineCard fourLine={overview.fourLine} busy={busy} onOpenUser={openUser} />
 
-      <UsersCard
-        users={overview.users}
-        busy={busy}
-        error={error}
-        onOpenUser={openUser}
-        onChanged={loadOverview}
-      />
+      <CollapsibleCard title="👥 회원 목록" badge={`${overview.users.length}명`}>
+        <UsersCard
+          users={overview.users}
+          busy={busy}
+          error={error}
+          onOpenUser={openUser}
+          onChanged={loadOverview}
+        />
+      </CollapsibleCard>
 
       <GuestbookCard />
 

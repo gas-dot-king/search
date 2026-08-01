@@ -19,9 +19,7 @@ export default function EventGuideCard({ raw, busy, onSave }) {
   }
 
   return (
-    <section className="card event-editor">
-      <p className="card-title">오프라인 행사 안내 편집</p>
-      <p className="hint">행사 시간, 장소, 주차와 지도 정보를 수정할 수 있습니다.</p>
+    <div className="event-editor">
 
       <label htmlFor="event-hours">행사 시간</label>
       <input
@@ -89,6 +87,6 @@ export default function EventGuideCard({ raw, busy, onSave }) {
           행사 안내 저장
         </button>
       </div>
-    </section>
+    </div>
   );
 }

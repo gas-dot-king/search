@@ -3,6 +3,7 @@ import { sb, processPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib
 import { hashPin, hashToken, newToken, sessionExpiresAt } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
+import { buildEventStats } from "@/lib/stats";
 import { getAllProgress, invalidateBingoHallCache } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
 import { fourLineAchievements } from "@/lib/hall";
@@ -68,6 +69,11 @@ export const GET = route(async (req) => {
         users: progress.progress,
         items: demoItems(),
         fourLine: demoFourLineRanking(),
+        stats: buildEventStats({
+          progress: progress.progress,
+          cells: (progress.cells || []).filter((cell) => cell.photo_path),
+          lotto: progress.lotto || [],
+        }),
       };
     }
     if (action === "user") return demoAdminUser(url.searchParams.get("id"));
@@ -82,7 +88,7 @@ export const GET = route(async (req) => {
   }
 
   if (action === "overview") {
-    const [settings, { progress, cells }, { data: items, error: itemsError }] = await Promise.all([
+    const [settings, { progress, cells, lotto }, { data: items, error: itemsError }] = await Promise.all([
       getSettings(),
       getAllProgress(),
       sb().from("bingo_items").select("id, category, content").order("category").order("id"),
@@ -99,7 +105,13 @@ export const GET = route(async (req) => {
     }));
 
     return Response.json(
-      { settings: editableSettings(settings), users: progress, items: items || [], fourLine },
+      {
+        settings: editableSettings(settings),
+        users: progress,
+        items: items || [],
+        fourLine,
+        stats: buildEventStats({ progress, cells, lotto }),
+      },
       { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
     );
   }

@@ -24,9 +24,8 @@ export default function UsersCard({ users, busy, error, onOpenUser, onChanged })
   }
 
   return (
-    <div className="card">
+    <>
       <div className="admin-users-head">
-        <p style={{ fontWeight: 700 }}>회원 ({users.length}명)</p>
         <button type="button" className="btn ghost sm" onClick={downloadExcel} disabled={!users.length}>
           ⬇ 엑셀 다운로드
         </button>
@@ -86,6 +85,6 @@ export default function UsersCard({ users, busy, error, onOpenUser, onChanged })
           onChanged={onChanged}
         />
       )}
-    </div>
+    </>
   );
 }
