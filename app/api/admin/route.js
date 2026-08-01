@@ -363,7 +363,7 @@ export const POST = route(async (req) => {
         .maybeSingle();
       requireDbSuccess(lookupError, "사진을 확인하지 못했습니다");
       if (!cell?.photo_path) throw new ApiError("사진이 없습니다.");
-      const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null, uploaded_date: null, photo_meta: null }).eq("id", cell.id);
+      const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null, photo_meta: null }).eq("id", cell.id);
       requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
       invalidateBingoHallCache();
       const cleanup = await schedulePhotoCleanup([cell.photo_path]);

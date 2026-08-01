@@ -27,8 +27,7 @@ async function todayCells(userId) {
     .from("cells")
     .select("bingo_items ( content, category )")
     .eq("user_id", userId)
-    .eq("uploaded_date", todayInSeoul())
-    .not("photo_path", "is", null);
+    .eq("uploaded_date", todayInSeoul());
   return (data || []).map((row) => ({
     content: row.bingo_items?.content || "",
     category: row.bingo_items?.category || 0,
@@ -151,9 +150,11 @@ export const DELETE = route(async (req) => {
 
   const cell = await findCell(user.id, Number(position));
   if (!cell?.photo_path) throw new ApiError("삭제할 사진이 없습니다.", 404);
+  // uploaded_date는 남긴다 — "이 칸이 오늘 자리를 썼다"는 표시라, 지운 칸에
+  // 다시 올릴 때 하루 제한에 걸리지 않게 해준다. (claim_bingo_photo가 이 값을 본다)
   const { error } = await sb()
     .from("cells")
-    .update({ photo_path: null, uploaded_at: null, uploaded_date: null, photo_meta: null })
+    .update({ photo_path: null, uploaded_at: null, photo_meta: null })
     .eq("id", cell.id)
     .eq("photo_path", cell.photo_path);
   requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");

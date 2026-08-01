@@ -30,6 +30,8 @@ create table if not exists cells (
   item_id int not null references bingo_items(id),
   photo_path text,
   uploaded_at timestamptz,
+  -- 그 칸이 어느 날 하루 자리를 썼는지. 사진을 지워도 남겨서, 지운 칸에
+  -- 다시 올릴 때 하루 제한에 막히지 않게 한다.
   uploaded_date date,
   -- 인증 검토용 촬영 정보(EXIF). 스크린샷 등 EXIF가 없는 사진은 null이다.
   photo_meta jsonb,
