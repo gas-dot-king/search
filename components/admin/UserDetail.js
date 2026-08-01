@@ -5,6 +5,45 @@ import { adminPost } from "@/lib/adminClient";
 
 const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
+/**
+ * 인증 검토용 촬영 정보. EXIF가 없는 사진(스크린샷·메신저로 받은 사진)은 아무것도 안 보여준다.
+ * 촬영 시각에는 시간대가 없어 기기의 현지 시각 그대로 읽는다.
+ */
+function PhotoMeta({ meta, uploadedAt }) {
+  if (!meta) {
+    return <p className="photo-meta empty">촬영 정보 없음 (스크린샷이거나 지워진 사진)</p>;
+  }
+  const device = [meta.make, meta.model].filter(Boolean).join(" ");
+  const takenLabel = meta.takenAt
+    ? meta.takenAt.replace("T", " ").slice(5) + (meta.utcOffset ? ` (${meta.utcOffset})` : "")
+    : null;
+  // 촬영과 업로드가 많이 벌어지면 예전 사진일 수 있어 눈에 띄게 표시한다
+  const gapDays = meta.takenAt && uploadedAt
+    ? Math.floor((new Date(uploadedAt).getTime() - new Date(`${meta.takenAt}+09:00`).getTime()) / 86400000)
+    : null;
+
+  return (
+    <div className="photo-meta">
+      {takenLabel && (
+        <span>
+          📷 {takenLabel}
+          {gapDays != null && gapDays >= 1 && <b className="photo-meta-warn"> · {gapDays}일 전 촬영</b>}
+        </span>
+      )}
+      {meta.lat != null && (
+        <a
+          href={`https://map.naver.com/v5/search/${meta.lat},${meta.lng}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          📍 {meta.lat.toFixed(5)}, {meta.lng.toFixed(5)}
+        </a>
+      )}
+      {device && <span>📱 {device}</span>}
+    </div>
+  );
+}
+
 /** 회원 한 명의 인증 현황. 목록의 스크롤 위치를 잃지 않도록 페이지 이동 대신 팝업으로 띄운다. */
 export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset }) {
   async function deletePhoto(kind, id) {
@@ -85,8 +124,19 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
           </div>
         ))}
       </div>
+
+      <div className="photo-meta-list">
+        {data.cells.filter((c) => c.photoUrl).map((c) => (
+          <div key={`meta-${c.position}`} className="photo-meta-row">
+            <strong>{c.content}</strong>
+            <PhotoMeta meta={c.photoMeta} uploadedAt={c.uploadedAt} />
+          </div>
+        ))}
+      </div>
+
       <p className="hint" style={{ margin: "6px 0 16px" }}>
         사진을 누르면 원본 크기로 열려요. ✕로 부적절한 사진 삭제.
+        촬영 정보는 사진에 남아 있을 때만 보이고, 편집으로 바꿀 수 있어 참고용입니다.
       </p>
 
       <p style={{ fontWeight: 700, margin: "10px 0 6px" }}>로또 응모</p>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import ItemsList from "@/components/ItemsList";
 import Modal from "@/components/Modal";
-import { api, PRIVACY_WARNING, CATEGORY_RULE } from "@/lib/client";
+import { api, PRIVACY_WARNING, METADATA_NOTICE, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 import { countLines, getNearCompleteLines, LINES } from "@/lib/bingo";
 import { downloadBoardImage } from "@/lib/boardImage";
@@ -110,6 +110,8 @@ export default function BoardPage() {
       form.append("position", String(selectedPosition));
       form.append("file", photo.file, "photo.jpg");
       if (photo.thumb) form.append("thumb", photo.thumb, "thumb.jpg");
+      // 인증 검토용 촬영 정보. 사진에서 지워진 값이라 별도로 보낸다.
+      if (photo.meta) form.append("meta", JSON.stringify(photo.meta));
       const result = await api("/api/upload", { method: "POST", body: form });
       setSelected((current) => current?.position === selectedPosition ? null : current);
       photo.clear();
@@ -369,6 +371,7 @@ export default function BoardPage() {
                   {PHOTO_EXAMPLES[selected.category]}
                 </div>
                 <div className="warn-box">{PRIVACY_WARNING}</div>
+                <div className="rule-box" style={{ marginTop: 0 }}>{METADATA_NOTICE}</div>
               </>
             )}
 

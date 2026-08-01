@@ -352,6 +352,19 @@ label { display: block; font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px
   background: var(--info-bg); border: 1px solid var(--info-line); color: var(--info-text);
   border-radius: var(--r-md); padding: 11px 13px; font-size: 0.82rem; margin: 10px 0;
 }
+/* 관리자 인증 검토용 촬영 정보 */
+.photo-meta-list { display: grid; gap: 6px; margin: 10px 0 4px; }
+.photo-meta-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  font-size: 0.78rem;
+}
+.photo-meta-row > strong { flex: 1 1 100%; font-size: 0.8rem; }
+.photo-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); }
+.photo-meta.empty { color: var(--muted); font-style: italic; margin: 0; }
+.photo-meta a { color: var(--accent-deep); text-decoration: underline; }
+.photo-meta-warn { color: #b45309; }
+
 /* 업로드·응모 기간 밖 안내 (보기는 되지만 올릴 수는 없는 상태) */
 .period-lock {
   background: var(--locked-bg); border: 1px dashed var(--locked-line); color: var(--locked-text);

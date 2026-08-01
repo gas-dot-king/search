@@ -31,6 +31,8 @@ create table if not exists cells (
   photo_path text,
   uploaded_at timestamptz,
   uploaded_date date,
+  -- 인증 검토용 촬영 정보(EXIF). 스크린샷 등 EXIF가 없는 사진은 null이다.
+  photo_meta jsonb,
   unique (user_id, position)
 );
 

@@ -18,6 +18,7 @@ import {
   requireDbSuccess,
 } from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
+import { sanitizePhotoMetadata } from "@/lib/exif";
 
 function bingoClaimError(error) {
   const code = String(error?.message || "");
@@ -70,12 +71,32 @@ export const POST = route(async (req) => {
       : Promise.resolve(false),
   ]);
 
+  const photoMeta = sanitizePhotoMetadata(
+    (() => {
+      try {
+        return JSON.parse(String(form?.get("meta") || "null"));
+      } catch {
+        return null;
+      }
+    })()
+  );
+
   const { oldPath, error } = await claimBingoPhoto(user.id, position, path);
   if (error) {
     // The new file has no DB reference, so retrying its deletion is always safe.
     await schedulePhotoCleanup(thumbStored ? [path, thumbPath] : [path]);
     throw bingoClaimError(error);
   }
+
+  // 촬영 정보는 인증 검토용 부가 기록이라, 저장에 실패해도 인증 자체는 살린다.
+  // (photo_meta 컬럼 마이그레이션 적용 전에 배포돼도 업로드가 멈추지 않는다)
+  const { error: metaError } = await sb()
+    .from("cells")
+    .update({ photo_meta: photoMeta })
+    .eq("user_id", user.id)
+    .eq("position", position)
+    .eq("photo_path", path);
+  if (metaError) console.error("[upload] photo metadata not stored", metaError);
 
   // 화면이 이 응답만으로 칸을 갱신할 수 있게 주소를 함께 준다.
   // 빙고판 전체를 다시 불러오면 나머지 15칸의 서명 주소까지 새로 발급돼
@@ -112,7 +133,7 @@ export const DELETE = route(async (req) => {
   if (!cell?.photo_path) throw new ApiError("삭제할 사진이 없습니다.", 404);
   const { error } = await sb()
     .from("cells")
-    .update({ photo_path: null, uploaded_at: null, uploaded_date: null })
+    .update({ photo_path: null, uploaded_at: null, uploaded_date: null, photo_meta: null })
     .eq("id", cell.id)
     .eq("photo_path", cell.photo_path);
   requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
