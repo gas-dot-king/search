@@ -19,19 +19,38 @@ import {
 } from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 import { sanitizePhotoMetadata } from "@/lib/exif";
+import { dailyLimitMessage, todayInSeoul } from "@/lib/bingo";
 
-function bingoClaimError(error) {
+/** 오늘 이미 인증한 칸들 — 제한 안내에서 "무엇이 막고 있는지" 짚어 주는 데 쓴다 */
+async function todayCells(userId) {
+  const { data } = await sb()
+    .from("cells")
+    .select("bingo_items ( content, category )")
+    .eq("user_id", userId)
+    .eq("uploaded_date", todayInSeoul())
+    .not("photo_path", "is", null);
+  return (data || []).map((row) => ({
+    content: row.bingo_items?.content || "",
+    category: row.bingo_items?.category || 0,
+  }));
+}
+
+async function bingoClaimError(error, userId, category) {
   const code = String(error?.message || "");
-  if (code.includes("BINGO_DAILY_LIMIT")) return new ApiError("하루에는 빙고를 최대 3칸까지만 인증할 수 있어요.", 403);
-  if (code.includes("BINGO_CATEGORY_DAILY_LIMIT")) return new ApiError("하루에는 같은 카테고리를 1칸만 인증할 수 있어요.", 403);
   if (code.includes("BINGO_CELL_NOT_FOUND")) return new ApiError("빙고판이 없습니다. 먼저 빙고를 뽑아주세요.", 404);
+  if (code.includes("BINGO_DAILY_LIMIT") || code.includes("BINGO_CATEGORY_DAILY_LIMIT")) {
+    // 목록 조회가 실패해도 안내는 나가야 하므로 빈 배열로 물러선다
+    const cells = await todayCells(userId).catch(() => []);
+    const blockingCategory = code.includes("BINGO_CATEGORY_DAILY_LIMIT") ? category : 0;
+    return new ApiError(dailyLimitMessage(cells, blockingCategory), 403);
+  }
   return new ApiError("빙고 인증을 저장하지 못했습니다.", 500);
 }
 
 async function findCell(userId, position) {
   const { data: cell, error } = await sb()
     .from("cells")
-    .select("id, photo_path")
+    .select("id, photo_path, bingo_items ( category )")
     .eq("user_id", userId)
     .eq("position", Number(position))
     .maybeSingle();
@@ -85,7 +104,8 @@ export const POST = route(async (req) => {
   if (error) {
     // The new file has no DB reference, so retrying its deletion is always safe.
     await schedulePhotoCleanup(thumbStored ? [path, thumbPath] : [path]);
-    throw bingoClaimError(error);
+    const cell = await findCell(user.id, position).catch(() => null);
+    throw await bingoClaimError(error, user.id, cell?.bingo_items?.category || 0);
   }
 
   // 촬영 정보는 인증 검토용 부가 기록이라, 저장에 실패해도 인증 자체는 살린다.
