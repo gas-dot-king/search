@@ -1,12 +1,11 @@
--- 사진을 지운 칸에 다시 올릴 때 하루 제한에 막히지 않게 한다.
+-- 사진을 지우면 그날의 인증도 취소되는 원래 방식으로 되돌린다.
 --
--- 전에는 삭제하면서 uploaded_date까지 지워, 그 칸이 "오늘 쓰지 않은 칸"이 됐다.
--- 그래서 지운 자리를 같은 카테고리의 다른 칸에 쓰고 나면 원래 칸으로 되돌아갈 수 없었다.
+-- 20260801000001에서 "지운 칸도 하루 자리를 계속 차지한다"로 바꿨다가 되돌린다.
+-- 그 마이그레이션을 실행하지 않았다면 이 파일은 원래 함수를 그대로 다시 만들 뿐이라
+-- 아무것도 달라지지 않는다. 실행했다면 이 파일이 되돌려 준다.
 --
--- 이제 uploaded_date는 "그 칸이 오늘 자리를 썼다"는 표시로 남긴다.
---  · 오늘 자리를 쓴 칸에는 지웠든 아니든 언제든 다시 올릴 수 있다.
---  · 자리는 사진 유무가 아니라 uploaded_date로 세므로, 지웠다고 다른 칸이
---    자리를 하나 더 얻지는 않는다. 하루 3칸·카테고리당 1칸 규칙은 그대로다.
+-- 규칙: 하루 3칸, 카테고리당 1칸. 사진을 지우면 그 자리는 다시 비어,
+-- 같은 날 다른 칸(같은 카테고리 포함)에 쓸 수 있다.
 create or replace function claim_bingo_photo(
   p_user_id uuid,
   p_position integer,
@@ -41,12 +40,12 @@ begin
     raise exception 'BINGO_CELL_NOT_FOUND' using errcode = 'P0001';
   end if;
 
-  -- 오늘 이미 자리를 쓴 칸이면(사진을 지웠더라도) 제한을 다시 보지 않는다.
-  if v_old_date is distinct from v_day then
+  if v_old_path is null or v_old_date is distinct from v_day then
     select count(*) into v_daily_count
     from cells
     where user_id = p_user_id
       and id <> v_cell_id
+      and photo_path is not null
       and uploaded_date = v_day;
     if v_daily_count >= 3 then
       raise exception 'BINGO_DAILY_LIMIT' using errcode = 'P0001';
@@ -57,6 +56,7 @@ begin
     join bingo_items b on b.id = c.item_id
     where c.user_id = p_user_id
       and c.id <> v_cell_id
+      and c.photo_path is not null
       and c.uploaded_date = v_day
       and b.category = v_category;
     if v_category_count >= 1 then
@@ -74,6 +74,10 @@ begin
   return next;
 end;
 $$;
+
+-- 자리를 유지하던 동안 지워진 칸에는 uploaded_date만 남아 있을 수 있다.
+-- 사진 없는 칸은 인증이 취소된 상태이므로 날짜도 비워 상태를 맞춘다.
+update cells set uploaded_date = null where photo_path is null and uploaded_date is not null;
 
 revoke all on function claim_bingo_photo(uuid, integer, text, timestamptz) from public, anon, authenticated;
 grant execute on function claim_bingo_photo(uuid, integer, text, timestamptz) to service_role;

@@ -11,9 +11,7 @@ describe("하루 인증 제한 안내", () => {
     );
     expect(message).toContain("5km 이상 달리기");
     expect(message).toContain(CATEGORY_NAMES[1]);
-    // 지워도 자리가 남으므로 "지우면 된다"고 잘못 안내하면 안 된다
-    expect(message).not.toContain("지우면");
-    expect(message).toContain("내일");
+    expect(message).toContain("지우면");
   });
 
   it("하루 3칸을 다 썼으면 세 칸을 모두 알려준다", () => {
@@ -29,7 +27,6 @@ describe("하루 인증 제한 안내", () => {
     expect(message).toContain("주말에 한 번 달리기");
     expect(message).toContain("러닝화 사진 인증하기");
     expect(message).toContain("내일");
-    expect(message).toContain("바꿀 수 있어요");
   });
 
   it("카테고리 제한이 하루 3칸 제한보다 먼저 설명된다", () => {
@@ -44,7 +41,7 @@ describe("하루 인증 제한 안내", () => {
     );
     expect(message).toContain("주말에 한 번 달리기");
     expect(message).toContain(CATEGORY_NAMES[2]);
-    expect(message).not.toContain("3칸");
+    expect(message).not.toContain("내일");
   });
 
   it("목록을 못 읽었을 때도 안내는 나간다", () => {

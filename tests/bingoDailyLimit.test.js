@@ -36,21 +36,36 @@ describe("하루 빙고 인증 제한", () => {
     expect(demoUpload(user.id, two.position)).toMatchObject({ ok: true });
   });
 
-  it("지운 칸은 하루 자리를 계속 차지한다 — 되돌아올 수 있고, 갈아타기는 막는다", () => {
-    const user = demoAuth("자리유지테스트", "2244").user;
+  it("사진을 지우면 그날 인증이 취소돼, 같은 카테고리의 다른 칸에 쓸 수 있다", () => {
+    const user = demoAuth("인증취소테스트", "2244").user;
     demoDraw(user.id);
     const cells = demoBoard(user.id).cells;
     const first = cells.find((cell) => cell.category === 1);
     const other = cells.find((cell) => cell.category === 1 && cell.position !== first.position);
 
     expect(demoUpload(user.id, first.position)).toMatchObject({ ok: true });
-    expect(demoRemoveUpload(user.id, first.position)).toMatchObject({ ok: true });
-
-    // 지웠어도 그 칸의 자리는 남아 있으므로 같은 카테고리의 다른 칸으로는 못 간다
+    // 지우기 전에는 같은 카테고리의 다른 칸이 막힌다
     expect(demoUpload(user.id, other.position).error).toContain(first.content);
 
-    // 대신 원래 칸에는 언제든 다시 올릴 수 있다 — 이게 이번 변경의 핵심이다
-    expect(demoUpload(user.id, first.position)).toMatchObject({ ok: true });
+    expect(demoRemoveUpload(user.id, first.position)).toMatchObject({ ok: true });
+    // 지우면 그 자리가 비므로 다른 칸으로 옮겨 갈 수 있다
+    expect(demoUpload(user.id, other.position)).toMatchObject({ ok: true });
+  });
+
+  it("하루 3칸을 다 쓴 뒤 한 칸을 지우면 다른 칸을 인증할 수 있다", () => {
+    const user = demoAuth("자리반납테스트", "3355").user;
+    demoDraw(user.id);
+    const cells = demoBoard(user.id).cells;
+    const one = cells.find((cell) => cell.category === 1);
+    const two = cells.find((cell) => cell.category === 2);
+    const three = cells.find((cell) => cell.category === 3);
+    const anotherThree = cells.find((cell) => cell.category === 3 && cell.position !== three.position);
+
+    expect(demoUpload(user.id, one.position)).toMatchObject({ ok: true });
+    expect(demoUpload(user.id, two.position)).toMatchObject({ ok: true });
+    expect(demoUpload(user.id, three.position)).toMatchObject({ ok: true });
+    expect(demoRemoveUpload(user.id, three.position)).toMatchObject({ ok: true });
+    expect(demoUpload(user.id, anotherThree.position)).toMatchObject({ ok: true });
   });
 
   it("오늘 이미 채운 같은 칸의 사진 교체는 허용한다", () => {
