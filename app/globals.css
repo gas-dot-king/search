@@ -422,6 +422,17 @@ html[data-theme="dark"] .admin-overview-stat.tone-warn { border-color: #78500f; 
 html[data-theme="dark"] .admin-overview-stat.tone-warn > b { color: #fbbf24; }
 html[data-theme="dark"] .admin-daily-bar { background: #7f1d33; }
 
+/* 관리자: 칸에 사진 직접 넣기 */
+.admin-cell-put {
+  /* 칸 이름은 아래쪽 띠에 깔리므로 위로 붙인다 (오른쪽 위는 삭제 ✕ 자리) */
+  position: absolute; left: 4px; top: 4px; z-index: 2;
+  padding: 3px 7px; border: none; border-radius: 999px; cursor: pointer;
+  background: rgba(15, 23, 42, 0.78); color: #fff;
+  font-size: 0.66rem; font-weight: 800; line-height: 1.4;
+}
+.admin-cell-put:hover:not(:disabled) { background: var(--accent); }
+.admin-cell-put:disabled { opacity: 0.5; cursor: default; }
+
 /* 관리자 인증 검토용 촬영 정보 */
 .photo-meta-list { display: grid; gap: 6px; margin: 10px 0 4px; }
 .photo-meta-row {

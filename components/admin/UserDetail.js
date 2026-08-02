@@ -1,7 +1,9 @@
 "use client";
 
 import Modal from "@/components/Modal";
-import { adminPost } from "@/lib/adminClient";
+import { useRef, useState } from "react";
+import { adminPost, adminUpload } from "@/lib/adminClient";
+import { resizeForUpload } from "@/lib/client";
 import { photoReview } from "@/lib/photoReview";
 
 const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
@@ -40,6 +42,44 @@ function PhotoMeta({ meta, uploadedAt, uploadStart }) {
 
 /** 회원 한 명의 인증 현황. 목록의 스크롤 위치를 잃지 않도록 페이지 이동 대신 팝업으로 띄운다. */
 export default function UserDetail({ user, data, uploadStart, onBack, onRefresh, onBoardReset }) {
+  // 어느 칸에 넣는 중인지. 파일 입력 하나를 칸마다 돌려 쓴다.
+  const [putTarget, setPutTarget] = useState(null);
+  const [putBusy, setPutBusy] = useState(false);
+  const putFileRef = useRef(null);
+
+  function startPutPhoto(cell) {
+    setPutTarget(cell);
+    putFileRef.current?.click();
+  }
+
+  async function putPhoto(event) {
+    const file = event.target.files?.[0];
+    const cell = putTarget;
+    event.target.value = "";
+    if (!file || !cell) return;
+
+    const label = `'${cell.content}' 칸에 사진을 ${cell.photoUrl ? "교체" : "등록"}할까요?`;
+    if (!confirm(`${label}\n\n운영진 등록은 하루 인증 제한을 적용하지 않습니다.`)) return;
+
+    setPutBusy(true);
+    try {
+      const { full, thumb, meta } = await resizeForUpload(file);
+      const form = new FormData();
+      form.append("userId", user.id);
+      form.append("position", String(cell.position));
+      form.append("file", full, "photo.jpg");
+      if (thumb) form.append("thumb", thumb, "thumb.jpg");
+      if (meta) form.append("meta", JSON.stringify(meta));
+      await adminUpload("/api/admin/photo", form);
+      await onRefresh();
+    } catch (err) {
+      alert(err.message || "사진을 등록하지 못했습니다.");
+    } finally {
+      setPutBusy(false);
+      setPutTarget(null);
+    }
+  }
+
   async function deletePhoto(kind, id) {
     if (!confirm("이 사진을 삭제할까요?")) return;
     try {
@@ -116,9 +156,20 @@ export default function UserDetail({ user, data, uploadStart, onBack, onRefresh,
             ) : (
               <span className="txt">{c.content}</span>
             )}
+            <button
+              type="button"
+              className="admin-cell-put"
+              title={c.photoUrl ? "사진 교체" : "사진 넣기"}
+              onClick={() => startPutPhoto(c)}
+              disabled={putBusy}
+            >
+              {c.photoUrl ? "교체" : "＋ 사진"}
+            </button>
           </div>
         ))}
       </div>
+      <input ref={putFileRef} type="file" accept="image/*" onChange={putPhoto} hidden />
+      {putBusy && <p className="hint" role="status">사진을 등록하는 중이에요...</p>}
 
       <div className="photo-meta-list">
         {data.cells.filter((c) => c.photoUrl).map((c) => (
@@ -131,6 +182,7 @@ export default function UserDetail({ user, data, uploadStart, onBack, onRefresh,
 
       <p className="hint" style={{ margin: "6px 0 16px" }}>
         사진을 누르면 원본 크기로 열려요. ✕로 부적절한 사진 삭제.
+        실수로 지운 인증은 <b>＋ 사진</b>으로 되살릴 수 있어요 (하루 제한 없이 등록됩니다).
         촬영 정보는 사진에 남아 있을 때만 보이고, 편집으로 바꿀 수 있어 참고용입니다.
       </p>
 
