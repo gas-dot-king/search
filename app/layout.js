@@ -1,4 +1,3 @@
-import "@fontsource-variable/noto-sans-kr";
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 import Footer from "@/components/Footer";

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
+import { adminApi, adminLogin, adminLogout, adminPost } from "@/lib/adminClient";
 import { parseNotices } from "@/lib/notices";
 import SettingsCard from "@/components/admin/SettingsCard";
 import CollapsibleCard from "@/components/admin/CollapsibleCard";
@@ -33,30 +33,38 @@ export default function AdminPage() {
     setAuthed(true);
   }, []);
 
+  useEffect(() => {
+    loadOverview().catch((err) => {
+      if (err.status !== 401) setError(err.message);
+    });
+  }, [loadOverview]);
+
   async function login(e) {
     e.preventDefault();
-    adminPw.set(pw);
     setError("");
     try {
+      await adminLogin(pw);
       await loadOverview();
     } catch (err) {
-      adminPw.clear();
       setError(err.status === 401 ? "비밀번호가 틀렸습니다." : err.message);
     }
   }
 
-  function logout() {
-    adminPw.clear();
-    setAuthed(false);
-    setOverview(null);
-    setDetail(null);
-    setPw("");
-    setError("");
+  async function logout() {
+    try {
+      await adminLogout();
+    } finally {
+      setAuthed(false);
+      setOverview(null);
+      setDetail(null);
+      setPw("");
+      setError("");
+    }
   }
 
   // 관리자 화면을 벗어나 일반 회원 화면으로 돌아간다. 회원 토큰은 그대로라 홈이 알아서 빙고/뽑기로 보낸다.
   function leave() {
-    adminPw.clear();
+    void adminLogout();
     router.replace("/");
   }
 
@@ -101,7 +109,7 @@ export default function AdminPage() {
             </button>
           </div>
           <p className="admin-session-note">
-            🔒 세션은 <b>10분</b> 유지되고, 작업할 때마다 갱신됩니다. 이 기기에서만 유효합니다.
+            🔒 세션은 <b>10분</b> 유지됩니다. 만료되면 다시 입장해주세요.
           </p>
         </form>
       </main>
@@ -123,7 +131,11 @@ export default function AdminPage() {
 
       <CleanupCard cleanup={overview.cleanup} onChanged={loadOverview} />
 
-      <RecentUploadsCard uploadStart={overview?.settings?.upload_start} onOpenUser={openUser} />
+      <RecentUploadsCard
+        uploadStart={overview?.settings?.upload_start}
+        onOpenUser={openUser}
+        onChanged={loadOverview}
+      />
 
       <SettingsCard settings={overview?.settings || {}} busy={busy} setBusy={setBusy} onChanged={loadOverview} />
 
@@ -185,6 +197,7 @@ export default function AdminPage() {
           uploadStart={overview?.settings?.upload_start}
           onBack={() => setDetail(null)}
           onRefresh={() => openUser(detail.user)}
+          onOverviewChanged={loadOverview}
           onBoardReset={async () => {
             setDetail(null);
             await loadOverview();

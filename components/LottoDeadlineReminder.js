@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/client";
+import { prefetchApiData } from "@/lib/hooks";
 
 export default function LottoDeadlineReminder({ config }) {
   const [reminder, setReminder] = useState(null);
@@ -27,7 +27,7 @@ export default function LottoDeadlineReminder({ config }) {
     }
 
     let cancelled = false;
-    api("/api/lotto?summary=1")
+    prefetchApiData("/api/lotto?summary=1", { ttl: 60_000 })
       .then((data) => {
         const remainingEntries = data.maxEntries - data.entryCount;
 

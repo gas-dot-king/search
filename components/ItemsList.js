@@ -1,5 +1,3 @@
-"use client";
-
 export const CATEGORY_NAMES = {
   1: "① 러닝 기록·운동 달성",
   2: "② 시간·장소·러닝 탐험",

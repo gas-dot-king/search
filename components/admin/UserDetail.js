@@ -41,7 +41,15 @@ function PhotoMeta({ meta, uploadedAt, uploadStart }) {
 }
 
 /** 회원 한 명의 인증 현황. 목록의 스크롤 위치를 잃지 않도록 페이지 이동 대신 팝업으로 띄운다. */
-export default function UserDetail({ user, data, uploadStart, onBack, onRefresh, onBoardReset }) {
+export default function UserDetail({
+  user,
+  data,
+  uploadStart,
+  onBack,
+  onRefresh,
+  onOverviewChanged,
+  onBoardReset,
+}) {
   // 어느 칸에 넣는 중인지. 파일 입력 하나를 칸마다 돌려 쓴다.
   const [putTarget, setPutTarget] = useState(null);
   const [putBusy, setPutBusy] = useState(false);
@@ -71,7 +79,7 @@ export default function UserDetail({ user, data, uploadStart, onBack, onRefresh,
       if (thumb) form.append("thumb", thumb, "thumb.jpg");
       if (meta) form.append("meta", JSON.stringify(meta));
       await adminUpload("/api/admin/photo", form);
-      await onRefresh();
+      await Promise.all([onRefresh(), onOverviewChanged?.()]);
     } catch (err) {
       alert(err.message || "사진을 등록하지 못했습니다.");
     } finally {
@@ -86,7 +94,7 @@ export default function UserDetail({ user, data, uploadStart, onBack, onRefresh,
       await adminPost(
         kind === "cell" ? { action: "delete_cell_photo", cellId: id } : { action: "delete_lotto_entry", entryId: id }
       );
-      await onRefresh();
+      await Promise.all([onRefresh(), onOverviewChanged?.()]);
     } catch (err) {
       alert(err.message);
     }

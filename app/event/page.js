@@ -5,6 +5,7 @@ import Guestbook from "@/components/Guestbook";
 import Nav from "@/components/Nav";
 import NaverMap, { isNaverMapConfigured } from "@/components/NaverMap";
 import { normalizeEventGuide } from "@/lib/event";
+import { fetchPublicConfig } from "@/lib/hooks";
 
 function formatEventDate(value) {
   const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -23,11 +24,7 @@ export default function EventPage() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/config?fresh=1", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("행사 안내를 불러오지 못했습니다.");
-        return response.json();
-      })
+    fetchPublicConfig({ fresh: true })
       .then((data) => active && setConfig(data))
       .catch((err) => active && setError(err.message));
 

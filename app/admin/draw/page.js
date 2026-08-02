@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { adminApi, adminPost, adminPw } from "@/lib/adminClient";
+import { adminApi, adminLogin, adminPost } from "@/lib/adminClient";
 import { LOTTO_DRAW_DIGITS } from "@/lib/lotto";
 
 const SLOT_LABELS = ["1의 자리", "소수점 첫째 자리", "소수점 둘째 자리"];
@@ -111,24 +111,20 @@ export default function AdminDrawPage() {
   }, []);
 
   useEffect(() => {
-    // 관리자 비밀번호는 메모리에만 있어서, 새로고침·직접 접속이면 여기서 다시 받는다.
-    if (!adminPw.get()) {
-      setLoading(false);
-      return;
-    }
     load()
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        if (err.status !== 401) setError(err.message);
+      })
       .finally(() => setLoading(false));
   }, [load]);
 
   async function login(event) {
     event.preventDefault();
-    adminPw.set(pw);
     setError("");
     try {
+      await adminLogin(pw);
       await load();
     } catch (err) {
-      adminPw.clear();
       setError(err.status === 401 ? "비밀번호가 틀렸습니다." : err.message);
     }
   }

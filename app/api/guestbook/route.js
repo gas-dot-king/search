@@ -24,19 +24,10 @@ async function limitWrites(req, userId) {
   if (!allowed) throw new ApiError("방명록 저장이 너무 잦아요. 잠시 뒤 다시 시도해주세요.", 429);
 }
 
-/** 저장 직전에 내가 이미 쓴 개수를 세어 상한을 넘지 않게 한다. */
+/** 데모 모드는 DB 트랜잭션이 없으므로 메모리 상태에서만 상한을 확인한다. */
 async function assertUnderLimit(userId) {
-  if (isDemoMode()) {
-    const full = guestbookCountError(demoGuestbookCount(userId));
-    if (full) throw new ApiError(full, 409);
-    return;
-  }
-  const { count, error } = await sb()
-    .from("guestbook_entries")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  requireDbSuccess(error, "방명록 개수를 확인하지 못했습니다");
-  const full = guestbookCountError(count || 0);
+  if (!isDemoMode()) return;
+  const full = guestbookCountError(demoGuestbookCount(userId));
   if (full) throw new ApiError(full, 409);
 }
 
@@ -96,13 +87,19 @@ export const POST = route(async (req) => {
     return { ok: true, entry: entryView(result.entry, user.id) };
   }
 
-  const { data, error } = await sb()
-    .from("guestbook_entries")
-    .insert({ user_id: user.id, message })
-    .select("id, user_id, message, created_at, updated_at, users ( nickname )")
-    .single();
-  requireDbSuccess(error, "방명록을 저장하지 못했습니다");
-  return { ok: true, entry: entryView(data, user.id) };
+  const { data, error } = await sb().rpc("create_guestbook_entry", {
+    p_user_id: user.id,
+    p_message: message,
+    p_max_per_user: GUESTBOOK_MAX_PER_USER,
+  });
+  if (error) {
+    if (String(error.message).includes("GUESTBOOK_LIMIT")) {
+      throw new ApiError(guestbookCountError(GUESTBOOK_MAX_PER_USER), 409);
+    }
+    throw new ApiError(`방명록을 저장하지 못했습니다: ${error.message}`, 500);
+  }
+  const inserted = Array.isArray(data) ? data[0] : data;
+  return { ok: true, entry: entryView({ ...inserted, nickname: user.nickname }, user.id) };
 });
 
 /** 내 방명록 수정 */

@@ -4,108 +4,39 @@ import {
   photoCleanupStatus,
   processPhotoCleanup,
   schedulePhotoCleanup,
-  selectAllRows,
   signedUrls,
   thumbPathFor,
 } from "@/lib/db";
 import { hashPin, hashToken, newToken, sessionExpiresAt } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
+import { adminSessionCookie, clearAdminSessionCookie, verifyAdminPassword } from "@/lib/adminAuth";
+import { takeRateLimit } from "@/lib/rateLimit";
+import { decodeRecentCursor, encodeRecentCursor } from "@/lib/adminCursor";
+import { lottoRoundState, photoUrlLookup, lottoEntriesFor } from "@/lib/adminData";
 import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { buildEventStats } from "@/lib/stats";
 import { getAllProgress, invalidateBingoHallCache } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
 import { fourLineAchievements, mergeFourLineAwards } from "@/lib/hall";
+import { demoAdminAction } from "@/lib/demoAdmin";
 import {
-  computeWinners,
   currentLottoRound,
-  parseLottoRounds,
   serializeLottoRounds,
   LOTTO_DRAW_DIGITS,
 } from "@/lib/lotto";
 import {
   demoAdminUser,
-  demoConfirmFourLine,
-  demoDeleteCellPhoto,
-  demoDeleteLottoEntry,
-  demoDeleteUser,
-  demoDrawNumbers,
   demoFourLineRanking,
   demoItems,
   demoLottoRound,
-  demoNextLottoRound,
   demoProgress,
   demoRecentUploads,
-  demoResetBoard,
-  demoResetDraw,
-  demoResetUserPin,
-  demoRenameUser,
-  demoSetSetting,
   demoSettings,
-  demoUnconfirmFourLine,
   isDemoMode,
 } from "@/lib/demo";
 
-/** 현재 차수의 추첨 상태 — 3자리가 다 나왔으면 1등까지 계산해서 돌려준다 */
-async function lottoRoundState(settings) {
-  const digits = settings.winning_numbers || "";
-  const pastRounds = parseLottoRounds(settings.lotto_rounds);
-  const complete = digits.length === LOTTO_DRAW_DIGITS;
-
-  const { data: entries, error } = await sb()
-    .from("lotto_entries")
-    .select("digits, users ( nickname )")
-    .not("slot", "is", null);
-  requireDbSuccess(error, "응모 내역을 불러오지 못했습니다");
-
-  return {
-    digits,
-    round: currentLottoRound(pastRounds),
-    pastRounds,
-    complete,
-    entryCount: (entries || []).length,
-    winners: complete ? computeWinners(entries, digits) : null,
-  };
-}
-
-/**
- * 사진 목록의 축소본·원본 주소를 함께 만들어 경로로 찾아 쓰는 함수를 돌려준다.
- * 축소본은 없을 수 있어(축소본을 만들기 전에 올린 사진) 개별 재시도를 끄고,
- * 없으면 원본으로 물러선다. 원본은 반드시 있어야 하므로 기본 동작을 그대로 쓴다.
- */
-async function photoUrlLookup(paths) {
-  const valid = [...new Set((paths || []).filter(Boolean))];
-  const [thumbMap, fullMap] = await Promise.all([
-    signedUrls(valid.map(thumbPathFor), { retryMissing: false }),
-    signedUrls(valid),
-  ]);
-  return (path) => {
-    if (!path) return { photoUrl: null, thumbUrl: null };
-    const photoUrl = fullMap[path] || null;
-    return { photoUrl, thumbUrl: thumbMap[thumbPathFor(path)] || photoUrl };
-  };
-}
-
 /** 검토 큐 한 페이지 크기. 관리자가 행사장에서 폰으로 넘겨보는 양을 기준으로 잡았다. */
 const RECENT_PAGE_SIZE = 30;
-
-/**
- * 회원의 로또 응모. photo_meta 컬럼이 아직 없는 DB(마이그레이션 전 배포)에서도
- * 회원 상세가 열리도록, 실패하면 촬영 정보 없이 한 번 더 읽는다.
- */
-async function lottoEntriesFor(userId) {
-  const query = (columns) =>
-    sb()
-      .from("lotto_entries")
-      .select(columns)
-      .eq("user_id", userId)
-      .not("slot", "is", null)
-      .order("created_at");
-
-  const withMeta = await query("id, digits, photo_path, created_at, photo_meta");
-  if (!withMeta.error) return withMeta;
-  console.error("[admin] lotto photo_meta not read", withMeta.error);
-  return query("id, digits, photo_path, created_at");
-}
 
 export const GET = route(async (req) => {
   await requireAdmin(req);
@@ -147,8 +78,14 @@ export const GET = route(async (req) => {
       .select("id, user_id, position, photo_path, uploaded_at, photo_meta, users ( nickname ), bingo_items ( content, category )")
       .not("photo_path", "is", null)
       .order("uploaded_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(RECENT_PAGE_SIZE + 1); // 한 건 더 읽어 "더 있는지"를 판단한다
-    if (before) query = query.lt("uploaded_at", before);
+    const cursor = decodeRecentCursor(before);
+    if (cursor?.id) {
+      query = query.or(`uploaded_at.lt.${cursor.at},and(uploaded_at.eq.${cursor.at},id.lt.${cursor.id})`);
+    } else if (cursor?.at) {
+      query = query.lt("uploaded_at", cursor.at);
+    }
 
     const { data, error } = await query;
     requireDbSuccess(error, "최근 인증을 불러오지 못했습니다");
@@ -171,32 +108,29 @@ export const GET = route(async (req) => {
           photoMeta: row.photo_meta || null,
           ...urlsOf(row.photo_path),
         })),
-        nextCursor: hasMore ? page[page.length - 1].uploaded_at : null,
+        nextCursor: hasMore ? encodeRecentCursor(page[page.length - 1]) : null,
       },
-      { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
+      { headers: { "Cache-Control": "no-store", "Vary": "Cookie" } }
     );
   }
 
   if (action === "lotto_round") {
     return Response.json(await lottoRoundState(await getSettings()), {
-      headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" },
+      headers: { "Cache-Control": "no-store", "Vary": "Cookie" },
     });
   }
 
   if (action === "overview") {
     const [
       settings,
-      { progress, cells, lotto },
+      { progress, cells, allCells, lotto },
       { data: items, error: itemsError },
-      allCells,
       { data: awards, error: awardsError },
       cleanup,
     ] = await Promise.all([
       getSettings(),
-      getAllProgress(),
+      getAllProgress({ includeAllCells: true }),
       sb().from("bingo_items").select("id, category, content").order("category").order("id"),
-      // 항목별 인증률의 분모: 그 항목이 몇 명의 판에 뽑혔는지. 사진 여부와 무관한 전체 칸이다.
-      selectAllRows("cells", "item_id", (query) => query.order("id")),
       sb().from("four_line_awards").select("user_id, achieved_at, confirmed_at").order("achieved_at"),
       photoCleanupStatus(),
     ]);
@@ -225,7 +159,7 @@ export const GET = route(async (req) => {
         cleanup,
         stats: buildEventStats({ progress, cells, lotto, allCells, items: items || [] }),
       },
-      { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
+      { headers: { "Cache-Control": "no-store", "Vary": "Cookie" } }
     );
   }
 
@@ -272,78 +206,31 @@ export const GET = route(async (req) => {
 });
 
 export const POST = route(async (req) => {
-  await requireAdmin(req);
   const body = await readJson(req);
-  if (!isDemoMode()) await processPhotoCleanup();
+
+  if (body.action === "login") {
+    const allowed = await takeRateLimit(req, "admin-login", "admin", { limit: 10, windowSeconds: 15 * 60 });
+    if (!allowed) throw new ApiError("관리자 인증 요청이 너무 많습니다. 잠시 뒤 다시 시도해주세요.", 429);
+    if (!verifyAdminPassword(body.password)) throw new ApiError("관리자 인증 실패", 401);
+    return Response.json(
+      { ok: true },
+      { headers: { "Set-Cookie": adminSessionCookie(), "Cache-Control": "no-store" } }
+    );
+  }
+
+  if (body.action === "logout") {
+    return Response.json(
+      { ok: true },
+      { headers: { "Set-Cookie": clearAdminSessionCookie(), "Cache-Control": "no-store" } }
+    );
+  }
+
+  await requireAdmin(req);
 
   if (isDemoMode()) {
-    switch (body.action) {
-      case "set_setting": {
-        if (!EDITABLE_KEYS.includes(body.key) || body.key === "upload_start" || body.key === "upload_end") {
-          throw new ApiError("수정할 수 없는 설정입니다.");
-        }
-        return demoSetSetting(body.key, body.key === "event_guide" ? serializeEventGuide(body.value) : body.value);
-      }
-      case "draw_numbers": {
-        const result = demoDrawNumbers();
-        if (result.error) throw new ApiError(result.error);
-        return result;
-      }
-      case "next_lotto_round": {
-        const result = demoNextLottoRound();
-        if (result.error) throw new ApiError(result.error);
-        return result;
-      }
-      case "reset_draw":
-        return demoResetDraw();
-      case "reset_user_pin": {
-        const result = demoResetUserPin(String(body.userId || ""));
-        if (result.error) throw new ApiError(result.error, result.status);
-        return result;
-      }
-      case "rename_user": {
-        const nickname = String(body.nickname || "").trim();
-        if (nickname.length < 1 || nickname.length > 12) throw new ApiError("닉네임은 1~12자로 입력해주세요.");
-        const result = demoRenameUser(String(body.userId || ""), nickname);
-        if (result.error) throw new ApiError(result.error, result.status);
-        return result;
-      }
-      case "set_upload_period": {
-        const start = String(body.start || "");
-        const end = String(body.end || "");
-        if (Number.isNaN(new Date(start).getTime()) || Number.isNaN(new Date(end).getTime()) || new Date(start) >= new Date(end)) {
-          throw new ApiError("업로드 시작과 마감 시각을 올바르게 입력해주세요.");
-        }
-        demoSetSetting("upload_start", start);
-        return demoSetSetting("upload_end", end);
-      }
-      case "reset_board":
-        return demoResetBoard(String(body.userId || ""));
-      case "delete_user":
-        return demoDeleteUser(String(body.userId || ""));
-      case "delete_cell_photo": {
-        const result = demoDeleteCellPhoto(body.cellId);
-        if (result.error) throw new ApiError(result.error);
-        return result;
-      }
-      case "delete_lotto_entry": {
-        const result = demoDeleteLottoEntry(body.entryId);
-        if (result.error) throw new ApiError(result.error, result.status);
-        return result;
-      }
-      case "confirm_four_line": {
-        const result = demoConfirmFourLine(String(body.userId || ""));
-        if (result.error) throw new ApiError(result.error, result.status);
-        return result;
-      }
-      case "unconfirm_four_line":
-        return demoUnconfirmFourLine(String(body.userId || ""));
-      case "retry_cleanup":
-        // 데모에는 Storage가 없어 정리할 것도 없다.
-        return { ok: true, pending: false, cleanup: { pending: 0, stuck: 0, oldest: null, samples: [] } };
-      default:
-        throw new ApiError("알 수 없는 요청입니다.");
-    }
+    const result = demoAdminAction(body);
+    if (result.error) throw new ApiError(result.error, result.status);
+    return result;
   }
 
   switch (body.action) {

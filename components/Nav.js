@@ -8,7 +8,7 @@ import HallOfFameLink from "./HallOfFameLink";
 import SettingsLink from "./SettingsLink";
 import SocialLink from "./SocialLink";
 import Modal from "./Modal";
-import { prefetchApiData } from "@/lib/hooks";
+import { fetchPublicConfig, prefetchApiData } from "@/lib/hooks";
 import {
   NOTICE_HIDDEN_UNTIL_KEY,
   NOTICE_VISIBILITY_EVENT,
@@ -164,11 +164,7 @@ export default function Nav({ config, configLoading = false }) {
   useEffect(() => {
     if (currentConfig || configLoading) return;
     let active = true;
-    fetch("/api/config")
-      .then((response) => {
-        if (!response.ok) throw new Error("설정을 불러오지 못했습니다.");
-        return response.json();
-      })
+    fetchPublicConfig()
       .then((data) => active && setCurrentConfig(data))
       .catch(() => {});
     return () => {

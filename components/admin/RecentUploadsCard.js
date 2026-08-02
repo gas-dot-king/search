@@ -84,7 +84,7 @@ function UploadRow({ upload, uploadStart, onOpenUser, onDelete, busy }) {
  * 회원 목록을 한 명씩 열어보는 방식은 회원이 늘수록 검토가 불가능해지므로,
  * "새로 올라온 것부터" 보는 창구를 따로 둔다.
  */
-export default function RecentUploadsCard({ uploadStart, onOpenUser }) {
+export default function RecentUploadsCard({ uploadStart, onOpenUser, onChanged }) {
   const [uploads, setUploads] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [filter, setFilter] = useState(REVIEW_FILTERS.ALL);
@@ -117,6 +117,7 @@ export default function RecentUploadsCard({ uploadStart, onOpenUser }) {
       await adminPost({ action: "delete_cell_photo", cellId: upload.id });
       // 목록에서만 지워, 관리자가 보던 위치를 잃지 않게 한다.
       setUploads((current) => (current || []).filter((item) => item.id !== upload.id));
+      await onChanged?.();
     } catch (err) {
       alert(err.message);
     } finally {

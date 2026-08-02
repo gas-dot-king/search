@@ -1,5 +1,3 @@
-"use client";
-
 import Nav from "@/components/Nav";
 
 const EVENT_RULES = [

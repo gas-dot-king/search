@@ -83,7 +83,7 @@ create table if not exists storage_cleanup_tasks (
 create index if not exists lotto_entries_user_created_at_idx
   on lotto_entries (user_id, created_at);
 
--- 방명록은 항상 최신순으로 통째로 읽고, 저장 전에 내가 쓴 개수를 센다
+-- 방명록은 항상 최신순으로 읽고, 저장 상한은 원자적 RPC에서 검사한다
 create index if not exists guestbook_entries_created_at_idx
   on guestbook_entries (created_at desc);
 create index if not exists guestbook_entries_user_id_idx

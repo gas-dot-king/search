@@ -44,7 +44,7 @@ export const GET = route(async (req) => {
       .sort((a, b) => b.lines - a.lines || b.filled - a.filled || a.nickname.localeCompare(b.nickname));
     return { rankings, activity };
   }
-  const { progress, users, cells, lotto } = await getAllProgress();
+  const { progress, users, cells, lotto } = await getAllProgress({ cacheMs: 5_000 });
 
   const nickOf = new Map(users.map((u) => [u.id, u.nickname]));
 
