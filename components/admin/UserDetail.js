@@ -2,50 +2,44 @@
 
 import Modal from "@/components/Modal";
 import { adminPost } from "@/lib/adminClient";
+import { photoReview } from "@/lib/photoReview";
 
 const fmtKm = (d) => `${d.slice(0, 2)}.${d.slice(2)}`;
 
-/**
- * 인증 검토용 촬영 정보. EXIF가 없는 사진(스크린샷·메신저로 받은 사진)은 아무것도 안 보여준다.
- * 촬영 시각에는 시간대가 없어 기기의 현지 시각 그대로 읽는다.
- */
-function PhotoMeta({ meta, uploadedAt }) {
-  if (!meta) {
+/** 인증 검토용 촬영 정보. EXIF가 없는 사진(스크린샷·메신저로 받은 사진)은 그 사실만 알린다. */
+function PhotoMeta({ meta, uploadedAt, uploadStart }) {
+  const review = photoReview(meta, uploadedAt, uploadStart);
+  if (!review.hasMeta) {
     return <p className="photo-meta empty">촬영 정보 없음 (스크린샷이거나 지워진 사진)</p>;
   }
-  const device = [meta.make, meta.model].filter(Boolean).join(" ");
-  const takenLabel = meta.takenAt
-    ? meta.takenAt.replace("T", " ").slice(5) + (meta.utcOffset ? ` (${meta.utcOffset})` : "")
-    : null;
-  // 촬영과 업로드가 많이 벌어지면 예전 사진일 수 있어 눈에 띄게 표시한다
-  const gapDays = meta.takenAt && uploadedAt
-    ? Math.floor((new Date(uploadedAt).getTime() - new Date(`${meta.takenAt}+09:00`).getTime()) / 86400000)
-    : null;
 
   return (
     <div className="photo-meta">
-      {takenLabel && (
+      {review.takenLabel && (
         <span>
-          📷 {takenLabel}
-          {gapDays != null && gapDays >= 1 && <b className="photo-meta-warn"> · {gapDays}일 전 촬영</b>}
+          📷 {review.takenLabel}
+          {review.utcOffset ? ` (${review.utcOffset})` : ""}
+          {review.flag && <b className="photo-meta-warn"> · ⚠️ {review.flag}</b>}
+          {/* 며칠 전 촬영은 위반이 아니라 참고 사항이라 경고색을 쓰지 않는다 */}
+          {review.note && ` · ${review.note}`}
         </span>
       )}
-      {meta.lat != null && (
+      {review.hasGps && (
         <a
-          href={`https://map.naver.com/v5/search/${meta.lat},${meta.lng}`}
+          href={`https://map.naver.com/p/search/${review.lat},${review.lng}`}
           target="_blank"
           rel="noopener noreferrer"
         >
-          📍 {meta.lat.toFixed(5)}, {meta.lng.toFixed(5)}
+          📍 {review.lat.toFixed(5)}, {review.lng.toFixed(5)}
         </a>
       )}
-      {device && <span>📱 {device}</span>}
+      {review.device && <span>📱 {review.device}</span>}
     </div>
   );
 }
 
 /** 회원 한 명의 인증 현황. 목록의 스크롤 위치를 잃지 않도록 페이지 이동 대신 팝업으로 띄운다. */
-export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset }) {
+export default function UserDetail({ user, data, uploadStart, onBack, onRefresh, onBoardReset }) {
   async function deletePhoto(kind, id) {
     if (!confirm("이 사진을 삭제할까요?")) return;
     try {
@@ -105,8 +99,9 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
           <div key={c.position} className={`cell ${c.photoUrl ? "done" : ""}`}>
             {c.photoUrl ? (
               <>
+                {/* 그리드는 축소본, 원본은 눌렀을 때만 — 회원을 열 때마다 원본 16장을 받지 않도록. */}
                 <a href={c.photoUrl} target="_blank" rel="noopener">
-                  <img src={c.photoUrl} alt={c.content} loading="lazy" decoding="async" />
+                  <img src={c.thumbUrl || c.photoUrl} alt={c.content} loading="lazy" decoding="async" />
                 </a>
                 <div className="overlay">{c.content}</div>
                 <button
@@ -129,7 +124,7 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
         {data.cells.filter((c) => c.photoUrl).map((c) => (
           <div key={`meta-${c.position}`} className="photo-meta-row">
             <strong>{c.content}</strong>
-            <PhotoMeta meta={c.photoMeta} uploadedAt={c.uploadedAt} />
+            <PhotoMeta meta={c.photoMeta} uploadedAt={c.uploadedAt} uploadStart={uploadStart} />
           </div>
         ))}
       </div>
@@ -146,10 +141,14 @@ export default function UserDetail({ user, data, onBack, onRefresh, onBoardReset
           <div className="entry-item" key={e.id}>
             {e.photoUrl && (
               <a href={e.photoUrl} target="_blank" rel="noopener">
-                <img src={e.photoUrl} alt="인증" loading="lazy" decoding="async" />
+                <img src={e.thumbUrl || e.photoUrl} alt="인증" loading="lazy" decoding="async" />
               </a>
             )}
-            <b style={{ flex: 1 }}>{fmtKm(e.digits)} km</b>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <b>{fmtKm(e.digits)} km</b>
+              {/* 자기가 적어 넣은 기록이라 촬영 정보를 빙고와 같은 기준으로 함께 본다 */}
+              <PhotoMeta meta={e.photoMeta} uploadedAt={e.createdAt} uploadStart={uploadStart} />
+            </div>
             <button className="btn danger sm" onClick={() => deletePhoto("lotto", e.id)}>삭제</button>
           </div>
         ))}

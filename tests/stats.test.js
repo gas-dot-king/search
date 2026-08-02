@@ -4,7 +4,12 @@ import { buildEventStats } from "../lib/stats";
 // 이벤트 중간 점검 화면의 숫자들. 한국 시간 기준 "오늘"이 특히 틀리기 쉬워 함께 고정한다.
 const NOW = new Date("2026-08-03T05:00:00Z"); // 한국 시간 8/3 14:00
 
-const cellAt = (userId, position, iso) => ({ user_id: userId, position, uploaded_at: iso });
+const cellAt = (userId, position, iso, itemId = position + 1) => ({
+  user_id: userId,
+  position,
+  item_id: itemId,
+  uploaded_at: iso,
+});
 
 describe("전체 현황 집계", () => {
   const progress = [
@@ -62,10 +67,41 @@ describe("전체 현황 집계", () => {
     expect(stats.daily.filter((d) => d.isToday)).toHaveLength(1);
   });
 
-  it("칸 위치별 인증 수를 16칸 배열로 낸다", () => {
-    expect(stats.perPosition).toHaveLength(16);
-    expect(stats.perPosition[0]).toBe(2); // u1, u2 둘 다 0번 칸
-    expect(stats.perPosition[15]).toBe(1); // u2만
+});
+
+describe("항목별 인증률", () => {
+  // 항목 1은 세 명 판에 다 뽑혔지만 두 명만 인증했고,
+  // 항목 2는 한 명 판에만 뽑혀 그 한 명이 인증했다 — 비율로 봐야 공정하다.
+  const items = [
+    { id: 1, category: 1, content: "5km 이상 달리기" },
+    { id: 2, category: 2, content: "새벽 러닝" },
+    { id: 3, category: 3, content: "러닝화 사진" },
+  ];
+  const allCells = [
+    { item_id: 1 }, { item_id: 1 }, { item_id: 1 },
+    { item_id: 2 },
+    { item_id: 3 }, { item_id: 3 },
+  ];
+  const cells = [
+    cellAt("u1", 0, "2026-08-03T01:00:00Z", 1),
+    cellAt("u2", 0, "2026-08-03T01:00:00Z", 1),
+    cellAt("u3", 1, "2026-08-03T01:00:00Z", 2),
+  ];
+  const stats = buildEventStats({ cells, allCells, items }, NOW);
+
+  it("뽑힌 판 수를 분모로 인증률을 낸다", () => {
+    const byId = new Map(stats.perItem.map((item) => [item.id, item]));
+    expect(byId.get(1)).toMatchObject({ boards: 3, certified: 2, rate: 66.7 });
+    expect(byId.get(2)).toMatchObject({ boards: 1, certified: 1, rate: 100 });
+    expect(byId.get(3)).toMatchObject({ boards: 2, certified: 0, rate: 0 });
+  });
+
+  it("인증률이 높은 항목부터 세운다", () => {
+    expect(stats.perItem.map((item) => item.id)).toEqual([2, 1, 3]);
+  });
+
+  it("항목 목록이 없으면 빈 배열이라 화면이 그냥 비어 보인다", () => {
+    expect(buildEventStats({ cells, allCells }, NOW).perItem).toEqual([]);
   });
 });
 
@@ -86,6 +122,6 @@ describe("빈 이벤트와 이상한 값", () => {
     }, NOW);
     expect(stats.photos).toBe(3);
     expect(stats.photosToday).toBe(0);
-    expect(stats.perPosition[99]).toBeUndefined(); // 범위 밖은 버린다
+    expect(stats.perItem).toEqual([]); // 항목 목록 없이도 무너지지 않는다
   });
 });

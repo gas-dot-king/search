@@ -19,6 +19,9 @@ import {
 } from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 import { sanitizePhotoMetadata } from "@/lib/exif";
+import { takenBeforeEvent } from "@/lib/photoReview";
+import { getSettings } from "@/lib/settings";
+import { formatKoreanDateTime } from "@/lib/period";
 import { dailyLimitMessage, todayInSeoul } from "@/lib/bingo";
 
 /** 오늘 이미 인증한 칸들 — 제한 안내에서 "무엇이 막고 있는지" 짚어 주는 데 쓴다 */
@@ -47,6 +50,30 @@ async function bingoClaimError(error, userId, category) {
   return new ApiError("빙고 인증을 저장하지 못했습니다.", 500);
 }
 
+/** 브라우저가 원본에서 뽑아 보낸 촬영 정보. 형식이 깨졌으면 없는 것으로 본다. */
+function readPhotoMeta(form) {
+  try {
+    return sanitizePhotoMetadata(JSON.parse(String(form?.get("meta") || "null")));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 이벤트 기간 전에 찍은 사진을 거른다.
+ *
+ * 촬영 정보는 브라우저가 보내 주는 값이라 마음먹으면 빼고 보낼 수 있다. 그래서 이 검사는
+ * 부정을 막는 울타리가 아니라, 화면을 우회했거나 브라우저가 이상하게 동작한 경우를
+ * 서버에서도 한 번 더 잡는 정도다. 최종 판단은 운영진이 검토 큐에서 한다.
+ */
+function rejectIfBeforeEvent(photoMeta, settings) {
+  if (!takenBeforeEvent(photoMeta, settings?.upload_start)) return;
+  throw new ApiError(
+    `이벤트 시작(${formatKoreanDateTime(settings.upload_start)}) 전에 찍은 사진은 인증할 수 없어요. 기간에 찍은 사진으로 올려주세요.`,
+    403
+  );
+}
+
 async function findCell(userId, position) {
   const { data: cell, error } = await sb()
     .from("cells")
@@ -66,9 +93,13 @@ export const POST = route(async (req) => {
   const position = Number(form?.get("position"));
   if (!Number.isInteger(position) || position < 0 || position > 15) throw new ApiError("잘못된 칸입니다.");
 
+  // 사진을 저장소에 올리기 전에 판단해야 헛일과 뒷정리가 안 생긴다.
+  const photoMeta = readPhotoMeta(form);
+  rejectIfBeforeEvent(photoMeta, await getSettings());
+
   if (isDemoMode()) {
     if (!form?.get("file")) throw new ApiError("사진 파일이 없습니다.");
-    const result = demoUpload(user.id, position);
+    const result = demoUpload(user.id, position, photoMeta);
     if (result.error) throw new ApiError(result.error, 403);
     return result;
   }
@@ -89,16 +120,6 @@ export const POST = route(async (req) => {
         })
       : Promise.resolve(false),
   ]);
-
-  const photoMeta = sanitizePhotoMetadata(
-    (() => {
-      try {
-        return JSON.parse(String(form?.get("meta") || "null"));
-      } catch {
-        return null;
-      }
-    })()
-  );
 
   const { oldPath, error } = await claimBingoPhoto(user.id, position, path);
   if (error) {

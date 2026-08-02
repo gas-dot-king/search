@@ -1,12 +1,20 @@
 import crypto from "node:crypto";
-import { sb, processPhotoCleanup, schedulePhotoCleanup, signedUrls } from "@/lib/db";
+import {
+  sb,
+  photoCleanupStatus,
+  processPhotoCleanup,
+  schedulePhotoCleanup,
+  selectAllRows,
+  signedUrls,
+  thumbPathFor,
+} from "@/lib/db";
 import { hashPin, hashToken, newToken, sessionExpiresAt } from "@/lib/auth";
 import { route, requireAdmin, readJson, ApiError, requireDbSuccess } from "@/lib/api";
 import { getSettings, invalidateSettingsCache, editableSettings, EDITABLE_KEYS } from "@/lib/settings";
 import { buildEventStats } from "@/lib/stats";
 import { getAllProgress, invalidateBingoHallCache } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
-import { fourLineAchievements } from "@/lib/hall";
+import { fourLineAchievements, mergeFourLineAwards } from "@/lib/hall";
 import {
   computeWinners,
   currentLottoRound,
@@ -16,6 +24,7 @@ import {
 } from "@/lib/lotto";
 import {
   demoAdminUser,
+  demoConfirmFourLine,
   demoDeleteCellPhoto,
   demoDeleteLottoEntry,
   demoDeleteUser,
@@ -25,12 +34,14 @@ import {
   demoLottoRound,
   demoNextLottoRound,
   demoProgress,
+  demoRecentUploads,
   demoResetBoard,
   demoResetDraw,
   demoResetUserPin,
   demoRenameUser,
   demoSetSetting,
   demoSettings,
+  demoUnconfirmFourLine,
   isDemoMode,
 } from "@/lib/demo";
 
@@ -56,6 +67,46 @@ async function lottoRoundState(settings) {
   };
 }
 
+/**
+ * 사진 목록의 축소본·원본 주소를 함께 만들어 경로로 찾아 쓰는 함수를 돌려준다.
+ * 축소본은 없을 수 있어(축소본을 만들기 전에 올린 사진) 개별 재시도를 끄고,
+ * 없으면 원본으로 물러선다. 원본은 반드시 있어야 하므로 기본 동작을 그대로 쓴다.
+ */
+async function photoUrlLookup(paths) {
+  const valid = [...new Set((paths || []).filter(Boolean))];
+  const [thumbMap, fullMap] = await Promise.all([
+    signedUrls(valid.map(thumbPathFor), { retryMissing: false }),
+    signedUrls(valid),
+  ]);
+  return (path) => {
+    if (!path) return { photoUrl: null, thumbUrl: null };
+    const photoUrl = fullMap[path] || null;
+    return { photoUrl, thumbUrl: thumbMap[thumbPathFor(path)] || photoUrl };
+  };
+}
+
+/** 검토 큐 한 페이지 크기. 관리자가 행사장에서 폰으로 넘겨보는 양을 기준으로 잡았다. */
+const RECENT_PAGE_SIZE = 30;
+
+/**
+ * 회원의 로또 응모. photo_meta 컬럼이 아직 없는 DB(마이그레이션 전 배포)에서도
+ * 회원 상세가 열리도록, 실패하면 촬영 정보 없이 한 번 더 읽는다.
+ */
+async function lottoEntriesFor(userId) {
+  const query = (columns) =>
+    sb()
+      .from("lotto_entries")
+      .select(columns)
+      .eq("user_id", userId)
+      .not("slot", "is", null)
+      .order("created_at");
+
+  const withMeta = await query("id, digits, photo_path, created_at, photo_meta");
+  if (!withMeta.error) return withMeta;
+  console.error("[admin] lotto photo_meta not read", withMeta.error);
+  return query("id, digits, photo_path, created_at");
+}
+
 export const GET = route(async (req) => {
   await requireAdmin(req);
   const url = new URL(req.url);
@@ -69,16 +120,61 @@ export const GET = route(async (req) => {
         users: progress.progress,
         items: demoItems(),
         fourLine: demoFourLineRanking(),
+        cleanup: { pending: 0, stuck: 0, oldest: null, samples: [] },
         stats: buildEventStats({
           progress: progress.progress,
           cells: (progress.cells || []).filter((cell) => cell.photo_path),
           lotto: progress.lotto || [],
+          allCells: progress.cells || [],
+          items: demoItems(),
         }),
       };
     }
     if (action === "user") return demoAdminUser(url.searchParams.get("id"));
     if (action === "lotto_round") return demoLottoRound();
+    if (action === "recent") {
+      return demoRecentUploads(url.searchParams.get("before"), RECENT_PAGE_SIZE);
+    }
     throw new ApiError("알 수 없는 요청입니다.");
+  }
+
+  // 전 회원의 인증 사진을 올라온 순서대로. 회원을 한 명씩 열어보지 않고도
+  // "새로 올라온 것"만 훑을 수 있어야 매일의 검토가 회원 수에 끌려가지 않는다.
+  if (action === "recent") {
+    const before = url.searchParams.get("before");
+    let query = sb()
+      .from("cells")
+      .select("id, user_id, position, photo_path, uploaded_at, photo_meta, users ( nickname ), bingo_items ( content, category )")
+      .not("photo_path", "is", null)
+      .order("uploaded_at", { ascending: false })
+      .limit(RECENT_PAGE_SIZE + 1); // 한 건 더 읽어 "더 있는지"를 판단한다
+    if (before) query = query.lt("uploaded_at", before);
+
+    const { data, error } = await query;
+    requireDbSuccess(error, "최근 인증을 불러오지 못했습니다");
+
+    const rows = data || [];
+    const hasMore = rows.length > RECENT_PAGE_SIZE;
+    const page = hasMore ? rows.slice(0, RECENT_PAGE_SIZE) : rows;
+    const urlsOf = await photoUrlLookup(page.map((row) => row.photo_path));
+
+    return Response.json(
+      {
+        uploads: page.map((row) => ({
+          id: row.id,
+          userId: row.user_id,
+          nickname: row.users?.nickname || "?",
+          position: row.position,
+          content: row.bingo_items?.content || "",
+          category: row.bingo_items?.category || 0,
+          uploadedAt: row.uploaded_at,
+          photoMeta: row.photo_meta || null,
+          ...urlsOf(row.photo_path),
+        })),
+        nextCursor: hasMore ? page[page.length - 1].uploaded_at : null,
+      },
+      { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
+    );
   }
 
   if (action === "lotto_round") {
@@ -88,21 +184,37 @@ export const GET = route(async (req) => {
   }
 
   if (action === "overview") {
-    const [settings, { progress, cells, lotto }, { data: items, error: itemsError }] = await Promise.all([
+    const [
+      settings,
+      { progress, cells, lotto },
+      { data: items, error: itemsError },
+      allCells,
+      { data: awards, error: awardsError },
+      cleanup,
+    ] = await Promise.all([
       getSettings(),
       getAllProgress(),
       sb().from("bingo_items").select("id, category, content").order("category").order("id"),
+      // 항목별 인증률의 분모: 그 항목이 몇 명의 판에 뽑혔는지. 사진 여부와 무관한 전체 칸이다.
+      selectAllRows("cells", "item_id", (query) => query.order("id")),
+      sb().from("four_line_awards").select("user_id, achieved_at, confirmed_at").order("achieved_at"),
+      photoCleanupStatus(),
     ]);
     requireDbSuccess(itemsError, "빙고 항목을 불러오지 못했습니다");
+    // 확정 명단은 부가 기능이다. 표가 아직 없어도(마이그레이션 전 배포) 관리자 화면 전체가
+    // 죽으면 안 되므로, 못 읽으면 "확정된 사람이 없는" 상태로 본다.
+    if (awardsError) console.error("[admin] four_line_awards not read", awardsError);
 
     // 선물이 걸린 4줄 선착순은 운영진이 인증 사진을 직접 확인해야 하므로 회원 id까지 함께 준다.
     const nicknameOf = new Map(progress.map((user) => [user.id, user.nickname]));
-    const fourLine = fourLineAchievements(cells).map(({ rank, userId, achievedAt }) => ({
-      rank,
-      id: userId,
-      nickname: nicknameOf.get(userId) || "?",
-      achievedAt,
-    }));
+    const fourLine = mergeFourLineAwards(
+      fourLineAchievements(cells),
+      (awards || []).map((award) => ({
+        userId: award.user_id,
+        achievedAt: award.achieved_at,
+        confirmedAt: award.confirmed_at,
+      }))
+    ).map((row) => ({ ...row, id: row.userId, nickname: nicknameOf.get(row.userId) || "?" }));
 
     return Response.json(
       {
@@ -110,7 +222,8 @@ export const GET = route(async (req) => {
         users: progress,
         items: items || [],
         fourLine,
-        stats: buildEventStats({ progress, cells, lotto }),
+        cleanup,
+        stats: buildEventStats({ progress, cells, lotto, allCells, items: items || [] }),
       },
       { headers: { "Cache-Control": "no-store", "Vary": "x-admin-password" } }
     );
@@ -124,16 +237,13 @@ export const GET = route(async (req) => {
         .select("id, position, photo_path, uploaded_at, photo_meta, bingo_items ( content, category )")
         .eq("user_id", userId)
         .order("position"),
-      sb()
-        .from("lotto_entries")
-        .select("id, digits, photo_path, created_at")
-        .eq("user_id", userId)
-        .not("slot", "is", null)
-        .order("created_at"),
+      lottoEntriesFor(userId),
     ]);
     requireDbSuccess(cellsError || entriesError, "회원 인증 정보를 불러오지 못했습니다");
 
-    const urlMap = await signedUrls([
+    // 그리드는 축소본으로 그린다. 원본 16장이면 4MB가 넘어, 행사장에서 회원을
+    // 한 명씩 열어볼 때마다 그만큼을 다시 받게 된다. 원본은 눌렀을 때만 연다.
+    const urlsOf = await photoUrlLookup([
       ...(cells || []).map((c) => c.photo_path),
       ...(entries || []).map((e) => e.photo_path),
     ]);
@@ -144,15 +254,16 @@ export const GET = route(async (req) => {
         position: c.position,
         content: c.bingo_items?.content || "",
         category: c.bingo_items?.category || 0,
-        photoUrl: c.photo_path ? urlMap[c.photo_path] || null : null,
         uploadedAt: c.uploaded_at,
         photoMeta: c.photo_meta || null,
+        ...urlsOf(c.photo_path),
       })),
       lotto: (entries || []).map((e) => ({
         id: e.id,
         digits: e.digits,
-        photoUrl: urlMap[e.photo_path] || null,
         createdAt: e.created_at,
+        photoMeta: e.photo_meta || null,
+        ...urlsOf(e.photo_path),
       })),
     };
   }
@@ -220,6 +331,16 @@ export const POST = route(async (req) => {
         if (result.error) throw new ApiError(result.error, result.status);
         return result;
       }
+      case "confirm_four_line": {
+        const result = demoConfirmFourLine(String(body.userId || ""));
+        if (result.error) throw new ApiError(result.error, result.status);
+        return result;
+      }
+      case "unconfirm_four_line":
+        return demoUnconfirmFourLine(String(body.userId || ""));
+      case "retry_cleanup":
+        // 데모에는 Storage가 없어 정리할 것도 없다.
+        return { ok: true, pending: false, cleanup: { pending: 0, stuck: 0, oldest: null, samples: [] } };
       default:
         throw new ApiError("알 수 없는 요청입니다.");
     }
@@ -339,7 +460,10 @@ export const POST = route(async (req) => {
       const { error } = await sb().rpc("admin_reset_bingo_board", { p_user_id: userId });
       if (error) throw new ApiError("빙고판 초기화에 실패했습니다.", 500);
       invalidateBingoHallCache();
-      const cleanup = await schedulePhotoCleanup((cells || []).map((c) => c.photo_path));
+      // 원본과 함께 그리드용 축소본도 지운다. 원본만 지우면 축소본이 버킷에 남는다.
+      const cleanup = await schedulePhotoCleanup(
+        (cells || []).flatMap((c) => [c.photo_path, thumbPathFor(c.photo_path)])
+      );
       return { ok: true, cleanupPending: cleanup.pending };
     }
 
@@ -360,8 +484,9 @@ export const POST = route(async (req) => {
       if (!deleted) throw new ApiError("회원을 찾을 수 없습니다.", 404);
       invalidateBingoHallCache();
 
+      // 빙고 사진에는 축소본이 따로 있다. 로또 사진에는 없어 원본만 지운다.
       const cleanup = await schedulePhotoCleanup([
-        ...(cells || []).map((c) => c.photo_path),
+        ...(cells || []).flatMap((c) => [c.photo_path, thumbPathFor(c.photo_path)]),
         ...(entries || []).map((e) => e.photo_path),
       ]);
       return { ok: true, cleanupPending: cleanup.pending };
@@ -378,7 +503,7 @@ export const POST = route(async (req) => {
       const { error } = await sb().from("cells").update({ photo_path: null, uploaded_at: null, uploaded_date: null, photo_meta: null }).eq("id", cell.id);
       requireDbSuccess(error, "인증 사진 삭제에 실패했습니다");
       invalidateBingoHallCache();
-      const cleanup = await schedulePhotoCleanup([cell.photo_path]);
+      const cleanup = await schedulePhotoCleanup([cell.photo_path, thumbPathFor(cell.photo_path)]);
       return { ok: true, cleanupPending: cleanup.pending };
     }
 
@@ -394,6 +519,41 @@ export const POST = route(async (req) => {
       requireDbSuccess(error, "응모 삭제에 실패했습니다");
       const cleanup = await schedulePhotoCleanup([entry.photo_path]);
       return { ok: true, cleanupPending: cleanup.pending };
+    }
+
+    // 인증 사진을 확인한 4줄 달성자를 확정한다. 확정한 뒤에는 그 회원이 사진을 바꿔도
+    // 달성 시각이 밀리지 않아, 선물 20명 순위가 조용히 뒤집히지 않는다.
+    case "confirm_four_line": {
+      const userId = String(body.userId || "");
+      if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
+
+      const { cells } = await getAllProgress();
+      const achievement = fourLineAchievements(cells).find((item) => item.userId === userId);
+      if (!achievement) throw new ApiError("아직 4줄을 완성하지 않은 회원입니다.");
+
+      const { error } = await sb()
+        .from("four_line_awards")
+        .upsert(
+          { user_id: userId, achieved_at: achievement.achievedAt, confirmed_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        );
+      requireDbSuccess(error, "4줄 달성을 확정하지 못했습니다");
+      return { ok: true, achievedAt: achievement.achievedAt };
+    }
+
+    // 밀린 사진 정리를 지금 다시 시도한다. 평소에는 다른 관리자 동작에 묻어 돌지만,
+    // 큐에 쌓인 게 보이면 기다리지 않고 바로 밀어볼 수 있어야 한다.
+    case "retry_cleanup": {
+      const result = await processPhotoCleanup();
+      return { ok: true, pending: result.pending, cleanup: await photoCleanupStatus() };
+    }
+
+    case "unconfirm_four_line": {
+      const userId = String(body.userId || "");
+      if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
+      const { error } = await sb().from("four_line_awards").delete().eq("user_id", userId);
+      requireDbSuccess(error, "4줄 확정을 취소하지 못했습니다");
+      return { ok: true };
     }
 
     case "reset_user_pin": {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import ItemsList from "@/components/ItemsList";
 import Modal from "@/components/Modal";
+import PhotoRejectedModal from "@/components/PhotoRejectedModal";
 import { api, PRIVACY_WARNING, METADATA_NOTICE, CATEGORY_RULE } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 import { countLines, getNearCompleteLines, LINES } from "@/lib/bingo";
@@ -22,7 +23,8 @@ export default function BoardPage() {
   const router = useRouter();
   const { data: board, error: loadError, reload, setData } = useApiData("/api/board");
   const period = useUploadPeriod();
-  const photo = usePhoto();
+  // 이벤트 시작 전에 찍은 사진은 고르는 순간 되돌려보낸다.
+  const photo = usePhoto({ uploadStart: period.config?.uploadStart || null });
   const [selected, setSelected] = useState(null); // 선택된 칸
   const [showItems, setShowItems] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
@@ -409,6 +411,8 @@ export default function BoardPage() {
             </div>
         </Modal>
       )}
+
+      <PhotoRejectedModal rejected={photo.rejected} onClose={photo.dismissRejected} />
 
       {/* 빙고 완성 축하 */}
       {celebrate > 0 && (

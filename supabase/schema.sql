@@ -42,8 +42,20 @@ create table if not exists lotto_entries (
   slot int not null check (slot between 1 and 2),
   digits char(4) not null,        -- "05.24" → "0524"
   photo_path text not null,
+  -- 인증 검토용 촬영 정보(EXIF). 자기가 신고한 기록이라 빙고와 같은 기준으로 본다.
+  photo_meta jsonb,
   created_at timestamptz not null default now(),
   unique (user_id, slot)
+);
+
+-- 선물이 걸린 4줄 선착순 확정 명단.
+-- 순위는 남아 있는 사진으로 매번 계산하는데, 확정한 사람은 그때의 달성 시각으로
+-- 고정해 이후 사진이 바뀌어도 선물 명단이 뒤집히지 않게 한다.
+create table if not exists four_line_awards (
+  user_id uuid primary key references users(id) on delete cascade,
+  achieved_at timestamptz not null,
+  confirmed_at timestamptz not null default now(),
+  note text
 );
 
 -- 오프라인 행사 방명록: 한 사람이 여러 개 남기고, 자기 글을 고치거나 지운다
@@ -77,12 +89,22 @@ create index if not exists guestbook_entries_created_at_idx
 create index if not exists guestbook_entries_user_id_idx
   on guestbook_entries (user_id);
 
+-- 4줄 확정 명단은 항상 달성 시각 순으로 읽는다
+create index if not exists four_line_awards_achieved_at_idx
+  on four_line_awards (achieved_at);
+
+-- 관리자 검토 큐: 전 회원의 인증 사진을 올라온 순서대로 훑는다
+create index if not exists cells_uploaded_at_idx
+  on cells (uploaded_at desc)
+  where photo_path is not null;
+
 -- 모든 접근이 서버(service role)를 통해서만 이루어지므로 RLS로 외부 접근 차단
 alter table users enable row level security;
 alter table bingo_items enable row level security;
 alter table cells enable row level security;
 alter table lotto_entries enable row level security;
 alter table guestbook_entries enable row level security;
+alter table four_line_awards enable row level security;
 alter table settings enable row level security;
 alter table storage_cleanup_tasks enable row level security;
 

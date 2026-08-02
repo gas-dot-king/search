@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import Modal from "@/components/Modal";
-import { api, PRIVACY_WARNING } from "@/lib/client";
+import PhotoRejectedModal from "@/components/PhotoRejectedModal";
+import { api, METADATA_NOTICE, PRIVACY_WARNING } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 import { formatKoreanDateTime } from "@/lib/period";
 
 const fmtKm = (digits) => `${digits.slice(0, 2)}.${digits.slice(2)}`;
 
-function LottoEntrySlot({ slotNumber, entry, locked, onSubmitted }) {
-  const photo = usePhoto();
+function LottoEntrySlot({ slotNumber, entry, locked, uploadStart, onSubmitted }) {
+  // 빙고와 같은 규칙: 이벤트 시작 전에 찍은 사진은 고르는 순간 되돌려보낸다.
+  const photo = usePhoto({ uploadStart });
   const [digits, setDigits] = useState(["", "", "", ""]);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef(null);
@@ -40,6 +42,8 @@ function LottoEntrySlot({ slotNumber, entry, locked, onSubmitted }) {
       form.append("slot", String(slotNumber));
       form.append("digits", code);
       form.append("file", photo.file, "lotto.jpg");
+      // 인증 검토용 촬영 정보. 캔버스로 다시 그리면서 사진에서는 지워진 값이라 따로 보낸다.
+      if (photo.meta) form.append("meta", JSON.stringify(photo.meta));
       const result = await api("/api/lotto", {
         method: "POST",
         body: form,
@@ -114,6 +118,7 @@ function LottoEntrySlot({ slotNumber, entry, locked, onSubmitted }) {
       {photo.busy && <p className="photo-processing" role="status">사진을 처리하는 중이에요...</p>}
       {photo.preview && <img className="lotto-slot-preview" src={photo.preview} alt="선택한 인증 사진" />}
       {photo.error && <p className="error-msg">{photo.error}</p>}
+      <PhotoRejectedModal rejected={photo.rejected} onClose={photo.dismissRejected} />
 
       <div className="lotto-ticket-actions">
         <button
@@ -310,7 +315,11 @@ export default function LottoPage() {
         {locked ? (
           <div className="period-lock" role="status">🔒 {period.notice}</div>
         ) : (
-          <div className="warn-box lotto-privacy">{PRIVACY_WARNING}</div>
+          <>
+            <div className="warn-box lotto-privacy">{PRIVACY_WARNING}</div>
+            {/* 빙고와 같은 값을 기록하므로 안내도 같이 한다. */}
+            <div className="rule-box lotto-privacy">{METADATA_NOTICE}</div>
+          </>
         )}
         <div className="lotto-entry-tickets">
           {Array.from({ length: data.maxEntries }, (_, index) => (
@@ -319,6 +328,7 @@ export default function LottoPage() {
               slotNumber={index + 1}
               entry={data.entries.find((item) => item.slot === index + 1) || null}
               locked={locked}
+              uploadStart={period.config?.uploadStart || null}
               onSubmitted={addEntry}
             />
           ))}

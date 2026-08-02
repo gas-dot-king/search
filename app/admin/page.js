@@ -7,6 +7,8 @@ import { parseNotices } from "@/lib/notices";
 import SettingsCard from "@/components/admin/SettingsCard";
 import CollapsibleCard from "@/components/admin/CollapsibleCard";
 import StatsCard from "@/components/admin/StatsCard";
+import RecentUploadsCard from "@/components/admin/RecentUploadsCard";
+import CleanupCard from "@/components/admin/CleanupCard";
 import NoticesCard from "@/components/admin/NoticesCard";
 import LottoCard from "@/components/admin/LottoCard";
 import UserDetail from "@/components/admin/UserDetail";
@@ -117,7 +119,11 @@ export default function AdminPage() {
         </button>
       </div>
 
-      <StatsCard stats={overview.stats} />
+      <StatsCard stats={overview.stats} onRefresh={loadOverview} />
+
+      <CleanupCard cleanup={overview.cleanup} onChanged={loadOverview} />
+
+      <RecentUploadsCard uploadStart={overview?.settings?.upload_start} onOpenUser={openUser} />
 
       <SettingsCard settings={overview?.settings || {}} busy={busy} setBusy={setBusy} onChanged={loadOverview} />
 
@@ -149,11 +155,17 @@ export default function AdminPage() {
         />
       </CollapsibleCard>
 
-      <FourLineCard fourLine={overview.fourLine} busy={busy} onOpenUser={openUser} />
+      <FourLineCard
+        fourLine={overview.fourLine}
+        busy={busy}
+        onOpenUser={openUser}
+        onChanged={loadOverview}
+      />
 
       <CollapsibleCard title="👥 회원 목록" badge={`${overview.users.length}명`}>
         <UsersCard
           users={overview.users}
+          fourLine={overview.fourLine}
           busy={busy}
           error={error}
           onOpenUser={openUser}
@@ -170,6 +182,7 @@ export default function AdminPage() {
         <UserDetail
           user={detail.user}
           data={detail.data}
+          uploadStart={overview?.settings?.upload_start}
           onBack={() => setDetail(null)}
           onRefresh={() => openUser(detail.user)}
           onBoardReset={async () => {

@@ -11,6 +11,21 @@ import {
   LOTTO_ENTRY_LIMIT,
 } from "@/lib/lotto";
 import { demoLotto, demoLottoAdd, demoLottoRemove, demoLottoSummary, isDemoMode } from "@/lib/demo";
+import { sanitizePhotoMetadata } from "@/lib/exif";
+import { takenBeforeEvent } from "@/lib/photoReview";
+import { formatKoreanDateTime } from "@/lib/period";
+
+/**
+ * 브라우저가 원본에서 뽑아 보낸 촬영 정보.
+ * 로또는 회원이 직접 신고한 km 기록이라 검토 필요가 빙고보다 크다.
+ */
+function readLottoMeta(form) {
+  try {
+    return sanitizePhotoMetadata(JSON.parse(String(form?.get("meta") || "null")));
+  } catch {
+    return null;
+  }
+}
 
 /** 내 응모 목록 + 추첨 진행 상황(자리별 공개) + 완료 시 전체 결과 */
 export const GET = route(async (req) => {
@@ -103,9 +118,21 @@ export const POST = route(async (req) => {
   if (!Number.isInteger(slot) || slot < 1 || slot > LOTTO_ENTRY_LIMIT) {
     throw new ApiError("잘못된 응모권입니다.");
   }
+
+  // 빙고와 같은 규칙 — 이벤트 기간 전에 찍은 사진은 응모에도 쓸 수 없다.
+  // 사진을 올리기 전에 판단해야 헛일과 뒷정리가 안 생긴다.
+  const photoMeta = readLottoMeta(form);
+  const settings = await getSettings();
+  if (takenBeforeEvent(photoMeta, settings.upload_start)) {
+    throw new ApiError(
+      `이벤트 시작(${formatKoreanDateTime(settings.upload_start)}) 전에 찍은 사진은 응모에 쓸 수 없어요. 기간에 찍은 사진으로 올려주세요.`,
+      403
+    );
+  }
+
   if (isDemoMode()) {
     if (!form?.get("file")) throw new ApiError("사진 파일이 없습니다.");
-    const result = demoLottoAdd(user.id, digits, slot);
+    const result = demoLottoAdd(user.id, digits, slot, photoMeta);
     if (result.error) throw new ApiError(result.error);
     return result;
   }
@@ -132,6 +159,16 @@ export const POST = route(async (req) => {
     // 더블 클릭 등으로 같은 슬롯에 동시 응모하면 unique 제약이 막는다.
     if (error.code === "23505") throw new ApiError(`응모권 ${slot}은 이미 사용했습니다.`);
     throw new ApiError("응모 실패: " + error.message, 500);
+  }
+
+  // 촬영 정보는 검토용 부가 기록이라 따로 넣고, 실패해도 응모 자체는 살린다.
+  // (photo_meta 컬럼 마이그레이션 전에 배포돼도 회원 응모가 멈추지 않는다 — 빙고와 같은 방식)
+  if (photoMeta) {
+    const { error: metaError } = await sb()
+      .from("lotto_entries")
+      .update({ photo_meta: photoMeta })
+      .eq("id", entry.id);
+    if (metaError) console.error("[lotto] photo metadata not stored", metaError);
   }
   return {
     ok: true,

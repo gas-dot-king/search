@@ -11,10 +11,15 @@ const db = vi.hoisted(() => {
     return { data: [], error: null };
   };
 
-  // select() 결과는 그대로 await 하기도 하고 .not()을 한 번 더 붙이기도 한다.
+  // select() 결과는 그대로 await 하기도 하고 .not()·.order()를 더 붙이기도 한다.
   const query = (table) => {
     const promise = Promise.resolve(resultFor(table));
-    return { not: () => promise, then: (...args) => promise.then(...args) };
+    const builder = {
+      not: () => builder,
+      order: () => builder,
+      then: (...args) => promise.then(...args),
+    };
+    return builder;
   };
 
   return {
@@ -25,10 +30,12 @@ const db = vi.hoisted(() => {
         return { select: () => query(table) };
       },
     }),
+    // 실제 selectAllRows는 1000행씩 나눠 읽는다. 여기서는 한 번에 다 준다.
+    selectAllRows: async (table) => (await resultFor(table)).data,
   };
 });
 
-vi.mock("../lib/db", () => ({ sb: db.sb }));
+vi.mock("../lib/db", () => ({ sb: db.sb, selectAllRows: db.selectAllRows }));
 
 const { getBingoHallOfFame, invalidateBingoHallCache } = await import("../lib/progress");
 

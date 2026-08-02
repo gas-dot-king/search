@@ -173,6 +173,18 @@ describe("서버가 받은 촬영 정보 검사", () => {
     expect(sanitizePhotoMetadata({ lat: "북쪽", lng: "동쪽" })).toBe(null);
   });
 
+  // GPS 태그만 만들고 값은 비우는 기기가 있다. 0/0을 그대로 두면 지도 링크가
+  // 아프리카 서쪽 바다를 연다. (실제 Galaxy S24 사진에서 나온 값)
+  it("좌표 0,0은 값이 없는 것으로 본다", () => {
+    expect(sanitizePhotoMetadata({ lat: 0, lng: 0 })).toBe(null);
+    expect(sanitizePhotoMetadata({ takenAt: "2026-08-01T06:42:11", lat: 0, lng: 0 }))
+      .toEqual({ takenAt: "2026-08-01T06:42:11" });
+  });
+
+  it("한쪽만 0인 실제 좌표는 살린다", () => {
+    expect(sanitizePhotoMetadata({ lat: 0, lng: 129.02 })).toEqual({ lat: 0, lng: 129.02 });
+  });
+
   it("형식이 어긋난 시각과 시간대는 버린다", () => {
     expect(sanitizePhotoMetadata({ takenAt: "어제 아침" })).toBe(null);
     expect(sanitizePhotoMetadata({ takenAt: "2026-08-01T06:42:11", utcOffset: "한국" }))

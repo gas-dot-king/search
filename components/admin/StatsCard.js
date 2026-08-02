@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatKoreanClock } from "@/lib/period";
 
 /** 큰 숫자 하나 + 설명. 훑어보기 좋게 격자로 깐다. */
@@ -32,13 +33,70 @@ function DailyChart({ daily }) {
   );
 }
 
+const CATEGORY_LABEL = { 1: "①", 2: "②", 3: "③" };
+
+/**
+ * 항목별 인증률. "그 항목이 뽑힌 판" 대비 "실제 인증된 수"라
+ * 판에 자주 안 뽑힌 항목도 공정하게 비교된다.
+ * 잘 되는 항목보다 안 되는 항목이 운영에 쓸모 있어 아래쪽을 함께 보여준다.
+ */
+function ItemRates({ perItem }) {
+  const [open, setOpen] = useState(false);
+  if (!perItem?.length) return null;
+
+  const ranked = perItem.filter((item) => item.boards > 0);
+  if (!ranked.length) return null;
+  const shown = open ? ranked : [...ranked.slice(0, 3), ...ranked.slice(-3)];
+
+  return (
+    <>
+      <p className="admin-overview-subtitle">
+        항목별 인증률 {open ? "(전체)" : "(잘 되는 3개 · 막힌 3개)"}
+      </p>
+      <ul className="admin-item-rates">
+        {shown.map((item) => (
+          <li key={item.id}>
+            <span className="admin-item-name">
+              <b>{CATEGORY_LABEL[item.category] || ""}</b> {item.content}
+            </span>
+            <span className="admin-item-bar" aria-hidden="true">
+              <span style={{ width: `${Math.min(100, item.rate)}%` }} />
+            </span>
+            <span className="admin-item-value">
+              {item.rate}%
+              <small>
+                {item.certified}/{item.boards}
+              </small>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <button className="btn ghost sm" onClick={() => setOpen((current) => !current)}>
+        {open ? "접기" : `전체 ${ranked.length}개 보기`}
+      </button>
+    </>
+  );
+}
+
 /** 이벤트 중간 점검용 전체 현황 */
-export default function StatsCard({ stats }) {
+export default function StatsCard({ stats, onRefresh }) {
+  const [refreshing, setRefreshing] = useState(false);
   if (!stats) return null;
 
   const participation = stats.members
     ? Math.round((stats.started / stats.members) * 100)
     : 0;
+
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   return (
     <section className="card admin-overview">
@@ -46,6 +104,11 @@ export default function StatsCard({ stats }) {
         <p className="card-title">📊 전체 현황</p>
         <span className="hint">{formatKoreanClock(stats.updatedAt)} 기준</span>
       </div>
+      {onRefresh && (
+        <button className="btn ghost sm admin-overview-refresh" onClick={refresh} disabled={refreshing}>
+          {refreshing ? "불러오는 중..." : "↻ 새로고침"}
+        </button>
+      )}
 
       <div className="admin-overview-grid">
         <Stat label="가입 회원" value={stats.members} unit="명" />
@@ -73,6 +136,8 @@ export default function StatsCard({ stats }) {
 
       <p className="admin-overview-subtitle">최근 7일 인증 사진</p>
       <DailyChart daily={stats.daily} />
+
+      <ItemRates perItem={stats.perItem} />
     </section>
   );
 }
