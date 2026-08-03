@@ -1065,12 +1065,8 @@ td.num, th.num { text-align: right; }
   font-size: clamp(1.35rem, 6.4vw, 2rem); font-weight: 800; letter-spacing: -0.02em;
   line-height: 1.1; word-break: break-all;
 }
-.recovery-ticket-number b {
-  display: inline-block; margin-left: 2px; padding: 0 6px; border-radius: 8px;
-  background: linear-gradient(160deg, #f59e0b, #b45309); color: #fff;
-  font-size: 1.35em; font-weight: 900;
-  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.3);
-}
+/* 끝자리는 크기를 키우지 않고 굵기·색으로만 구분한다 — 번호 한 줄로 읽히게 */
+.recovery-ticket-number b { color: #b45309; font-weight: 900; }
 .recovery-ticket-digit-note { display: block; color: #a16207; font-size: 0.8rem; font-weight: 800; }
 .recovery-ticket-digit-note b { font-size: 1.15em; }
 
