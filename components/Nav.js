@@ -143,6 +143,7 @@ function NoticeBar({ notices }) {
           <div className="notice-dismiss-actions">
             <button type="button" className="btn primary" onClick={dismissNotice}>예</button>
             <button type="button" className="btn ghost" onClick={() => setConfirmOpen(false)}>아니오</button>
+            <Link href="/faq" className="btn ghost notice-dismiss-faq" onClick={() => setConfirmOpen(false)}>자주 하는 질문</Link>
             <button type="button" className="btn ghost notice-dismiss-day" onClick={dismissForDay}>하루 동안 닫기</button>
           </div>
         </Modal>

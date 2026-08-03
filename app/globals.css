@@ -707,10 +707,28 @@ html[data-theme="dark"] .review-flag { color: #fbbf24; }
 .recovery-terminal p span { color: #fbbf24; font-weight: 900; }
 .recovery-alert-copy { word-break: keep-all; }
 .recovery-fake-note { color: #9a3412; font-size: 0.72rem; font-weight: 800; text-align: center; }
+.notice-dismiss-faq { grid-column: 1 / -1; text-decoration: none; }
 @keyframes recovery-alert-in { from { opacity: 0; transform: translateY(16px) scale(0.96); } to { opacity: 1; transform: none; } }
 @keyframes recovery-alert-shake { 0%, 100% { translate: 0; } 25% { translate: -5px 1px; } 50% { translate: 5px -1px; } 75% { translate: -3px; } }
 @keyframes recovery-light { from { filter: grayscale(0.2) brightness(0.85); } to { filter: saturate(1.8) brightness(1.3); } }
 @keyframes hazard-slide { to { background-position: 34px 0; } }
+
+/* ---- 자주 하는 질문 ---- */
+.faq-page { padding-bottom: 42px; }
+.faq-hero { margin: 8px 0 14px; padding: 22px 18px; border: 1px solid var(--accent-soft); border-radius: var(--r-lg); background: linear-gradient(145deg, var(--rose-bg), var(--card)); }
+.faq-kicker { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; }
+.faq-hero h1 { margin: 5px 0 7px; font-size: 1.5rem; letter-spacing: -0.04em; }
+.faq-hero p:last-child { color: var(--muted); font-size: 0.84rem; word-break: keep-all; }
+.faq-list { display: grid; gap: 9px; }
+.faq-item { overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); box-shadow: var(--shadow); }
+.faq-item summary { display: flex; align-items: flex-start; gap: 9px; padding: 14px 15px; color: var(--text); font-size: 0.9rem; font-weight: 850; line-height: 1.5; cursor: pointer; list-style: none; word-break: keep-all; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { margin-left: auto; color: var(--muted); content: "+"; font-size: 1.1rem; line-height: 1.2; }
+.faq-item[open] summary { color: var(--accent-deep); }
+.faq-item[open] summary::after { content: "−"; }
+.faq-item summary span { flex: 0 0 auto; color: var(--accent); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.72rem; }
+.faq-item p { margin: 0 15px 15px; padding: 12px 13px; border-radius: var(--r-sm); background: var(--surface-muted); color: var(--muted); font-size: 0.84rem; line-height: 1.65; word-break: keep-all; }
+.faq-back-button { display: block; width: 100%; margin-top: 15px; text-align: center; text-decoration: none; }
 
 /* ---- 로또 ---- */
 .lotto-page-title { margin-bottom: 10px; }
