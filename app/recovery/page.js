@@ -5,7 +5,14 @@ import Nav from "@/components/Nav";
 import PhotoRejectedModal from "@/components/PhotoRejectedModal";
 import { api, PRIVACY_WARNING } from "@/lib/client";
 import { fetchPublicConfig, useApiData, usePhoto } from "@/lib/hooks";
-import { normalizeRecoveryEvent, recoveryState, RECOVERY_PRIZE_NOTE, RECOVERY_STATES } from "@/lib/recovery";
+import {
+  normalizeRecoveryEvent,
+  recoveryState,
+  splitRecoveryTicket,
+  RECOVERY_DRAW_GUIDE,
+  RECOVERY_PRIZE_NOTE,
+  RECOVERY_STATES,
+} from "@/lib/recovery";
 
 function pad(value) { return String(value).padStart(2, "0"); }
 
@@ -133,12 +140,35 @@ export default function RecoveryPage() {
         <section className="card recovery-ticket-card">
           <p className="recovery-ticket-kicker">RECOVERY PACKET ACCEPTED</p>
           <h2>복구 패킷 접수 완료!</h2>
-          <p>서버가 간신히 한 장을 받아냈습니다. 접수번호 끝자리가 오늘의 행운 번호예요.</p>
-          <div className="recovery-ticket">
-            <span>{data.entry.ticket}</span>
-            <b>{data.entry.digit}</b>
+          <p>서버가 간신히 한 장을 받아냈습니다. 접수번호 <b>끝자리</b>가 오늘의 행운 번호예요.</p>
+
+          <div className="recovery-ticket-big">
+            <span className="recovery-ticket-label">내 접수번호</span>
+            <p className="recovery-ticket-number">
+              {splitRecoveryTicket(data.entry.ticketNo).head}
+              <b>{splitRecoveryTicket(data.entry.ticketNo).tail}</b>
+            </p>
+            <span className="recovery-ticket-digit-note">
+              끝자리 <b>{data.entry.digit}</b>
+            </span>
           </div>
-          <p className="hint">현재 복구 패킷 {data.count}건 접수 · 숫자 추첨 후 결과 공개</p>
+
+          <dl className="recovery-draw-guide">
+            <div>
+              <dt>🎲 추첨 방식</dt>
+              <dd>{RECOVERY_DRAW_GUIDE.how}</dd>
+            </div>
+            <div>
+              <dt>🕒 추첨 시간</dt>
+              <dd>{RECOVERY_DRAW_GUIDE.when}</dd>
+            </div>
+            <div>
+              <dt>🎁 선물</dt>
+              <dd>{RECOVERY_DRAW_GUIDE.prize}</dd>
+            </div>
+          </dl>
+
+          <p className="hint">현재 복구 패킷 {data.count}건 접수</p>
           {data.isWinner && <p className="recovery-winner">🎉 당첨! {event.prizeText}</p>}
         </section>
       )}

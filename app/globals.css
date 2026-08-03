@@ -1051,6 +1051,38 @@ td.num, th.num { text-align: right; }
 .recovery-ticket { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; padding: 16px; border: 2px dashed #ca8a04; border-radius: var(--r-md); background: var(--card); }
 .recovery-ticket span { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.8rem; }
 .recovery-ticket b, .recovery-winning-digit { display: inline-grid; place-items: center; width: 54px; height: 60px; border-radius: 12px; background: linear-gradient(160deg, #f59e0b, #b45309); color: #fff; font-size: 2rem; box-shadow: 0 4px 14px rgba(180, 83, 9, 0.28); }
+/* 접수번호를 크게, 끝자리는 더 크고 진하게 — 추첨 기준이 끝자리라 한눈에 보여야 한다 */
+.recovery-ticket-big {
+  margin: 16px 0; padding: 18px 12px; border: 2px dashed #ca8a04;
+  border-radius: var(--r-md); background: var(--card);
+}
+.recovery-ticket-label {
+  display: block; color: var(--muted); font-size: 0.76rem; font-weight: 800;
+}
+.recovery-ticket-number {
+  margin: 8px 0 10px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: clamp(1.35rem, 6.4vw, 2rem); font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1.1; word-break: break-all;
+}
+.recovery-ticket-number b {
+  display: inline-block; margin-left: 2px; padding: 0 6px; border-radius: 8px;
+  background: linear-gradient(160deg, #f59e0b, #b45309); color: #fff;
+  font-size: 1.35em; font-weight: 900;
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.3);
+}
+.recovery-ticket-digit-note { display: block; color: #a16207; font-size: 0.8rem; font-weight: 800; }
+.recovery-ticket-digit-note b { font-size: 1.15em; }
+
+/* 추첨 방식·시간·선물 안내 */
+.recovery-draw-guide { display: grid; gap: 8px; margin: 14px 0 4px; text-align: left; }
+.recovery-draw-guide > div {
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card);
+}
+.recovery-draw-guide dt { font-size: 0.78rem; font-weight: 850; color: var(--muted); }
+.recovery-draw-guide dd { margin: 3px 0 0; font-size: 0.86rem; font-weight: 700; word-break: keep-all; }
+
 .recovery-winner { margin-top: 12px; color: #a16207; font-size: 1.05rem; font-weight: 900; }
 .recovery-result-card { border-color: #f0c14b; background: linear-gradient(150deg, var(--amber-bg), var(--card)); }
 .recovery-result-card .recovery-winning-digit { margin: 12px auto; }
