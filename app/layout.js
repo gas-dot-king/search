@@ -1,6 +1,7 @@
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 import Footer from "@/components/Footer";
+import RecoveryOverlay from "@/components/RecoveryOverlay";
 
 export const metadata = {
   title: "YSRC SUMMER FEST 2026 — 온라인 위크 이벤트",
@@ -46,6 +47,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <InstallPrompt />
+        <RecoveryOverlay />
         {children}
         <Footer />
       </body>

@@ -17,6 +17,7 @@ import ItemsCard from "@/components/admin/ItemsCard";
 import EventGuideCard from "@/components/admin/EventGuideCard";
 import FourLineCard from "@/components/admin/FourLineCard";
 import GuestbookCard from "@/components/admin/GuestbookCard";
+import RecoveryEventCard from "@/components/admin/RecoveryEventCard";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -138,6 +139,8 @@ export default function AdminPage() {
       />
 
       <SettingsCard settings={overview?.settings || {}} busy={busy} setBusy={setBusy} onChanged={loadOverview} />
+
+      <RecoveryEventCard />
 
       <CollapsibleCard
         title="📢 공지"

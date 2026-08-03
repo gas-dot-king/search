@@ -18,6 +18,7 @@ import { buildEventStats } from "@/lib/stats";
 import { getAllProgress, invalidateBingoHallCache } from "@/lib/progress";
 import { serializeEventGuide } from "@/lib/event";
 import { fourLineAchievements, mergeFourLineAwards } from "@/lib/hall";
+import { normalizeRecoveryEvent, recoveryState, RECOVERY_STATES, recoveryTicketDigit, recoveryTicketLabel, serializeRecoveryEvent } from "@/lib/recovery";
 import { demoAdminAction } from "@/lib/demoAdmin";
 import {
   currentLottoRound,
@@ -31,6 +32,7 @@ import {
   demoLottoRound,
   demoProgress,
   demoRecentUploads,
+  demoRecoveryAdmin,
   demoSettings,
   isDemoMode,
 } from "@/lib/demo";
@@ -63,6 +65,7 @@ export const GET = route(async (req) => {
     }
     if (action === "user") return demoAdminUser(url.searchParams.get("id"));
     if (action === "lotto_round") return demoLottoRound();
+    if (action === "recovery") return demoRecoveryAdmin();
     if (action === "recent") {
       return demoRecentUploads(url.searchParams.get("before"), RECENT_PAGE_SIZE);
     }
@@ -118,6 +121,31 @@ export const GET = route(async (req) => {
     return Response.json(await lottoRoundState(await getSettings()), {
       headers: { "Cache-Control": "no-store", "Vary": "Cookie" },
     });
+  }
+
+  if (action === "recovery") {
+    const settings = await getSettings();
+    const event = normalizeRecoveryEvent(settings.recovery_event);
+    const { data, error } = await sb()
+      .from("recovery_entries")
+      .select("ticket_no, user_id, note, created_at, photo_path, users ( nickname )")
+      .eq("event_key", event.key)
+      .order("created_at");
+    requireDbSuccess(error, "복구 인증 목록을 불러오지 못했습니다");
+    return Response.json({
+      event,
+      state: recoveryState(event),
+      entries: (data || []).map((row) => ({
+        ticketNo: row.ticket_no,
+        ticket: recoveryTicketLabel(row.ticket_no),
+        digit: recoveryTicketDigit(row.ticket_no),
+        userId: row.user_id,
+        nickname: row.users?.nickname || "?",
+        note: row.note || "",
+        createdAt: row.created_at,
+        photoPath: row.photo_path,
+      })),
+    }, { headers: { "Cache-Control": "no-store", "Vary": "Cookie" } });
   }
 
   if (action === "overview") {
@@ -234,6 +262,40 @@ export const POST = route(async (req) => {
   }
 
   switch (body.action) {
+    case "draw_recovery_digit": {
+      const settings = await getSettings();
+      const event = normalizeRecoveryEvent(settings.recovery_event);
+      if (recoveryState(event) !== RECOVERY_STATES.ENDED) {
+        throw new ApiError("복구 시간이 끝난 뒤에 숫자를 추첨할 수 있어요.", 409);
+      }
+      if (event.winningDigit !== "") return { ok: true, digit: Number(event.winningDigit), alreadyDrawn: true };
+      const { data: rows, error } = await sb()
+        .from("recovery_entries")
+        .select("ticket_no, users ( nickname )")
+        .eq("event_key", event.key);
+      requireDbSuccess(error, "복구 접수 목록을 불러오지 못했습니다");
+      if (!rows?.length) throw new ApiError("아직 복구 인증 접수가 없습니다.", 409);
+      const digits = [...new Set(rows.map((row) => recoveryTicketDigit(row.ticket_no)))];
+      const digit = digits[crypto.randomInt(digits.length)];
+      const nextEvent = { ...event, winningDigit: String(digit) };
+      const { data: updated, error: updateError } = await sb()
+        .from("settings")
+        .update({ value: serializeRecoveryEvent(nextEvent) })
+        .eq("key", "recovery_event")
+        .eq("value", settings.recovery_event || "")
+        .select("key")
+        .maybeSingle();
+      if (updateError) throw new ApiError("복구 숫자를 저장하지 못했습니다.", 500);
+      if (!updated) throw new ApiError("복구 숫자가 이미 추첨되었거나 설정이 없습니다.", 409);
+      invalidateSettingsCache();
+      return {
+        ok: true,
+        digit,
+        winners: rows
+          .filter((row) => recoveryTicketDigit(row.ticket_no) === digit)
+          .map((row) => ({ nickname: row.users?.nickname || "?", ticket: recoveryTicketLabel(row.ticket_no) })),
+      };
+    }
     case "set_setting": {
       if (!EDITABLE_KEYS.includes(body.key)) throw new ApiError("수정할 수 없는 설정입니다.");
       if (body.key === "upload_start" || body.key === "upload_end") {
@@ -360,11 +422,12 @@ export const POST = route(async (req) => {
       const userId = String(body.userId || "");
       if (!userId) throw new ApiError("회원이 지정되지 않았습니다.");
 
-      const [{ data: cells, error: cellsError }, { data: entries, error: entriesError }] = await Promise.all([
+      const [{ data: cells, error: cellsError }, { data: entries, error: entriesError }, { data: recovery, error: recoveryError }] = await Promise.all([
         sb().from("cells").select("photo_path").eq("user_id", userId).not("photo_path", "is", null),
         sb().from("lotto_entries").select("photo_path").eq("user_id", userId),
+        sb().from("recovery_entries").select("photo_path").eq("user_id", userId),
       ]);
-      requireDbSuccess(cellsError || entriesError, "회원 사진을 확인하지 못했습니다");
+      requireDbSuccess(cellsError || entriesError || recoveryError, "회원 사진을 확인하지 못했습니다");
 
       const { data: deleted, error } = await sb().from("users").delete().eq("id", userId).select("id").maybeSingle();
       if (error) throw new ApiError(error.message, 500);
@@ -375,6 +438,7 @@ export const POST = route(async (req) => {
       const cleanup = await schedulePhotoCleanup([
         ...(cells || []).flatMap((c) => [c.photo_path, thumbPathFor(c.photo_path)]),
         ...(entries || []).map((e) => e.photo_path),
+        ...(recovery || []).map((e) => e.photo_path),
       ]);
       return { ok: true, cleanupPending: cleanup.pending };
     }

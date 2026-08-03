@@ -9,6 +9,7 @@ import SettingsLink from "./SettingsLink";
 import SocialLink from "./SocialLink";
 import Modal from "./Modal";
 import { fetchPublicConfig, prefetchApiData } from "@/lib/hooks";
+import { recoveryNotice, recoveryState, RECOVERY_STATES } from "@/lib/recovery";
 import {
   NOTICE_HIDDEN_UNTIL_KEY,
   NOTICE_VISIBILITY_EVENT,
@@ -17,6 +18,9 @@ import {
 
 function dDayText(config, now = new Date()) {
   if (!config) return "";
+  const recovery = recoveryState(config.recovery, now);
+  if (recovery === RECOVERY_STATES.ACTIVE) return "🔥 복구 중";
+  if (recovery === RECOVERY_STATES.NOTICE) return "⚠️ 자정 복구";
   const start = new Date(config.uploadStart);
   const end = new Date(config.uploadEnd);
   const daysUntil = (date) => Math.ceil((date - now) / 86400000);
@@ -147,6 +151,34 @@ function NoticeBar({ notices }) {
   );
 }
 
+function RecoveryStatusBar({ event }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const state = recoveryState(event, now);
+  if (state !== RECOVERY_STATES.NOTICE && state !== RECOVERY_STATES.ACTIVE) return null;
+
+  const target = state === RECOVERY_STATES.NOTICE ? new Date(event.startAt) : new Date(event.endAt);
+  const remaining = Math.max(0, target.getTime() - now.getTime());
+  const hours = String(Math.floor(remaining / 3600000)).padStart(2, "0");
+  const minutes = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, "0");
+  const seconds = String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0");
+
+  return (
+    <Link href={state === RECOVERY_STATES.ACTIVE ? "/recovery" : "/recovery"} className={`recovery-status-bar ${state}`}>
+      <span className="recovery-status-siren" aria-hidden="true">🚨</span>
+      <span className="recovery-status-copy">
+        <strong>{state === RECOVERY_STATES.NOTICE ? "오늘 자정 긴급 복구 예정" : "인증 서버 긴급 복구 중"}</strong>
+        <small>{recoveryNotice(event, state)}</small>
+      </span>
+      <b className="recovery-status-countdown" aria-label="복구 상태까지 남은 시간">{hours}:{minutes}:{seconds}</b>
+    </Link>
+  );
+}
+
 export default function Nav({ config, configLoading = false }) {
   const pathname = usePathname();
   const [currentConfig, setCurrentConfig] = useState(config || null);
@@ -228,6 +260,7 @@ export default function Nav({ config, configLoading = false }) {
       </nav>
       <div className="top-notice-slot">
         <NoticeBar notices={currentConfig?.notices || []} />
+        <RecoveryStatusBar event={currentConfig?.recovery} />
       </div>
       <LottoDeadlineReminder config={currentConfig} />
     </>

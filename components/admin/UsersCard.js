@@ -92,8 +92,9 @@ export default function UsersCard({ users, fourLine, busy, error, onOpenUser, on
         <p className="hint">{users.length === 0 ? "아직 가입한 회원이 없습니다." : "검색 결과가 없습니다."}</p>
       ) : (
         <ul className="admin-user-list">
-          {visible.map((user) => (
+          {visible.map((user, index) => (
             <li key={user.id} className="admin-user-row">
+              <span className="admin-user-number" aria-label={`${index + 1}번`}>{index + 1}</span>
               <div className="admin-user-info">
                 <p className="admin-user-name">{user.nickname}</p>
                 <p className="admin-user-summary">
