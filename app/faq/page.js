@@ -19,7 +19,7 @@ export default function FaqPage() {
 
       <section className="faq-list" aria-label="자주 하는 질문 목록">
         {FAQ_ITEMS.map((item, index) => (
-          <details className="faq-item" key={item.question} open={index === 0}>
+          <details className="faq-item" key={item.question} open>
             <summary><span>Q{index + 1}</span>{item.question}</summary>
             <p>{item.answer}</p>
           </details>

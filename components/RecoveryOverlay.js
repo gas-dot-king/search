@@ -98,14 +98,13 @@ export default function RecoveryOverlay() {
             긴급 복구 인증센터
           </button>
         )}
-        <button type="button" className="btn ghost" onClick={close}>{active ? "상황 확인 완료" : "알겠습니다"}</button>
+        <button type="button" className="btn ghost" onClick={close}>{active ? "서버 복구 확인" : "복구 일정 접수"}</button>
       </div>
       <div className="modal-actions">
         <button type="button" className="btn ghost notice-dismiss-faq" onClick={() => { close(); router.push("/faq"); }}>
           자주 하는 질문
         </button>
       </div>
-      <p className="hint notice-dismiss-hint">닫아도 1시간 뒤에 한 번 더 알려드려요.</p>
       <div className="modal-actions">
         <button
           type="button"

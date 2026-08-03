@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import { INSTALL_PROMPT_EVENT } from "@/components/InstallPrompt";
@@ -317,7 +318,7 @@ export default function SettingsPage() {
         </p>
         <p className="settings-meta">가입일 <b>{joinedAt ? new Date(joinedAt).toLocaleString("ko-KR") : "확인 중"}</b></p>
         <div className="settings-session-action">
-          <button type="button" className="btn ghost settings-save" onClick={signOut} disabled={busy}>
+          <button type="button" className="btn ghost settings-pin-toggle" onClick={signOut} disabled={busy}>
             로그아웃
           </button>
         </div>
@@ -335,6 +336,9 @@ export default function SettingsPage() {
         >
           카카오톡 오픈채팅 연결
         </a>
+        <Link href="/faq" className="btn ghost settings-faq-button">
+          자주 하는 질문
+        </Link>
         <p className="contact-card-note">전화 문의는 페이지 맨 아래의 ‘문의하기’에서 선택할 수 있어요.</p>
       </section>
     </main>
