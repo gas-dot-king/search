@@ -5,7 +5,7 @@ import Nav from "@/components/Nav";
 import PhotoRejectedModal from "@/components/PhotoRejectedModal";
 import { api, PRIVACY_WARNING } from "@/lib/client";
 import { fetchPublicConfig, useApiData, usePhoto } from "@/lib/hooks";
-import { normalizeRecoveryEvent, recoveryState, RECOVERY_STATES } from "@/lib/recovery";
+import { normalizeRecoveryEvent, recoveryState, RECOVERY_PRIZE_NOTE, RECOVERY_STATES } from "@/lib/recovery";
 
 function pad(value) { return String(value).padStart(2, "0"); }
 
@@ -96,6 +96,7 @@ export default function RecoveryPage() {
           <div className="recovery-warning-strip">⚠️ 긴급 복구 서버 임시 접속 허용</div>
           <h2>오늘의 운동 기록을 남겨주세요</h2>
           <p className="hint">러닝·걷기·헬스·스트레칭 모두 가능해요. 본 이벤트 진행도에는 반영되지 않습니다.</p>
+          <p className="recovery-prize-note">{RECOVERY_PRIZE_NOTE}</p>
           <input ref={fileRef} type="file" accept="image/*" onChange={photo.pick} hidden />
           {photo.preview && <img className="recovery-preview" src={photo.preview} alt="복구 인증 미리보기" />}
           {photo.busy && <p className="photo-processing" role="status">복구 패킷을 압축하는 중...</p>}
@@ -126,7 +127,7 @@ export default function RecoveryPage() {
             <b>{data.entry.digit}</b>
           </div>
           <p className="hint">현재 복구 패킷 {data.count}건 접수 · 숫자 추첨 후 결과 공개</p>
-          {data.isWinner && <p className="recovery-winner">🎉 서버 복구 공로상 당첨!</p>}
+          {data.isWinner && <p className="recovery-winner">🎉 당첨! {event.prizeText}</p>}
         </section>
       )}
 

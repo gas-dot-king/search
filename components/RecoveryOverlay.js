@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Modal from "./Modal";
 import { fetchPublicConfig } from "@/lib/hooks";
-import { recoveryState, RECOVERY_STATES } from "@/lib/recovery";
-
-const SEEN_KEY = "ow_recovery_notice_seen_20260804";
+import {
+  recoveryHideKey,
+  recoveryState,
+  RECOVERY_PRIZE_NOTE,
+  RECOVERY_HIDE_DAY_MS,
+  RECOVERY_HIDE_HOUR_MS,
+  RECOVERY_STATES,
+} from "@/lib/recovery";
 
 export default function RecoveryOverlay() {
   const router = useRouter();
@@ -14,6 +19,8 @@ export default function RecoveryOverlay() {
   const [event, setEvent] = useState(null);
   const [now, setNow] = useState(() => new Date());
   const [open, setOpen] = useState(false);
+  // 저장소가 막힌 브라우저(사파리 비공개 등)에서도 닫힘이 유지되도록 메모리에도 남긴다.
+  const memoryHideRef = useRef({});
 
   useEffect(() => {
     let active = true;
@@ -28,21 +35,41 @@ export default function RecoveryOverlay() {
     return () => clearInterval(timer);
   }, []);
 
+  const hiddenUntil = useCallback((key) => {
+    const memory = memoryHideRef.current[key] || 0;
+    try {
+      const stored = Number(localStorage.getItem(key));
+      return Math.max(memory, Number.isFinite(stored) ? stored : 0);
+    } catch {
+      return memory;
+    }
+  }, []);
+
+  // 1초마다 다시 확인하므로, 숨김이 풀리는 순간 알아서 다시 뜬다.
   useEffect(() => {
     if (!event) return;
     const state = recoveryState(event, now);
-    if (state !== RECOVERY_STATES.NOTICE && state !== RECOVERY_STATES.ACTIVE) return;
-    try {
-      if (localStorage.getItem(SEEN_KEY) !== "1") setOpen(true);
-    } catch {
-      setOpen(true);
+    if (state !== RECOVERY_STATES.NOTICE && state !== RECOVERY_STATES.ACTIVE) {
+      setOpen(false);
+      return;
     }
-  }, [event, now]);
+    if (Date.now() < hiddenUntil(recoveryHideKey(event, state))) return;
+    setOpen(true);
+  }, [event, now, hiddenUntil]);
 
-  function close() {
-    try { localStorage.setItem(SEEN_KEY, "1"); } catch {}
+  const hideFor = useCallback((ms) => {
+    const key = recoveryHideKey(event, recoveryState(event, new Date()));
+    const until = Date.now() + ms;
+    memoryHideRef.current[key] = until;
+    try {
+      localStorage.setItem(key, String(until));
+    } catch {
+      // 메모리 사본만으로도 이번 방문 동안은 다시 뜨지 않는다.
+    }
     setOpen(false);
-  }
+  }, [event]);
+
+  const close = useCallback(() => hideFor(RECOVERY_HIDE_HOUR_MS), [hideFor]);
 
   if (!open || pathname?.startsWith("/admin")) return null;
   const active = recoveryState(event, now) === RECOVERY_STATES.ACTIVE;
@@ -63,6 +90,7 @@ export default function RecoveryOverlay() {
           ? "지금부터 긴급 복구에 들어갑니다. 기존 빙고·로또 인증은 잠시 쉬고 복구 인증센터만 이용해주세요."
           : "오늘 자정부터 긴급 복구에 들어갑니다. 서버를 식히는 동안 하루만 숨을 고를게요."}
       </p>
+      <p className="recovery-prize-note">{RECOVERY_PRIZE_NOTE}</p>
       <p className="recovery-fake-note">※ 실제 장애가 아닌 컨셉 이벤트입니다. 데이터는 멀쩡합니다 😎</p>
       <div className="modal-actions">
         {active && (
@@ -71,6 +99,16 @@ export default function RecoveryOverlay() {
           </button>
         )}
         <button type="button" className="btn ghost" onClick={close}>{active ? "상황 확인 완료" : "알겠습니다"}</button>
+      </div>
+      <p className="hint notice-dismiss-hint">닫아도 1시간 뒤에 한 번 더 알려드려요.</p>
+      <div className="modal-actions">
+        <button
+          type="button"
+          className="btn ghost notice-dismiss-day"
+          onClick={() => hideFor(RECOVERY_HIDE_DAY_MS)}
+        >
+          오늘 하루 보지 않기
+        </button>
       </div>
     </Modal>
   );
