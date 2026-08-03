@@ -9,7 +9,7 @@ import SettingsLink from "./SettingsLink";
 import SocialLink from "./SocialLink";
 import Modal from "./Modal";
 import { fetchPublicConfig, prefetchApiData } from "@/lib/hooks";
-import { recoveryNotice, recoveryState, RECOVERY_STATES } from "@/lib/recovery";
+import { normalizeRecoveryEvent, recoveryNotice, recoveryState, RECOVERY_STATES } from "@/lib/recovery";
 import {
   NOTICE_HIDDEN_UNTIL_KEY,
   NOTICE_VISIBILITY_EVENT,
@@ -151,12 +151,18 @@ function NoticeBar({ notices }) {
   );
 }
 
-function RecoveryStatusBar({ event }) {
+function RecoveryStatusBar({ event: rawEvent }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // 설정을 아직 못 받았으면(빌드 시 프리렌더·첫 로딩) 배너를 만들지 않는다.
+  // recoveryState()는 안에서 기본값으로 보정하지만 아래 시각은 원본에서 읽으므로,
+  // 보정된 값을 따로 만들어 두 쪽이 같은 이벤트를 보게 한다.
+  if (!rawEvent) return null;
+  const event = normalizeRecoveryEvent(rawEvent);
 
   const state = recoveryState(event, now);
   if (state !== RECOVERY_STATES.NOTICE && state !== RECOVERY_STATES.ACTIVE) return null;

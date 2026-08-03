@@ -5,7 +5,7 @@ import Nav from "@/components/Nav";
 import PhotoRejectedModal from "@/components/PhotoRejectedModal";
 import { api, PRIVACY_WARNING } from "@/lib/client";
 import { fetchPublicConfig, useApiData, usePhoto } from "@/lib/hooks";
-import { recoveryState, RECOVERY_STATES } from "@/lib/recovery";
+import { normalizeRecoveryEvent, recoveryState, RECOVERY_STATES } from "@/lib/recovery";
 
 function pad(value) { return String(value).padStart(2, "0"); }
 
@@ -33,7 +33,8 @@ export default function RecoveryPage() {
     fetchPublicConfig({ fresh: true }).then(setConfig).catch(() => {});
   }, []);
 
-  const event = data?.event || config?.recovery;
+  // 아직 아무것도 못 받았을 때도 시각 필드가 비지 않도록 보정해서 쓴다.
+  const event = normalizeRecoveryEvent(data?.event || config?.recovery);
   const state = recoveryState(event);
   const photo = usePhoto({ uploadStart: event?.startAt || null });
 
