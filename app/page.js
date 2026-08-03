@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, clearToken, getToken, takeSessionLost, TOKEN_KEY } from "@/lib/client";
 import { prefetchApiData } from "@/lib/hooks";
+import { recoveryIsActive } from "@/lib/recovery";
 
 function deadlineText(uploadEnd) {
   if (!uploadEnd) return "마감일을 확인하고 있어요";
@@ -23,6 +24,8 @@ export default function EntryPage() {
   const [uploadEnd, setUploadEnd] = useState("");
   const [sessionLost, setSessionLost] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
+  // 입장 직후 어디로 보낼지 정할 때만 쓰므로 상태가 아니라 참조로 둔다.
+  const recoveryEventRef = useRef(null);
   const [retry, setRetry] = useState(0);
 
   // 다른 화면에서 401로 밀려났다면 그 사실을 넘겨받아 이유를 알려준다.
@@ -42,9 +45,7 @@ export default function EntryPage() {
     api("/api/me")
       .then((me) => {
         if (cancelled) return;
-        // 이동할 페이지의 데이터를 미리 받아 두면 도착 즉시 화면이 뜬다.
-        if (me.hasBoard) prefetchApiData("/api/board").catch(() => {});
-        router.replace(me.hasBoard ? "/board" : "/draw");
+        afterEntry(me.hasBoard);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -66,9 +67,24 @@ export default function EntryPage() {
   useEffect(() => {
     fetch("/api/config")
       .then((response) => response.ok && response.json())
-      .then((config) => config?.uploadEnd && setUploadEnd(config.uploadEnd))
+      .then((config) => {
+        if (!config) return;
+        if (config.uploadEnd) setUploadEnd(config.uploadEnd);
+        recoveryEventRef.current = config.recovery || null;
+      })
       .catch(() => {});
   }, []);
+
+  /** 복구 중에는 빙고·로또 대신 복구 인증센터로 보낸다. */
+  function afterEntry(hasBoard) {
+    if (recoveryIsActive(recoveryEventRef.current)) {
+      router.replace("/recovery");
+      return;
+    }
+    // 이동할 페이지의 데이터를 미리 받아 두면 도착 즉시 화면이 뜬다.
+    if (hasBoard) prefetchApiData("/api/board").catch(() => {});
+    router.replace(hasBoard ? "/board" : "/draw");
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -80,8 +96,7 @@ export default function EntryPage() {
         body: JSON.stringify({ nickname, pin }),
       });
       localStorage.setItem(TOKEN_KEY, res.token);
-      if (res.hasBoard) prefetchApiData("/api/board").catch(() => {});
-      router.replace(res.hasBoard ? "/board" : "/draw");
+      afterEntry(res.hasBoard);
     } catch (err) {
       setError(err.message);
       setBusy(false);
