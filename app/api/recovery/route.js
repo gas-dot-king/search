@@ -121,8 +121,10 @@ export const GET = route(async (req) => {
 
 export const POST = route(async (req) => {
   const { user, event } = await requireUserInRecoveryPeriod(req);
-  const allowed = await takeRateLimit(req, "recovery-upload", user.id, { limit: 5, windowSeconds: 10 * 60 });
-  if (!allowed) throw new ApiError("복구 인증 요청이 너무 잦아요. 잠시 후 다시 시도해주세요.", 429);
+  // 접수는 회원당 한 건뿐이라(unique 제약) 남용 여지가 거의 없다. 제한은 사진을
+  // 반복 업로드하는 것만 막으면 되므로, 실패해서 다시 시도하는 사람이 잠기지 않게 넉넉히 둔다.
+  const allowed = await takeRateLimit(req, "recovery-upload", user.id, { limit: 15, windowSeconds: 10 * 60 });
+  if (!allowed) throw new ApiError("복구 인증 요청이 너무 잦아요. 10분 뒤에 다시 시도해주세요.", 429);
 
   const form = await req.formData().catch(() => null);
   const note = String(form?.get("note") || "").trim().slice(0, 120);

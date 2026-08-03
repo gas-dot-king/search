@@ -22,7 +22,7 @@ function Countdown({ event, state }) {
 }
 
 export default function RecoveryPage() {
-  const { data, error, reload } = useApiData("/api/recovery");
+  const { data, error, reload, setData } = useApiData("/api/recovery");
   const [config, setConfig] = useState(null);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -46,10 +46,22 @@ export default function RecoveryPage() {
       const form = new FormData();
       form.append("file", photo.file, "recovery.jpg");
       if (note.trim()) form.append("note", note.trim());
-      await api("/api/recovery", { method: "POST", body: form });
+      const result = await api("/api/recovery", { method: "POST", body: form });
       photo.clear();
       setNote("");
-      await reload();
+      // 접수 응답에 접수증이 들어 있으므로 그 자리에서 화면을 넘긴다.
+      // 다시 불러오기에 기대면, 그 조회가 실패했을 때 등록은 됐는데
+      // 화면은 그대로 제출 폼에 머무른다.
+      if (result?.entry) {
+        setData((current) => ({
+          ...(current || {}),
+          ...(result.event ? { event: result.event } : {}),
+          entry: result.entry,
+          count: (current?.count || 0) + 1,
+        }));
+      }
+      // 접수 건수·추첨 상태는 뒤에서 맞춘다. 실패해도 화면은 이미 넘어가 있다.
+      reload().catch(() => {});
     } catch (err) {
       setSubmitError(err.message);
     } finally {
