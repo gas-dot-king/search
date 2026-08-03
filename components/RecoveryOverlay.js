@@ -8,7 +8,6 @@ import {
   recoveryHideKey,
   recoveryState,
   RECOVERY_PRIZE_NOTE,
-  RECOVERY_HIDE_DAY_MS,
   RECOVERY_HIDE_HOUR_MS,
   RECOVERY_STATES,
 } from "@/lib/recovery";
@@ -35,6 +34,17 @@ export default function RecoveryOverlay() {
     return () => clearInterval(timer);
   }, []);
 
+  // 복구가 시작된 뒤에는 팝업 대신 전체 화면 톤으로 서버 상태를 알린다.
+  useEffect(() => {
+    const state = event ? recoveryState(event, now) : "before_notice";
+    document.documentElement.dataset.recoveryState = state;
+    document.body.dataset.recoveryState = state;
+    return () => {
+      delete document.documentElement.dataset.recoveryState;
+      delete document.body.dataset.recoveryState;
+    };
+  }, [event, now]);
+
   const hiddenUntil = useCallback((key) => {
     const memory = memoryHideRef.current[key] || 0;
     try {
@@ -49,7 +59,8 @@ export default function RecoveryOverlay() {
   useEffect(() => {
     if (!event) return;
     const state = recoveryState(event, now);
-    if (state !== RECOVERY_STATES.NOTICE && state !== RECOVERY_STATES.ACTIVE) {
+    // 오늘 공지 시간에만 팝업을 띄운다. 자정 이후에는 복구 화면으로 안내한다.
+    if (state !== RECOVERY_STATES.NOTICE) {
       setOpen(false);
       return;
     }
@@ -72,8 +83,6 @@ export default function RecoveryOverlay() {
   const close = useCallback(() => hideFor(RECOVERY_HIDE_HOUR_MS), [hideFor]);
 
   if (!open || pathname?.startsWith("/admin")) return null;
-  const active = recoveryState(event, now) === RECOVERY_STATES.ACTIVE;
-
   return (
     <Modal label="긴급 복구 안내" onClose={close} className="recovery-alert-modal">
       <div className="recovery-alert-light" aria-hidden="true">🚨</div>
@@ -85,33 +94,15 @@ export default function RecoveryOverlay() {
         <p><span>[DATA LOSS]</span> 0건 — 기록은 안전함</p>
         <p><span>[RECOVERY]</span> 소화기 들고 출동 중 🧯</p>
       </div>
-      <p className="recovery-alert-copy">
-        {active
-          ? "지금부터 긴급 복구에 들어갑니다. 기존 빙고·로또 인증은 잠시 쉬고 복구 인증센터만 이용해주세요."
-          : "오늘 자정부터 긴급 복구에 들어갑니다. 서버를 식히는 동안 하루만 숨을 고를게요."}
-      </p>
+      <p className="recovery-alert-copy">오늘 자정부터 긴급 복구에 들어갑니다. 서버를 식히는 동안 하루만 숨을 고를게요.</p>
       <p className="recovery-prize-note">{RECOVERY_PRIZE_NOTE}</p>
       <p className="recovery-fake-note">※ 실제 장애가 아닌 컨셉 이벤트입니다. 데이터는 멀쩡합니다 😎</p>
       <div className="modal-actions">
-        {active && (
-          <button type="button" className="btn primary" onClick={() => { close(); router.push("/recovery"); }}>
-            긴급 복구 인증센터
-          </button>
-        )}
-        <button type="button" className="btn ghost" onClick={close}>{active ? "서버 복구 확인" : "복구 일정 접수"}</button>
+        <button type="button" className="btn ghost" onClick={close}>확인했습니다.</button>
       </div>
       <div className="modal-actions">
         <button type="button" className="btn ghost notice-dismiss-faq" onClick={() => { close(); router.push("/faq"); }}>
           자주 하는 질문
-        </button>
-      </div>
-      <div className="modal-actions">
-        <button
-          type="button"
-          className="btn ghost notice-dismiss-day"
-          onClick={() => hideFor(RECOVERY_HIDE_DAY_MS)}
-        >
-          오늘 하루 보지 않기
         </button>
       </div>
     </Modal>

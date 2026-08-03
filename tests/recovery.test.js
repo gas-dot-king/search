@@ -5,6 +5,7 @@ import {
   recoveryState,
   recoveryTicketDigit,
   recoveryTicketLabel,
+  randomRecoveryTicket,
   RECOVERY_STATES,
 } from "../lib/recovery";
 
@@ -26,5 +27,11 @@ describe("긴급 복구 이벤트", () => {
   it("접수번호의 끝자리와 표시용 티켓을 만든다", () => {
     expect(recoveryTicketDigit(1047)).toBe(7);
     expect(recoveryTicketLabel(1047)).toBe("YSRC-RCV-1047");
+  });
+
+  it("복구 접수번호는 무작위 6자리 번호 범위로 만든다", () => {
+    const ticket = randomRecoveryTicket();
+    expect(ticket).toBeGreaterThanOrEqual(100000);
+    expect(ticket).toBeLessThan(1000000);
   });
 });

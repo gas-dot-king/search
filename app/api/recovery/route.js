@@ -16,6 +16,7 @@ import {
   recoveryState,
   recoveryTicketDigit,
   recoveryTicketLabel,
+  randomRecoveryTicket,
   RECOVERY_STATES,
 } from "@/lib/recovery";
 import { takeRateLimit } from "@/lib/rateLimit";
@@ -110,7 +111,7 @@ export const POST = route(async (req) => {
 
   const { data: row, error } = await sb()
     .from("recovery_entries")
-    .insert({ event_key: event.key, user_id: user.id, photo_path: path, note })
+    .insert({ event_key: event.key, user_id: user.id, ticket_no: randomRecoveryTicket(), photo_path: path, note })
     .select("ticket_no, note, photo_path, created_at")
     .single();
   if (error) {
@@ -121,4 +122,3 @@ export const POST = route(async (req) => {
 
   return { ok: true, event, entry: entryView(row, await signedUrl(path)) };
 });
-
