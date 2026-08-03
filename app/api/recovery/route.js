@@ -16,6 +16,7 @@ import {
   recoveryState,
   recoveryTicketDigit,
   recoveryTicketLabel,
+  isIdentityTicketError,
   isRecoveryTicketCollision,
 } from "@/lib/recovery";
 import { takeRateLimit } from "@/lib/rateLimit";
@@ -45,20 +46,38 @@ function resultFor(entry, event, count, winners = []) {
   };
 }
 
+/**
+ * 접수번호는 무작위 6자리로 넣는다.
+ * 다만 20260803000001 마이그레이션 전 스키마에서는 ticket_no가 identity라
+ * 직접 넣으면 거부당한다. 그때는 DB가 번호를 매기게 두고 접수는 살린다 —
+ * 이벤트 당일에 마이그레이션 하나 때문에 아무도 참여 못 하는 상황을 막는다.
+ */
 async function insertRecoveryEntry(event, userId, path, note) {
+  const base = { event_key: event.key, user_id: userId, photo_path: path, note };
+  let letDbAssignTicket = false;
   let result;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const payload = letDbAssignTicket
+      ? base
+      : { ...base, ticket_no: crypto.randomInt(100000, 1000000) };
     result = await sb()
       .from("recovery_entries")
-      .insert({
-        event_key: event.key,
-        user_id: userId,
-        ticket_no: crypto.randomInt(100000, 1000000),
-        photo_path: path,
-        note,
-      })
+      .insert(payload)
       .select("ticket_no, note, photo_path, created_at")
       .single();
+
+    if (!result.error) return result;
+
+    if (!letDbAssignTicket && isIdentityTicketError(result.error)) {
+      console.error(
+        "[recovery] ticket_no가 아직 identity 컬럼입니다. " +
+        "supabase/migrations/20260803000001_random_recovery_tickets.sql 을 실행하세요. " +
+        "그전까지는 접수번호를 DB가 순번으로 매깁니다."
+      );
+      letDbAssignTicket = true;
+      continue;
+    }
     if (!isRecoveryTicketCollision(result.error)) return result;
   }
   return result;
@@ -132,6 +151,8 @@ export const POST = route(async (req) => {
     await schedulePhotoCleanup([path]);
     if (isRecoveryTicketCollision(error)) throw new ApiError("접수번호를 만들지 못했어요. 잠시 후 다시 시도해주세요.", 409);
     if (error.code === "23505") throw new ApiError("이미 긴급 복구 인증을 제출했어요.", 409);
+    // 원본 오류를 남기지 않으면 운영 중에 원인을 좁힐 수 없다.
+    console.error("[recovery] insert failed", { code: error.code, message: error.message, details: error.details });
     throw new ApiError("복구 인증을 저장하지 못했습니다.", 500);
   }
 
