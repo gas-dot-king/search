@@ -9,7 +9,14 @@ import SettingsLink from "./SettingsLink";
 import SocialLink from "./SocialLink";
 import Modal from "./Modal";
 import { fetchPublicConfig, prefetchApiData } from "@/lib/hooks";
-import { normalizeRecoveryEvent, recoveryNotice, recoveryState, RECOVERY_STATES } from "@/lib/recovery";
+import {
+  isRecoveryGatedPath,
+  normalizeRecoveryEvent,
+  recoveryIsActive,
+  recoveryNotice,
+  recoveryState,
+  RECOVERY_STATES,
+} from "@/lib/recovery";
 import {
   NOTICE_HIDDEN_UNTIL_KEY,
   NOTICE_VISIBILITY_EVENT,
@@ -218,7 +225,12 @@ export default function Nav({ config, configLoading = false }) {
     ["/event", "오프라인 행사"],
   ];
 
+  // 복구 중에는 메뉴가 복구 인증센터를 가리킨다. 눌렀다가 되돌려보내는 것보다
+  // 처음부터 그리로 보내는 편이 깜빡임도 없고 정직하다.
+  const gated = recoveryIsActive(currentConfig?.recovery);
+
   const prefetchMenu = (href) => {
+    if (gated) return;
     const apiPath = href === "/board" ? "/api/board" : href === "/lotto" ? "/api/lotto" : null;
     if (apiPath) prefetchApiData(apiPath).catch(() => {});
   };
@@ -254,7 +266,7 @@ export default function Nav({ config, configLoading = false }) {
           {links.map(([href, label]) => (
             <Link
               key={href}
-              href={href}
+              href={gated && isRecoveryGatedPath(href) ? "/recovery" : href}
               className={pathname === href ? "active" : ""}
               onMouseEnter={() => prefetchMenu(href)}
               onFocus={() => prefetchMenu(href)}

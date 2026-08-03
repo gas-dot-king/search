@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchPublicConfig } from "@/lib/hooks";
-import { isRecoveryGatedPath, recoveryIsActive } from "@/lib/recovery";
+import { isRecoveryGatedPath, msUntilRecoveryChange, recoveryIsActive } from "@/lib/recovery";
 
 /**
  * 긴급 복구가 진행 중인 동안 회원이 어디를 눌러도 복구 인증센터로 보낸다.
@@ -26,13 +26,18 @@ export default function RecoveryGate() {
 
   useEffect(() => {
     if (!event || !isRecoveryGatedPath(pathname)) return;
-    // 복구가 끝나는 순간 원래 화면으로 돌아갈 수 있어야 하므로 주기적으로 다시 본다.
-    const check = () => {
+    if (recoveryIsActive(event)) {
+      router.replace("/recovery");
+      return;
+    }
+    // 매초 확인할 이유가 없다. 복구가 시작되는 시각에 딱 한 번만 깨어난다.
+    // (그 전에 화면을 옮기면 이 효과가 정리되고 새 경로에서 다시 잡힌다)
+    const wait = msUntilRecoveryChange(event);
+    if (wait === null) return;
+    const timer = setTimeout(() => {
       if (recoveryIsActive(event)) router.replace("/recovery");
-    };
-    check();
-    const timer = setInterval(check, 1000);
-    return () => clearInterval(timer);
+    }, wait + 250);
+    return () => clearTimeout(timer);
   }, [event, pathname, router]);
 
   return null;
