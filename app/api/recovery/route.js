@@ -16,8 +16,7 @@ import {
   recoveryState,
   recoveryTicketDigit,
   recoveryTicketLabel,
-  randomRecoveryTicket,
-  RECOVERY_STATES,
+  isRecoveryTicketCollision,
 } from "@/lib/recovery";
 import { takeRateLimit } from "@/lib/rateLimit";
 
@@ -44,6 +43,25 @@ function resultFor(entry, event, count, winners = []) {
     winners,
     isWinner: Boolean(entry && winningDigit !== null && entry.digit === winningDigit),
   };
+}
+
+async function insertRecoveryEntry(event, userId, path, note) {
+  let result;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    result = await sb()
+      .from("recovery_entries")
+      .insert({
+        event_key: event.key,
+        user_id: userId,
+        ticket_no: crypto.randomInt(100000, 1000000),
+        photo_path: path,
+        note,
+      })
+      .select("ticket_no, note, photo_path, created_at")
+      .single();
+    if (!isRecoveryTicketCollision(result.error)) return result;
+  }
+  return result;
 }
 
 export const GET = route(async (req) => {
@@ -109,13 +127,10 @@ export const POST = route(async (req) => {
   const path = `recovery/${event.key}/${user.id}/${crypto.randomUUID()}.jpg`;
   await uploadPhoto(path, buffer);
 
-  const { data: row, error } = await sb()
-    .from("recovery_entries")
-    .insert({ event_key: event.key, user_id: user.id, ticket_no: randomRecoveryTicket(), photo_path: path, note })
-    .select("ticket_no, note, photo_path, created_at")
-    .single();
+  const { data: row, error } = await insertRecoveryEntry(event, user.id, path, note);
   if (error) {
     await schedulePhotoCleanup([path]);
+    if (isRecoveryTicketCollision(error)) throw new ApiError("접수번호를 만들지 못했어요. 잠시 후 다시 시도해주세요.", 409);
     if (error.code === "23505") throw new ApiError("이미 긴급 복구 인증을 제출했어요.", 409);
     throw new ApiError("복구 인증을 저장하지 못했습니다.", 500);
   }

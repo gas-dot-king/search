@@ -20,6 +20,7 @@ export default function RecoveryOverlay() {
   const [open, setOpen] = useState(false);
   // 저장소가 막힌 브라우저(사파리 비공개 등)에서도 닫힘이 유지되도록 메모리에도 남긴다.
   const memoryHideRef = useRef({});
+  const recoveryStateRef = useRef("");
 
   useEffect(() => {
     let active = true;
@@ -36,14 +37,17 @@ export default function RecoveryOverlay() {
 
   // 복구가 시작된 뒤에는 팝업 대신 전체 화면 톤으로 서버 상태를 알린다.
   useEffect(() => {
-    const state = event ? recoveryState(event, now) : "before_notice";
+    const state = event ? recoveryState(event, now) : RECOVERY_STATES.BEFORE_NOTICE;
+    if (recoveryStateRef.current === state) return;
+    recoveryStateRef.current = state;
     document.documentElement.dataset.recoveryState = state;
     document.body.dataset.recoveryState = state;
-    return () => {
-      delete document.documentElement.dataset.recoveryState;
-      delete document.body.dataset.recoveryState;
-    };
   }, [event, now]);
+
+  useEffect(() => () => {
+    delete document.documentElement.dataset.recoveryState;
+    delete document.body.dataset.recoveryState;
+  }, []);
 
   const hiddenUntil = useCallback((key) => {
     const memory = memoryHideRef.current[key] || 0;
@@ -64,12 +68,12 @@ export default function RecoveryOverlay() {
       setOpen(false);
       return;
     }
-    if (Date.now() < hiddenUntil(recoveryHideKey(event, state))) return;
+    if (Date.now() < hiddenUntil(recoveryHideKey(event))) return;
     setOpen(true);
   }, [event, now, hiddenUntil]);
 
   const hideFor = useCallback((ms) => {
-    const key = recoveryHideKey(event, recoveryState(event, new Date()));
+    const key = recoveryHideKey(event);
     const until = Date.now() + ms;
     memoryHideRef.current[key] = until;
     try {

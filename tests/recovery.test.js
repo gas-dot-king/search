@@ -6,6 +6,7 @@ import {
   recoveryTicketDigit,
   recoveryTicketLabel,
   randomRecoveryTicket,
+  isRecoveryTicketCollision,
   RECOVERY_STATES,
 } from "../lib/recovery";
 
@@ -30,8 +31,12 @@ describe("긴급 복구 이벤트", () => {
   });
 
   it("복구 접수번호는 무작위 6자리 번호 범위로 만든다", () => {
-    const ticket = randomRecoveryTicket();
-    expect(ticket).toBeGreaterThanOrEqual(100000);
-    expect(ticket).toBeLessThan(1000000);
+    expect(randomRecoveryTicket(() => 0)).toBe(100000);
+    expect(randomRecoveryTicket(() => 0.999999)).toBe(999999);
+  });
+
+  it("접수번호 PK 충돌과 회원 중복 충돌을 구분한다", () => {
+    expect(isRecoveryTicketCollision({ code: "23505", message: "recovery_entries_pkey" })).toBe(true);
+    expect(isRecoveryTicketCollision({ code: "23505", message: "recovery_entries_event_key_user_id_key" })).toBe(false);
   });
 });
