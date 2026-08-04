@@ -19,7 +19,7 @@ import {
 } from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 import { sanitizePhotoMetadata } from "@/lib/exif";
-import { takenBeforeEvent } from "@/lib/photoReview";
+import { takenBeforeEvent, takenBeforeToday } from "@/lib/photoReview";
 import { getSettings } from "@/lib/settings";
 import { formatKoreanDateTime } from "@/lib/period";
 import { dailyLimitMessage, todayInSeoul } from "@/lib/bingo";
@@ -60,18 +60,26 @@ function readPhotoMeta(form) {
 }
 
 /**
- * 이벤트 기간 전에 찍은 사진을 거른다.
+ * 규칙상 인증이 될 수 없는 사진을 거른다.
+ * 이벤트 기간 전 촬영과, 오늘(한국 시간) 찍지 않은 사진 두 가지다.
  *
  * 촬영 정보는 브라우저가 보내 주는 값이라 마음먹으면 빼고 보낼 수 있다. 그래서 이 검사는
  * 부정을 막는 울타리가 아니라, 화면을 우회했거나 브라우저가 이상하게 동작한 경우를
  * 서버에서도 한 번 더 잡는 정도다. 최종 판단은 운영진이 검토 큐에서 한다.
  */
-function rejectIfBeforeEvent(photoMeta, settings) {
-  if (!takenBeforeEvent(photoMeta, settings?.upload_start)) return;
-  throw new ApiError(
-    `이벤트 시작(${formatKoreanDateTime(settings.upload_start)}) 전에 찍은 사진은 인증할 수 없어요. 기간에 찍은 사진으로 올려주세요.`,
-    403
-  );
+function rejectUnusablePhoto(photoMeta, settings) {
+  if (takenBeforeEvent(photoMeta, settings?.upload_start)) {
+    throw new ApiError(
+      `이벤트 시작(${formatKoreanDateTime(settings.upload_start)}) 전에 찍은 사진은 인증할 수 없어요. 기간에 찍은 사진으로 올려주세요.`,
+      403
+    );
+  }
+  if (takenBeforeToday(photoMeta)) {
+    throw new ApiError(
+      "빙고 인증은 오늘 찍은 사진만 올릴 수 있어요. 어제 이전에 찍은 사진은 인증되지 않아요.",
+      403
+    );
+  }
 }
 
 async function findCell(userId, position) {
@@ -95,7 +103,7 @@ export const POST = route(async (req) => {
 
   // 사진을 저장소에 올리기 전에 판단해야 헛일과 뒷정리가 안 생긴다.
   const photoMeta = readPhotoMeta(form);
-  rejectIfBeforeEvent(photoMeta, await getSettings());
+  rejectUnusablePhoto(photoMeta, await getSettings());
 
   if (isDemoMode()) {
     if (!form?.get("file")) throw new ApiError("사진 파일이 없습니다.");

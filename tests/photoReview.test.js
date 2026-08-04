@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   photoReview,
   matchesReviewFilter,
+  startOfSeoulDay,
   takenBeforeEvent,
+  takenBeforeToday,
   REVIEW_FILTERS,
 } from "../lib/photoReview";
 
@@ -154,5 +156,50 @@ describe("검토 큐 필터", () => {
   it("촬영정보 없음은 EXIF가 없는 사진만 남긴다", () => {
     expect(matchesReviewFilter(bare, REVIEW_FILTERS.NO_META, EVENT_START)).toBe(true);
     expect(matchesReviewFilter(normal, REVIEW_FILTERS.NO_META, EVENT_START)).toBe(false);
+  });
+});
+
+describe("당일 촬영 판정 (빙고 인증)", () => {
+  // 한국 시간 8월 4일 오전 10시
+  const NOW = new Date("2026-08-04T01:00:00Z");
+
+  it("한국 시간 자정을 기준선으로 잡는다", () => {
+    expect(new Date(startOfSeoulDay(NOW)).toISOString()).toBe("2026-08-03T15:00:00.000Z");
+  });
+
+  it("UTC 자정을 넘긴 새벽에도 같은 한국 날짜를 본다", () => {
+    // 한국 8/4 오전 8시 = UTC 8/3 23시. 날짜를 UTC로 세면 8/3이 되어 하루 어긋난다.
+    const earlyMorning = new Date("2026-08-03T23:00:00Z");
+    expect(startOfSeoulDay(earlyMorning)).toBe(startOfSeoulDay(NOW));
+  });
+
+  it("어제 찍은 사진은 막는다", () => {
+    expect(takenBeforeToday({ takenAt: "2026-08-03T22:30:00" }, NOW)).toBe(true);
+    expect(takenBeforeToday({ takenAt: "2026-08-03T23:59:59" }, NOW)).toBe(true);
+  });
+
+  it("오늘 찍은 사진은 통과시킨다", () => {
+    expect(takenBeforeToday({ takenAt: "2026-08-04T00:00:00" }, NOW)).toBe(false);
+    expect(takenBeforeToday({ takenAt: "2026-08-04T05:30:00" }, NOW)).toBe(false);
+    expect(takenBeforeToday({ takenAt: "2026-08-04T09:59:00" }, NOW)).toBe(false);
+  });
+
+  it("기기 시계가 앞서 미래로 찍힌 사진은 막지 않는다", () => {
+    // 몇 분 빠른 시계 때문에 정상 인증이 거절되는 쪽이 더 나쁘다.
+    expect(takenBeforeToday({ takenAt: "2026-08-04T23:00:00" }, NOW)).toBe(false);
+  });
+
+  it("촬영 정보가 없으면 막지 않는다", () => {
+    // 러닝 앱 화면 캡처에는 EXIF가 없다. 막으면 기록 달성 칸을 아무도 못 채운다.
+    expect(takenBeforeToday(null, NOW)).toBe(false);
+    expect(takenBeforeToday({}, NOW)).toBe(false);
+    expect(takenBeforeToday({ make: "Apple" }, NOW)).toBe(false);
+  });
+
+  it("기기가 남긴 시간대를 반영해서 판정한다", () => {
+    // UTC로 8/3 20:00에 찍힌 사진은 한국 시간 8/4 05:00이라 오늘이다.
+    expect(takenBeforeToday({ takenAt: "2026-08-03T20:00:00", utcOffset: "+00:00" }, NOW)).toBe(false);
+    // 같은 벽시계 값이라도 한국에서 찍혔다면 어제다.
+    expect(takenBeforeToday({ takenAt: "2026-08-03T20:00:00", utcOffset: "+09:00" }, NOW)).toBe(true);
   });
 });
