@@ -19,7 +19,7 @@ import {
 } from "@/lib/api";
 import { demoRemoveUpload, demoUpload, isDemoMode } from "@/lib/demo";
 import { sanitizePhotoMetadata } from "@/lib/exif";
-import { takenBeforeEvent, takenBeforeToday } from "@/lib/photoReview";
+import { takenBeforeEvent, takenBeforeRecentDays } from "@/lib/photoReview";
 import { getSettings } from "@/lib/settings";
 import { formatKoreanDateTime } from "@/lib/period";
 import { dailyLimitMessage, todayInSeoul } from "@/lib/bingo";
@@ -61,7 +61,7 @@ function readPhotoMeta(form) {
 
 /**
  * 규칙상 인증이 될 수 없는 사진을 거른다.
- * 이벤트 기간 전 촬영과, 오늘(한국 시간) 찍지 않은 사진 두 가지다.
+ * 이벤트 기간 전 촬영과, 오늘·어제(한국 시간)보다 오래된 사진 두 가지다.
  *
  * 촬영 정보는 브라우저가 보내 주는 값이라 마음먹으면 빼고 보낼 수 있다. 그래서 이 검사는
  * 부정을 막는 울타리가 아니라, 화면을 우회했거나 브라우저가 이상하게 동작한 경우를
@@ -74,9 +74,9 @@ function rejectUnusablePhoto(photoMeta, settings) {
       403
     );
   }
-  if (takenBeforeToday(photoMeta)) {
+  if (takenBeforeRecentDays(photoMeta)) {
     throw new ApiError(
-      "빙고 인증은 오늘 찍은 사진만 올릴 수 있어요. 어제 이전에 찍은 사진은 인증되지 않아요.",
+      "빙고 인증은 오늘이나 어제 찍은 사진만 올릴 수 있어요. 그 이전에 찍은 사진은 인증되지 않아요.",
       403
     );
   }

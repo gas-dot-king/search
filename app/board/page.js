@@ -6,7 +6,7 @@ import Nav from "@/components/Nav";
 import ItemsList from "@/components/ItemsList";
 import Modal from "@/components/Modal";
 import PhotoRejectedModal from "@/components/PhotoRejectedModal";
-import { api, PRIVACY_WARNING, METADATA_NOTICE, CATEGORY_RULE, SAME_DAY_RULE } from "@/lib/client";
+import { api, PRIVACY_WARNING, METADATA_NOTICE, CATEGORY_RULE, RECENT_PHOTO_RULE } from "@/lib/client";
 import { useApiData, usePhoto, useUploadPeriod } from "@/lib/hooks";
 import { countLines, getNearCompleteLines, LINES } from "@/lib/bingo";
 import { downloadBoardImage } from "@/lib/boardImage";
@@ -24,8 +24,8 @@ export default function BoardPage() {
   const { data: board, error: loadError, reload, setData } = useApiData("/api/board");
   const period = useUploadPeriod();
   // 이벤트 시작 전에 찍은 사진은 고르는 순간 되돌려보낸다.
-  // 빙고 인증은 당일 사진만 받는다 (로또 응모는 기간 안이면 되므로 이 옵션을 쓰지 않는다)
-  const photo = usePhoto({ uploadStart: period.config?.uploadStart || null, sameDayOnly: true });
+  // 빙고 인증은 오늘·어제 찍은 사진만 받는다 (로또 응모는 기간 안이면 되므로 이 옵션을 쓰지 않는다)
+  const photo = usePhoto({ uploadStart: period.config?.uploadStart || null, recentOnly: true });
   const [selected, setSelected] = useState(null); // 선택된 칸
   const [showItems, setShowItems] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
@@ -373,7 +373,7 @@ export default function BoardPage() {
                   <br />
                   {PHOTO_EXAMPLES[selected.category]}
                 </div>
-                <div className="warn-box">{SAME_DAY_RULE}</div>
+                <div className="warn-box">{RECENT_PHOTO_RULE}</div>
                 <div className="warn-box">{PRIVACY_WARNING}</div>
                 <div className="rule-box" style={{ marginTop: 0 }}>{METADATA_NOTICE}</div>
               </>
